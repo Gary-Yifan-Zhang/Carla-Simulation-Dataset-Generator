@@ -71,7 +71,6 @@ def spawn_dataset(data):
 
             pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, extrinsic)
             if pc_label_kitti is not None:
-                print(pc_label_kitti)
                 pc_labels_kitti.append(pc_label_kitti)
 
         data["agents_data"][agent]["rgb_image"] = rgb_image

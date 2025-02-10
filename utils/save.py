@@ -141,33 +141,37 @@ def save_calibration_matrices(transform, filename, intrinsic_mat):
 
     camera_transform = transform[0]
     lidar_transform = transform[1]
-    # pitch yaw rool
+
+    # 提取平移信息
+    camera_translation = np.array([camera_transform.location.x, camera_transform.location.y, camera_transform.location.z])
+    lidar_translation = np.array([lidar_transform.location.x, lidar_transform.location.y, lidar_transform.location.z])
+
+    # 计算旋转角度
     b = math.radians(lidar_transform.rotation.pitch - camera_transform.rotation.pitch)
     x = math.radians(lidar_transform.rotation.yaw - camera_transform.rotation.yaw)
-    a = math.radians(lidar_transform.rotation.roll - lidar_transform.rotation.roll)
+    a = math.radians(lidar_transform.rotation.roll - camera_transform.rotation.roll)
     R0 = np.identity(3)
 
+    # 计算旋转矩阵
     TR = np.array([[math.cos(b) * math.cos(x), math.cos(b) * math.sin(x), -math.sin(b)],
                    [-math.cos(a) * math.sin(x) + math.sin(a) * math.sin(b) * math.cos(x),
                     math.cos(a) * math.cos(x) + math.sin(a) * math.sin(b) * math.sin(x), math.sin(a) * math.cos(b)],
                    [math.sin(a) * math.sin(x) + math.cos(a) * math.sin(b) * math.cos(x),
                     -math.sin(a) * math.cos(x) + math.cos(a) * math.sin(b) * math.sin(x), math.cos(a) * math.cos(b)]])
-    TR_velodyne = np.dot(TR, np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]]))
 
+    # 计算激光雷达到相机的变换矩阵
+    TR_velodyne = np.dot(TR, np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]]))
     TR_velodyne = np.dot(np.array([[0, 1, 0], [0, 0, -1], [1, 0, 0]]), TR_velodyne)
 
-    '''
-    TR_velodyne = np.array([[0, -1, 0],
-                            [0, 0, -1],
-                            [1, 0, 0]])
-    '''
-    # Add translation vector from velo to camera. This is 0 because the position of camera and lidar is equal in our
-    # configuration.
-    TR_velodyne = np.column_stack((TR_velodyne, np.array([0, 0, 0])))
+    # 添加平移向量
+    translation = lidar_translation - camera_translation  # 计算平移向量
+    TR_velodyne = np.column_stack((TR_velodyne, translation))  # 将平移向量添加到变换矩阵中
+
+    # 处理IMU到激光雷达的变换矩阵
     TR_imu_to_velo = np.identity(3)
     TR_imu_to_velo = np.column_stack((TR_imu_to_velo, np.array([0, 0, 0])))
 
-    # All matrices are written on a line with spacing
+    # 保存矩阵到文件
     with open(filename, 'w') as f:
         for i in range(4):  # Avod expects all 4 P-matrices even though we only use the first
             write_flat(f, "P" + str(i), P0)

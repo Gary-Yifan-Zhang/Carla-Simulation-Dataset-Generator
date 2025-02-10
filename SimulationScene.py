@@ -188,8 +188,8 @@ class SimulationScene:
                 sensor_bp.set_attribute(attr, str(val))
             config_transform = config["TRANSFORM"]
             carla_transform = config_transform_to_carla_transform(config_transform)
-            sensor = self.world.spawn_actor(sensor_bp, carla_transform, attach_to=agent)
-            self.actors["sensors"][agent].append(sensor)
+            sensor_actor = self.world.spawn_actor(sensor_bp, carla_transform, attach_to=agent)
+            self.actors["sensors"][agent].append(sensor_actor)
         self.world.tick()
 
     def set_spectator(self):
@@ -295,3 +295,22 @@ class SimulationScene:
         dataset = spawn_dataset(data)
 
         return dataset
+
+    def read_tr_velo_to_cam(self, file_path):
+        """
+        读取 Tr_velo_to_cam 矩阵
+
+        参数：
+            file_path: 矩阵文件路径
+
+        返回：
+            np.array: 4x4 转换矩阵
+        """
+        with open(file_path, 'r') as f:
+            lines = f.readlines()
+            # 解析矩阵
+            matrix = []
+            for line in lines:
+                row = list(map(float, line.strip().split()))
+                matrix.append(row)
+            return np.array(matrix)
