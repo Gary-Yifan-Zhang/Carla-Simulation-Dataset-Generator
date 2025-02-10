@@ -1,6 +1,6 @@
 CARLA_CONFIG:
-  NUM_OF_VEHICLES: 10
-  NUM_OF_WALKERS: 5
+  NUM_OF_VEHICLES: 50
+  NUM_OF_WALKERS: 25
 
 AGENT_CONFIG:
   TRANSFORM: { location: [ 124, 226, 0.65 ], rotation: [ 0, 0, 0 ] }
@@ -8,24 +8,24 @@ AGENT_CONFIG:
 
 SENSOR_CONFIG:
   RGB:
-    TRANSFORM: { location: [ 10, 0, 4 ], rotation: [ -20, -90, 0 ]}
+    TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.rgb
-    ATTRIBUTE: { image_size_x: 720, image_size_y: 360, fov: 90 }
+    ATTRIBUTE: {image_size_x: 720, image_size_y: 360, fov: 90}
 
   DEPTH_RGB:
-    TRANSFORM: { location: [ 10, 0, 4 ], rotation: [ -20, -90, 0 ]}
-    BLUEPRINT: sensor.camera.depth
-    ATTRIBUTE: { image_size_x: 720, image_size_y: 360, fov: 90 }
+    TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 0, 0]}
+    BLUEPRINT: sensor.camera.rgb  # 修改为与RGB一致
+    ATTRIBUTE: {image_size_x: 720, image_size_y: 360, fov: 90}
 
   LIDAR:
-    TRANSFORM: { location: [ 10, 0, 4 ], rotation: [ -20, -90, 0 ]}
+    TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: { range: 70, rotation_frequency: 20, upper_fov: 40, lower_fov: -30, points_per_second: 1280000, channels: 64 }
+    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 2560000, channels: 128}
 
   SEMANTIC_LIDAR:
-    TRANSFORM: { location: [ 10, 0, 4 ], rotation: [ -20, -90, 0 ]}
+    TRANSFORM: { location: [0, 0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast_semantic
-    ATTRIBUTE: { range: 70, rotation_frequency: 20, upper_fov: 40, lower_fov: -30, points_per_second: 1280000, channels: 64 }
+    ATTRIBUTE: { range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 2560000, channels: 128 }
 
 FILTER_CONFIG:
   PRELIMINARY_FILTER_DISTANCE: 50

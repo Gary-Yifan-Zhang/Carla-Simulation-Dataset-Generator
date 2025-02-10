@@ -1,4 +1,5 @@
 from utils.utils import yaml_to_config
+import open3d as o3d
 
 config = yaml_to_config("configs.yaml")
 WINDOW_WIDTH = config["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_x"]
@@ -184,3 +185,33 @@ def point_in_canvas(point):
     if (point[0] >= 0) and (point[0] < WINDOW_HEIGHT) and (point[1] >= 0) and (point[1] < WINDOW_WIDTH):
         return True
     return False
+
+
+def draw_3d_bounding_box_on_point_cloud(point_cloud, vertices_2d):
+    """
+        在点云上绘制3D边界框
+
+            参数：
+                point_cloud：点云数据，包含(x, y, z)坐标
+                vertices_2d：3D边界框的8个顶点的像素坐标
+    """
+    # 创建Open3D点云对象
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(point_cloud)
+
+    # 创建边界框的线段
+    lines = []
+    for i in [0, 1, 2, 3, 4, 5, 6, 7]:
+        for j in [0, 1, 2, 3, 4, 5, 6, 7]:
+            if (i, j) in [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7),
+                          (4, 5), (4, 6), (5, 7), (6, 7)]:
+                lines.append([vertices_2d[i], vertices_2d[j]])
+
+    # 创建线段对象
+    line_set = o3d.geometry.LineSet()
+    line_set.points = o3d.utility.Vector3dVector(vertices_2d)
+    line_set.lines = o3d.utility.Vector2iVector(lines)
+    line_set.paint_uniform_color([1, 0, 0])  # 设置线段颜色为红色
+
+    # 可视化点云和边界框
+    o3d.visualization.draw_geometries([pcd, line_set])

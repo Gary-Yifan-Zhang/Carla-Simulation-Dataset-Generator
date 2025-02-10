@@ -158,10 +158,27 @@ class SimulationScene:
         vehicle_bp = random.choice(self.world.get_blueprint_library().filter(self.config["AGENT_CONFIG"]["BLUEPRINT"]))
         config_transform = self.config["AGENT_CONFIG"]["TRANSFORM"]
         carla_transform = config_transform_to_carla_transform(config_transform)
-        # transform = random.choice(self.world.get_map().get_spawn_points())
-        agent = self.world.spawn_actor(vehicle_bp, carla_transform)
-        agent.set_autopilot(False, self.traffic_manager.get_port())
-        self.actors["agents"].append(agent)
+        
+        # 检查生成位置是否空闲
+        spawn_points = self.world.get_map().get_spawn_points()
+        random.shuffle(spawn_points)
+        for transform in spawn_points:
+            # 检查是否有车辆在该位置附近
+            is_location_free = True
+            for actor in self.world.get_actors().filter('vehicle.*'):
+                if actor.get_location().distance(transform.location) < 2.0:
+                    is_location_free = False
+                    break
+            
+            if is_location_free:
+                try:
+                    agent = self.world.spawn_actor(vehicle_bp, transform)
+                    agent.set_autopilot(True, self.traffic_manager.get_port())
+                    self.actors["agents"].append(agent)
+                    break
+                except RuntimeError as e:
+                    logging.warning(f"Spawn failed at {transform.location}: {e}")
+                    continue
 
         # 生成config中预设的传感器
         self.actors["sensors"][agent] = []
