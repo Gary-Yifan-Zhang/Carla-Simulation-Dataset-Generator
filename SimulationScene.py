@@ -182,13 +182,17 @@ class SimulationScene:
 
         # 生成config中预设的传感器
         self.actors["sensors"][agent] = []
-        for sensor, config in self.config["SENSOR_CONFIG"].items():
+        for sensor_name, config in self.config["SENSOR_CONFIG"].items():
             sensor_bp = self.world.get_blueprint_library().find(config["BLUEPRINT"])
             for attr, val in config["ATTRIBUTE"].items():
                 sensor_bp.set_attribute(attr, str(val))
             config_transform = config["TRANSFORM"]
             carla_transform = config_transform_to_carla_transform(config_transform)
             sensor_actor = self.world.spawn_actor(sensor_bp, carla_transform, attach_to=agent)
+            
+            # 打印传感器的名字
+            print(f"Spawned sensor: {sensor_name}")
+            
             self.actors["sensors"][agent].append(sensor_actor)
         self.world.tick()
 
@@ -279,15 +283,36 @@ class SimulationScene:
             assert all(x.frame == self.frame for x in original_data)
             data["agents_data"][agent] = {}
             data["agents_data"][agent]["sensor_data"] = original_data
+            
             # 设置传感器内参（仅相机有内参）
             data["agents_data"][agent]["intrinsic"] = set_camera_intrinsic(image_width, image_height)
+            
             # 设置传感器外参
             data["agents_data"][agent]["extrinsic"] = np.mat(
                 self.actors["sensors"][agent][0].get_transform().get_matrix())
+            
             # 设置传感器的carla位姿
             data["agents_data"][agent]["transform"] = self.actors["sensors"][agent][0].get_transform()
+            
             # 设置传感器的种类
             data["agents_data"][agent]["type"] = agent
+            
+            # 获取代理的速度
+            velocity = agent.get_velocity()
+            data["agents_data"][agent]["velocity"] = {
+                "x": velocity.x,
+                "y": velocity.y,
+                "z": velocity.z
+            }
+            
+            # 获取代理的加速度
+            acceleration = agent.get_acceleration()
+            data["agents_data"][agent]["acceleration"] = {
+                "x": acceleration.x,
+                "y": acceleration.y,
+                "z": acceleration.z
+            }
+            
 
         # 根据预设距离对场景中的物体进行过滤
         data = object_filter_by_distance(data, self.config["FILTER_CONFIG"]["PRELIMINARY_FILTER_DISTANCE"])
@@ -295,22 +320,3 @@ class SimulationScene:
         dataset = spawn_dataset(data)
 
         return dataset
-
-    def read_tr_velo_to_cam(self, file_path):
-        """
-        读取 Tr_velo_to_cam 矩阵
-
-        参数：
-            file_path: 矩阵文件路径
-
-        返回：
-            np.array: 4x4 转换矩阵
-        """
-        with open(file_path, 'r') as f:
-            lines = f.readlines()
-            # 解析矩阵
-            matrix = []
-            for line in lines:
-                row = list(map(float, line.strip().split()))
-                matrix.append(row)
-            return np.array(matrix)

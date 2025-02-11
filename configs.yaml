@@ -8,19 +8,52 @@ AGENT_CONFIG:
 
 SENSOR_CONFIG:
   RGB:
-    TRANSFORM: {location: [0, 1.5, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.rgb
-    ATTRIBUTE: {image_size_x: 720, image_size_y: 360, fov: 90}
+    ATTRIBUTE:
+      image_size_x: 1280
+      image_size_y: 720
+      fov: 90
+    TRANSFORM:
+      location: [0, 0, 1.5]
+      rotation: [0, 0, 0]
+      
+  # SUB_RGB_1:
+  #   BLUEPRINT: sensor.camera.rgb
+  #   ATTRIBUTE:
+  #     image_size_x: 1280
+  #     image_size_y: 720
+  #     fov: 90
+  #   TRANSFORM:
+  #     location: [0, 0, 1.5]
+  #     rotation: [0, 90, 0]
+
+  # IMU:
+  #   BLUEPRINT: sensor.other.imu
+  #   ATTRIBUTE:
+  #     sensor_tick: 0.1
+  #   TRANSFORM:
+  #     location: [0, 0, 1.0]
+  #     rotation: [0, 0, 0]
 
   DEPTH_RGB:
     TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 0, 0]}
-    BLUEPRINT: sensor.camera.rgb  # 修改为与RGB一致
+    BLUEPRINT: sensor.camera.depth  # 修改为与RGB一致
     ATTRIBUTE: {image_size_x: 720, image_size_y: 360, fov: 90}
 
   LIDAR:
     TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast
     ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 2560000, channels: 128}
+
+  # SUB_LIDAR_1:
+  #   TRANSFORM: {location: [0, -1, 1.6], rotation: [0, 0, 0]}
+  #   BLUEPRINT: sensor.lidar.ray_cast
+  #   ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
+
+  # SUB_LIDAR_2:
+  #   TRANSFORM: {location: [0, 1, 1.6], rotation: [0, 0, 0]}
+  #   BLUEPRINT: sensor.lidar.ray_cast
+  #   ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
 
   SEMANTIC_LIDAR:
     TRANSFORM: { location: [0, 0, 1.6], rotation: [0, 0, 0]}
@@ -36,4 +69,4 @@ FILTER_CONFIG:
 
 SAVE_CONFIG:
   ROOT_PATH: data
-  STEP: 5
+  STEP: 3
