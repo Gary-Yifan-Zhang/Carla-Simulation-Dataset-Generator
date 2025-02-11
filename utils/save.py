@@ -185,3 +185,20 @@ def write_flat(file, name, arr):
     ravel_mode = 'C'
     file.write("{}: {}\n".format(name, ' '.join(
         map(str, arr.flatten(ravel_mode).squeeze()))))
+
+
+def save_ego_data(filename, transform, velocity, acceleration):
+    """
+        保存ego状态数据
+
+        参数：
+            filename：保存文件的路径
+            transform：位姿数据
+            velocity：速度数据
+            acceleration：加速度数据
+    """
+    with open(filename, 'w') as f:
+        f.write("Transform: {}\n".format(transform))
+        f.write("Velocity: {}\n".format(velocity))
+        f.write("Acceleration: {}\n".format(acceleration))
+    logging.info("Wrote ego state data to %s", filename)

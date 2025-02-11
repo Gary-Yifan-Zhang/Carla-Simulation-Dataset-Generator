@@ -12,6 +12,7 @@ class DatasetSave:
         """
         self.config = config
         self.OUTPUT_FOLDER = None
+        self.EGO_STATE_PATH = None
 
         self.CALIBRATION_PATH = None
 
@@ -34,7 +35,7 @@ class DatasetSave:
         """
         PHASE = "training"
         self.OUTPUT_FOLDER = os.path.join(root_path, PHASE)
-        folders = ['calib', 'image', 'image_label', 'bbox_img', 'velodyne', 'lidar_label']
+        folders = ['calib', 'image', 'image_label', 'bbox_img', 'velodyne', 'lidar_label', 'ego_state']
 
         for folder in folders:
             directory = os.path.join(self.OUTPUT_FOLDER, folder)
@@ -49,6 +50,7 @@ class DatasetSave:
 
         self.LIDAR_PATH = os.path.join(self.OUTPUT_FOLDER, 'velodyne/{0:06}.bin')
         self.LIDAR_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'lidar_label/{0:06}.txt')
+        self.EGO_STATE_PATH = os.path.join(self.OUTPUT_FOLDER, 'ego_state/{0:06}.txt')
 
     def get_current_files_num(self):
         """
@@ -90,6 +92,9 @@ class DatasetSave:
         lidar_filename = self.LIDAR_PATH.format(self.captured_frame_no)
         lidar_label_filename = self.LIDAR_LABEL_PATH.format(self.captured_frame_no)
 
+        # 定义ego状态数据文件名
+        ego_state_filename = os.path.join(self.EGO_STATE_PATH.format(self.captured_frame_no))
+
         for agent, dt in data["agents_data"].items():
             extrinsic = dt["extrinsic"]
 
@@ -106,5 +111,8 @@ class DatasetSave:
 
             save_lidar_data(lidar_filename, dt["sensor_data"][2], extrinsic)
             save_kitti_label_data(lidar_label_filename, dt["pc_labels_kitti"])
+
+            # 保存ego状态数据
+            save_ego_data(ego_state_filename, dt["transform"], dt["velocity"], dt["acceleration"])
 
         self.captured_frame_no += 1
