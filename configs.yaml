@@ -1,6 +1,6 @@
 CARLA_CONFIG:
   NUM_OF_VEHICLES: 50
-  NUM_OF_WALKERS: 25
+  NUM_OF_WALKERS: 50
 
 AGENT_CONFIG:
   TRANSFORM: { location: [ 124, 226, 0.65 ], rotation: [ 0, 0, 0 ] }

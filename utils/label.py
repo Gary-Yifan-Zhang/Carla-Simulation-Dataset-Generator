@@ -260,11 +260,21 @@ def obj_type(obj):
         返回：
             obj.type：CARLA物体种类
     """
+    print(obj.type_id)
     if isinstance(obj, carla.EnvironmentObject):
         return obj.type
     else:
-        if obj.type_id.find('walker') is not -1:
+        if obj.type_id.find('walker') != -1:
             return 'Pedestrian'
-        if obj.type_id.find('vehicle') is not -1:
+        if obj.type_id.find('vehicle') != -1:
+            if obj.type_id.find('crossbike') != -1:
+                return 'Bicycle'
             return 'Car'
+        # if obj.type_id.find('bicycle') != -1:
+        #     return 'Bicycle'
+        # if obj.type_id.find('motorcycle') != -1:
+        #     return 'Motorcycle'
+        # if obj.type_id.find('trafficlight') != -1:
+        #     return 'TrafficLight'
+            
         return None

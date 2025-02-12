@@ -130,7 +130,7 @@ class SimulationScene:
         for vehicle in vehicle_actors:
             vehicle.set_autopilot(True, self.traffic_manager.get_port())
 
-        # 设置行人随机运动
+        # 设置行人固定路线运动
         walker_controller_bp = self.world.get_blueprint_library().find('controller.ai.walker')
         batch = []
         for i in range(len(self.actors["walkers"])):
@@ -139,17 +139,37 @@ class SimulationScene:
         controllers_id = []
         for response in self.client.apply_batch_sync(batch, True):
             if response.error:
-                pass
+                logging.warning(f"Failed to spawn walker controller: {response.error}")
+                continue
             else:
                 controllers_id.append(response.actor_id)
-        self.world.set_pedestrians_cross_factor(0.2)
-
-        nav_points = [self.world.get_random_location_from_navigation() for _ in range(100)]
-        nav_points = sorted(nav_points, key=lambda x: str(x))  # 固定导航点顺序
+        
+        # 获取所有导航点
+        all_spawn_points = self.world.get_map().get_spawn_points()
+        
+        # 确保有足够的导航点
+        if len(all_spawn_points) < len(controllers_id):
+            raise ValueError(f"Not enough spawn points. Need {len(controllers_id)}, have {len(all_spawn_points)}")
+        
         for i, walker_id in enumerate(controllers_id):
-            destination = nav_points[i % len(nav_points)]  # 按固定顺序选择目标
-            self.world.get_actor(walker_id).go_to_location(destination)
-            self.world.get_actor(walker_id).set_max_speed(1.4 + (i % 10)*0.2)  # 固定速度变化模式
+            try:
+                controller = self.world.get_actor(walker_id)
+                # 启动控制器
+                controller.start()
+                
+                # 使用固定索引获取导航点
+                destination = all_spawn_points[i % len(all_spawn_points)].location
+                
+                # 设置目标位置
+                controller.go_to_location(destination)
+                
+                # 设置合理速度 (1.0 - 2.0 m/s)
+                speed = 1.5  # 固定速度
+                controller.set_max_speed(max(1.0, min(speed, 2.0)))
+                
+            except Exception as e:
+                logging.warning(f"Failed to configure walker {walker_id}: {str(e)}")
+                continue
 
     def spawn_agent(self):
         """
@@ -350,7 +370,6 @@ class SimulationScene:
             bv_transform = carla.Transform(transform.location + carla.Location(z=40, x=0),
                                            carla.Rotation(yaw=0, pitch=-90))
             spectator.set_transform(bv_transform)
-            print("set spectator success, transform: ", spectator.get_transform())
             return spectator
         except Exception as e:
             print(f"设置观察者位置和方向时出现错误：{e}")
