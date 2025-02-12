@@ -28,6 +28,10 @@ class SimulationScene:
         self.vehicle = None
         self.agent_transform = None
         self.agent = None
+        # 新增随机种子配置
+        self.random_seed = 42  # 固定随机种子
+        random.seed(self.random_seed)
+        np.random.seed(self.random_seed)
 
     def set_map(self):
         """
@@ -59,9 +63,8 @@ class SimulationScene:
         """
         # 生成车辆
         num_of_vehicles = self.config["CARLA_CONFIG"]["NUM_OF_VEHICLES"]
-        blueprints = self.world.get_blueprint_library().filter("vehicle.*")
-        blueprints = sorted(blueprints, key=lambda bp: bp.id)
-        spawn_points = self.world.get_map().get_spawn_points()
+        blueprints = sorted(self.world.get_blueprint_library().filter("vehicle.*"), key=lambda bp: bp.id)
+        spawn_points = sorted(self.world.get_map().get_spawn_points(), key=lambda x: str(x.location))  # 固定生成点顺序
         number_of_spawn_points = len(spawn_points)
 
         if num_of_vehicles < number_of_spawn_points:
@@ -73,10 +76,8 @@ class SimulationScene:
             num_of_vehicles = number_of_spawn_points
 
         batch = []
-        for n, transform in enumerate(spawn_points):
-            if n >= num_of_vehicles:
-                break
-            blueprint = random.choice(blueprints)
+        for n, transform in enumerate(spawn_points[:num_of_vehicles]):
+            blueprint = blueprints[n % len(blueprints)]  # 按顺序循环选择蓝图
             if blueprint.has_attribute('color'):
                 color = random.choice(blueprint.get_attribute('color').recommended_values)
                 blueprint.set_attribute('color', color)
@@ -95,20 +96,19 @@ class SimulationScene:
         # 生成行人
         num_of_walkers = self.config["CARLA_CONFIG"]["NUM_OF_WALKERS"]
         blueprintsWalkers = self.world.get_blueprint_library().filter("walker.pedestrian.*")
-        spawn_points = []
-        for i in range(num_of_walkers):
-            spawn_point = carla.Transform()
-            loc = self.world.get_random_location_from_navigation()
-            if loc is not None:
-                spawn_point.location = loc
-                spawn_points.append(spawn_point)
+        walker_locations = [self.world.get_random_location_from_navigation() for _ in range(num_of_walkers)]
+        walker_locations = sorted(walker_locations, key=lambda x: str(x))  # 固定位置顺序
 
         batch = []
-        for spawn_point in spawn_points:
+        for spawn_point in walker_locations:
             walker_bp = random.choice(blueprintsWalkers)
             if walker_bp.has_attribute('is_invincible'):
                 walker_bp.set_attribute('is_invincible', 'false')
-            batch.append(carla.command.SpawnActor(walker_bp, spawn_point))
+            transform = carla.Transform(
+                location=spawn_point,
+                rotation=carla.Rotation(yaw=0.0)  # 添加默认旋转值
+            )
+            batch.append(carla.command.SpawnActor(walker_bp, transform))
 
         for response in self.client.apply_batch_sync(batch, True):
             if response.error:
@@ -144,26 +144,24 @@ class SimulationScene:
                 controllers_id.append(response.actor_id)
         self.world.set_pedestrians_cross_factor(0.2)
 
-        for walker_id in controllers_id:
-            # 开始步行
-            self.world.get_actor(walker_id).start()
-            # 设置步行到随机目标
-            destination = self.world.get_random_location_from_navigation()
+        nav_points = [self.world.get_random_location_from_navigation() for _ in range(100)]
+        nav_points = sorted(nav_points, key=lambda x: str(x))  # 固定导航点顺序
+        for i, walker_id in enumerate(controllers_id):
+            destination = nav_points[i % len(nav_points)]  # 按固定顺序选择目标
             self.world.get_actor(walker_id).go_to_location(destination)
-            # 行人最大速度
-            self.world.get_actor(walker_id).set_max_speed(10)
+            self.world.get_actor(walker_id).set_max_speed(1.4 + (i % 10)*0.2)  # 固定速度变化模式
 
     def spawn_agent(self):
         """
             生成agent（用于放置传感器的车辆与传感器）
         """
-        vehicle_bp = random.choice(self.world.get_blueprint_library().filter(self.config["AGENT_CONFIG"]["BLUEPRINT"]))
+        spawn_points = sorted(self.world.get_map().get_spawn_points(), key=lambda x: str(x.location))  # 固定生成点顺序
+        vehicle_bp = sorted(self.world.get_blueprint_library().filter(
+            self.config["AGENT_CONFIG"]["BLUEPRINT"]), key=lambda bp: bp.id)[0]  # 固定选择第一个蓝图
         config_transform = self.config["AGENT_CONFIG"]["TRANSFORM"]
         carla_transform = config_transform_to_carla_transform(config_transform)
         
         # 检查生成位置是否空闲
-        spawn_points = self.world.get_map().get_spawn_points()
-        random.shuffle(spawn_points)
         for transform in spawn_points:
             # 检查是否有车辆在该位置附近
             is_location_free = True
