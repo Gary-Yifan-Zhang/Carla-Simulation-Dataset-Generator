@@ -34,6 +34,9 @@ def main():
         frame = 0
         # 记录步长
         step = config["SAVE_CONFIG"]["STEP"]
+        counter = 0
+        # 获取最大记录次数配置（带默认值）
+        max_record = config["SAVE_CONFIG"].get("MAX_RECORD_COUNT", float('inf'))
 
         while True:
             if frame % step == 0:
@@ -44,9 +47,16 @@ def main():
                 dataset = scene.record_tick()
                 dataset_save.save_datasets(dataset)
                 time_end = time.time()
+                counter += 1
                 print("记录完成！")
                 print("记录使用时间为%4fs" % (time_end - time_start))
+                print("当前记录次数：%d" % counter)
                 print("********************************************************")
+                
+                # 新增退出条件判断
+                if counter >= max_record:
+                    print(f"达到最大记录次数{max_record}，程序即将退出...")
+                    break
             else:
                 # 运行帧(仅更新)
                 scene.update_spectator()
