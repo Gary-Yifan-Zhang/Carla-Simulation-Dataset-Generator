@@ -4,6 +4,7 @@ from DatasetSave import DatasetSave
 import time
 
 
+
 def main():
     # 加载配置文件
     config = yaml_to_config("configs.yaml")
@@ -48,6 +49,7 @@ def main():
                 print("********************************************************")
             else:
                 # 运行帧(仅更新)
+                scene.update_spectator()
                 scene.world.tick()
 
             frame += 1

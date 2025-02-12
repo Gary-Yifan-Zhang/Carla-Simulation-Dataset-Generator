@@ -5,7 +5,7 @@ import queue
 import numpy as np
 from utils.utils import config_transform_to_carla_transform, set_camera_intrinsic, object_filter_by_distance
 from utils.label import spawn_dataset
-
+from scenario_runner import ScenarioRunner
 
 class SimulationScene:
     def __init__(self, config):
@@ -26,6 +26,8 @@ class SimulationScene:
         self.actors = {"non_agents": [], "walkers": [], "agents": [], "sensors": {}}
         self.data = {"sensor_data": {}, "environment_data": None}  # 记录每一帧的数据
         self.vehicle = None
+        self.agent_transform = None
+        self.agent = None
 
     def set_map(self):
         """
@@ -173,6 +175,12 @@ class SimulationScene:
             if is_location_free:
                 try:
                     agent = self.world.spawn_actor(vehicle_bp, transform)
+                    print("spawn agent success, transform: ", transform)
+                    self.agent = agent
+                    
+                    # 保存代理的位姿
+                    self.agent_transform = agent.get_transform()
+                    
                     agent.set_autopilot(True, self.traffic_manager.get_port())
                     self.actors["agents"].append(agent)
                     break
@@ -216,7 +224,8 @@ class SimulationScene:
                                             pitch=agent_transform.rotation.pitch + rgb_transform.rotation.pitch,
                                             roll=agent_transform.rotation.roll + rgb_transform.rotation.roll)
         spectator.set_transform(carla.Transform(spectator_location, spectator_rotation))
-
+        
+        
     def set_recover(self):
         """
             数据采集结束后，恢复默认设置
@@ -320,3 +329,30 @@ class SimulationScene:
         dataset = spawn_dataset(data)
 
         return dataset
+    
+    def get_agent_transform(self):
+        """
+            获取agent的位姿
+        """
+        self.agent_transform = self.agent.get_transform()
+        return self.agent_transform
+
+    def update_spectator(self):
+        """
+            更新观察者（spectator）的位姿，使其跟随代理。
+
+            观察者将被设置在代理的上方，以便从上方观察代理的运动。
+
+            返回：
+                spectator: 更新后的观察者对象。
+        """
+        try:
+            spectator = self.world.get_spectator()
+            transform = self.get_agent_transform()
+            bv_transform = carla.Transform(transform.location + carla.Location(z=40, x=0),
+                                           carla.Rotation(yaw=0, pitch=-90))
+            spectator.set_transform(bv_transform)
+            print("set spectator success, transform: ", spectator.get_transform())
+            return spectator
+        except Exception as e:
+            print(f"设置观察者位置和方向时出现错误：{e}")

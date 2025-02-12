@@ -99,7 +99,6 @@ class DatasetSave:
             extrinsic = dt["extrinsic"]
 
             camera_transform = config_transform_to_carla_transform(self.config["SENSOR_CONFIG"]["RGB"]["TRANSFORM"])
-            print(camera_transform)
             lidar_transform = config_transform_to_carla_transform(self.config["SENSOR_CONFIG"]["LIDAR"]["TRANSFORM"])
 
             save_ref_files(self.OUTPUT_FOLDER, self.captured_frame_no)
