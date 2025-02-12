@@ -155,7 +155,7 @@ def visualize(point_cloud, bboxes):
 if __name__ == "__main__":
     # 定义数据文件夹和文件ID
     data_folder = "data/training"
-    file_id = "000001"
+    file_id = "000026"
     
     # 定义标定文件路径
     calibration_file_path = f"{data_folder}/calib/{file_id}.txt"

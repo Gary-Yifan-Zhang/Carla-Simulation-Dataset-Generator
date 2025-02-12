@@ -8,14 +8,9 @@ AGENT_CONFIG:
 
 SENSOR_CONFIG:
   RGB:
+    TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.rgb
-    ATTRIBUTE:
-      image_size_x: 1280
-      image_size_y: 720
-      fov: 90
-    TRANSFORM:
-      location: [0, 0, 1.5]
-      rotation: [0, 0, 0]
+    ATTRIBUTE: {image_size_x: 720, image_size_y: 360, fov: 90}
       
   # SUB_RGB_1:
   #   BLUEPRINT: sensor.camera.rgb
@@ -37,7 +32,7 @@ SENSOR_CONFIG:
 
   DEPTH_RGB:
     TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 0, 0]}
-    BLUEPRINT: sensor.camera.depth  # 修改为与RGB一致
+    BLUEPRINT: sensor.camera.depth
     ATTRIBUTE: {image_size_x: 720, image_size_y: 360, fov: 90}
 
   LIDAR:
