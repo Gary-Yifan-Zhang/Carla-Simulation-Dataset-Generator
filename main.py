@@ -2,10 +2,17 @@ from utils.utils import yaml_to_config
 from SimulationScene import SimulationScene
 from DatasetSave import DatasetSave
 import time
+import argparse
 
 
 
 def main():
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description="仿真数据采集程序")
+    parser.add_argument('--no-save', action='store_true', 
+                        help="跳过数据保存步骤")
+    args = parser.parse_args()
+
     # 加载配置文件
     config = yaml_to_config("configs.yaml")
     # 初始化仿真场景
@@ -39,26 +46,25 @@ def main():
         max_record = config["SAVE_CONFIG"].get("MAX_RECORD_COUNT", float('inf'))
 
         while True:
-            if frame % step == 0:
-                # 记录帧
-                print("frame:%d" % frame)
-                print("开始记录...")
-                time_start = time.time()
-                dataset = scene.record_tick()
-                dataset_save.save_datasets(dataset)
-                time_end = time.time()
-                counter += 1
-                print("记录完成！")
-                print("记录使用时间为%4fs" % (time_end - time_start))
-                print("当前记录次数：%d" % counter)
-                print("********************************************************")
-                
-                # 新增退出条件判断
-                if counter >= max_record:
-                    print(f"达到最大记录次数{max_record}，程序即将退出...")
-                    break
+            if not args.no_save:  # 仅在非--no-save模式下进行记录
+                if frame % step == 0:
+                    print("frame:%d" % frame)
+                    print("开始记录...")
+                    time_start = time.time()
+                    dataset = scene.record_tick()
+                    dataset_save.save_datasets(dataset)
+                    time_end = time.time()
+                    counter += 1
+                    print("记录完成！")
+                    print("记录使用时间为%4fs" % (time_end - time_start))
+                    print("当前记录次数：%d" % counter)
+                    print("********************************************************")
+                    
+                    if counter >= max_record:
+                        print(f"达到最大记录次数{max_record}，程序即将退出...")
+                        break
             else:
-                # 运行帧(仅更新)
+                # --no-save模式下只更新场景
                 scene.update_spectator()
                 scene.world.tick()
 
