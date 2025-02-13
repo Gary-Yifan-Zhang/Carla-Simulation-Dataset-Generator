@@ -44,7 +44,7 @@ class DatasetSave:
 
         self.CALIBRATION_PATH = os.path.join(self.OUTPUT_FOLDER, 'calib/{0:06}.txt')
 
-        self.IMAGE_PATH = os.path.join(self.OUTPUT_FOLDER, 'image/{0:06}.png')
+        self.IMAGE_PATH = os.path.join(self.OUTPUT_FOLDER, 'image/{0:06}_camera_{1}.png')
         self.IMAGE_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'image_label/{0:06}.txt')
         self.BBOX_IMAGE_PATH = os.path.join(self.OUTPUT_FOLDER, 'bbox_img/{0:06}.png')
 
@@ -85,14 +85,15 @@ class DatasetSave:
         """
         calib_filename = self.CALIBRATION_PATH.format(self.captured_frame_no)
 
-        img_filename = self.IMAGE_PATH.format(self.captured_frame_no)
+        img_filename_0 = self.IMAGE_PATH.format(self.captured_frame_no, 0)
+        img_filename_4 = self.IMAGE_PATH.format(self.captured_frame_no, 4)
+        img_filename_5 = self.IMAGE_PATH.format(self.captured_frame_no, 5)
         img_label_filename = self.IMAGE_LABEL_PATH.format(self.captured_frame_no)
         bbox_img_filename = self.BBOX_IMAGE_PATH.format(self.captured_frame_no)
 
         lidar_filename = self.LIDAR_PATH.format(self.captured_frame_no)
         lidar_label_filename = self.LIDAR_LABEL_PATH.format(self.captured_frame_no)
 
-        # 定义ego状态数据文件名
         ego_state_filename = os.path.join(self.EGO_STATE_PATH.format(self.captured_frame_no))
 
         for agent, dt in data["agents_data"].items():
@@ -104,14 +105,15 @@ class DatasetSave:
             save_ref_files(self.OUTPUT_FOLDER, self.captured_frame_no)
 
             save_calibration_matrices([camera_transform, lidar_transform], calib_filename, dt["intrinsic"])
-            save_image_data(img_filename, dt["sensor_data"][0])
+            save_image_data(img_filename_0, dt["sensor_data"][0])
+            save_image_data(img_filename_4, dt["sensor_data"][4])
+            save_image_data(img_filename_5, dt["sensor_data"][5])
             save_kitti_label_data(img_label_filename, dt["image_labels_kitti"])
             save_bbox_image_data(bbox_img_filename, dt["bbox_img"])
 
             save_lidar_data(lidar_filename, dt["sensor_data"][2], extrinsic)
             save_kitti_label_data(lidar_label_filename, dt["pc_labels_kitti"])
 
-            # 保存ego状态数据
             save_ego_data(ego_state_filename, dt["transform"], dt["velocity"], dt["acceleration"])
 
         self.captured_frame_no += 1

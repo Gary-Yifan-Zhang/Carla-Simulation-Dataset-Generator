@@ -307,6 +307,7 @@ class SimulationScene:
 
         for agent, dataQue in self.data["sensor_data"].items():
             original_data = [self.retrieve_data(q) for q in dataQue]
+            print("original_data retrive success")
             assert all(x.frame == self.frame for x in original_data)
             data["agents_data"][agent] = {}
             data["agents_data"][agent]["sensor_data"] = original_data
@@ -340,11 +341,12 @@ class SimulationScene:
                 "z": acceleration.z
             }
             
-
+        print("Get data success")
         # 根据预设距离对场景中的物体进行过滤
         data = object_filter_by_distance(data, self.config["FILTER_CONFIG"]["PRELIMINARY_FILTER_DISTANCE"])
-
+        print("Filter data success")
         dataset = spawn_dataset(data)
+        print("Spawn dataset success")
 
         return dataset
     

@@ -210,8 +210,8 @@ def check_bbox_size(bboxes, metadata, threshold=1.0):
             # 调整边界框尺寸
             original_extent = bbox.extent
             bbox.extent = [original_extent[0],  # 高度不变
-                          original_extent[1] + 0.5,  # 宽度增加0.5
-                          original_extent[2] + 0.5]  # 长度增加0.5
+                          original_extent[1] + 0.3,  # 宽度增加0.5
+                          original_extent[2] + 0.3]  # 长度增加0.5
             print(f"  调整后尺寸: {bbox.extent}")
             print("-" * 30)
     return small_bboxes

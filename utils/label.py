@@ -37,7 +37,6 @@ def spawn_dataset(data):
         intrinsic = dataDict["intrinsic"]
         extrinsic = dataDict["extrinsic"]
         sensors_data = dataDict["sensor_data"]
-        # sensor_transform = dataDict["transform"]
 
         image_labels_kitti = []
         pc_labels_kitti = []
