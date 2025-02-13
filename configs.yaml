@@ -13,7 +13,7 @@ SENSOR_CONFIG:
     ATTRIBUTE: {image_size_x: 720, image_size_y: 360, fov: 90}
       
 
-   :
+  DEPTH_RGB:
     TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.depth
     ATTRIBUTE: {image_size_x: 720, image_size_y: 360, fov: 90}
@@ -67,6 +67,17 @@ SENSOR_CONFIG:
     TRANSFORM: {location: [0, 0.8, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast
     ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
+
+  SUB_LIDAR_3:
+    TRANSFORM: {location: [-1, -0.8, 1.6], rotation: [0, 0, 0]}
+    BLUEPRINT: sensor.lidar.ray_cast
+    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
+
+  SUB_LIDAR_4:
+    TRANSFORM: {location: [-1, 0.8, 1.6], rotation: [0, 0, 0]}
+    BLUEPRINT: sensor.lidar.ray_cast
+    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
+    
 
 FILTER_CONFIG:
   PRELIMINARY_FILTER_DISTANCE: 50

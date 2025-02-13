@@ -48,7 +48,7 @@ class DatasetSave:
         self.IMAGE_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'image_label/{0:06}.txt')
         self.BBOX_IMAGE_PATH = os.path.join(self.OUTPUT_FOLDER, 'bbox_img/{0:06}.png')
 
-        self.LIDAR_PATH = os.path.join(self.OUTPUT_FOLDER, 'velodyne/{0:06}.bin')
+        self.LIDAR_PATH = os.path.join(self.OUTPUT_FOLDER, 'velodyne/{0:06}_lidar_{1}.bin')
         self.LIDAR_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'lidar_label/{0:06}.txt')
         self.EGO_STATE_PATH = os.path.join(self.OUTPUT_FOLDER, 'ego_state/{0:06}.txt')
 
@@ -91,7 +91,12 @@ class DatasetSave:
         img_label_filename = self.IMAGE_LABEL_PATH.format(self.captured_frame_no)
         bbox_img_filename = self.BBOX_IMAGE_PATH.format(self.captured_frame_no)
 
-        lidar_filename = self.LIDAR_PATH.format(self.captured_frame_no)
+        lidar_filename = self.LIDAR_PATH.format(self.captured_frame_no, 0)
+        lidar_filename_1 = self.LIDAR_PATH.format(self.captured_frame_no, 1)
+        lidar_filename_2 = self.LIDAR_PATH.format(self.captured_frame_no, 2)
+        lidar_filename_3 = self.LIDAR_PATH.format(self.captured_frame_no, 3)
+        lidar_filename_4 = self.LIDAR_PATH.format(self.captured_frame_no, 4)
+
         lidar_label_filename = self.LIDAR_LABEL_PATH.format(self.captured_frame_no)
 
         ego_state_filename = os.path.join(self.EGO_STATE_PATH.format(self.captured_frame_no))
@@ -111,7 +116,12 @@ class DatasetSave:
             save_kitti_label_data(img_label_filename, dt["image_labels_kitti"])
             save_bbox_image_data(bbox_img_filename, dt["bbox_img"])
 
+            #TODO: 修改为保存多个雷达数据
             save_lidar_data(lidar_filename, dt["sensor_data"][2], extrinsic)
+            save_lidar_data(lidar_filename_1, dt["sensor_data"][6], extrinsic)
+            save_lidar_data(lidar_filename_2, dt["sensor_data"][7], extrinsic)
+            save_lidar_data(lidar_filename_3, dt["sensor_data"][8], extrinsic)
+            save_lidar_data(lidar_filename_4, dt["sensor_data"][9], extrinsic)
             save_kitti_label_data(lidar_label_filename, dt["pc_labels_kitti"])
 
             save_ego_data(ego_state_filename, dt["transform"], dt["velocity"], dt["acceleration"])

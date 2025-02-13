@@ -27,7 +27,9 @@ def read_point_cloud(file_path):
     返回：
         point_cloud: 读取的点云数据，形状为 (N, 3)，只包含 x, y, z 坐标。
     """
+    # print("point cloud shape:", np.fromfile(file_path, dtype=np.float32).shape)
     point_cloud = np.fromfile(file_path, dtype=np.float32).reshape(-1, 4)
+    print("point cloud shape:", point_cloud.shape)
     return point_cloud[:, :3]  # 只取前三列（x, y, z）
 
 def read_bounding_boxes(file_path, calibration_matrix, translation_vector):
@@ -219,7 +221,8 @@ def check_bbox_size(bboxes, metadata, threshold=1.0):
 if __name__ == "__main__":
     # 定义数据文件夹和文件ID
     data_folder = "data/training"
-    file_id = "000001"
+    file_id = "000026"
+    lidar_index = 999  # 假设这是第一个雷达数据
     
     # 定义标定文件路径
     calibration_file_path = f"{data_folder}/calib/{file_id}.txt"
@@ -227,8 +230,9 @@ if __name__ == "__main__":
     # 读取标定数据
     rotation_matrix, translation_vector = read_calibration(calibration_file_path)
     
-    # 读取点云数据
-    point_cloud = read_point_cloud(f"{data_folder}/velodyne/{file_id}.bin")
+    # 读取点云数据，使用新的命名格式
+    point_cloud = read_point_cloud(f"{data_folder}/velodyne/{file_id}_lidar_{lidar_index}.bin")
+    print(f"点云数据目录: {data_folder}/velodyne/{file_id}_lidar_{lidar_index}.bin")
     
     # 读取边界框数据（修改接收方式）
     bboxes, bbox_metadata = read_bounding_boxes(f"{data_folder}/lidar_label/{file_id}.txt", rotation_matrix, translation_vector)
