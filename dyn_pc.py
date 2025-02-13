@@ -44,22 +44,39 @@ def read_bounding_boxes(file_path, calibration_matrix, translation_vector):
 
     返回：
         bboxes: 应用变换后的边界框列表。
+        metadata: 包含边界框元数据的字典
     """
     bboxes = []
+    metadata = {}  # 新增元数据存储
     with open(file_path, 'r') as f:
         for line in f:
             data = line.strip().split()
-            # 假设数据格式为：type, truncated, occluded, alpha, bbox, dimensions, location, rotation_y
-            object_type = data[0]  # 获取对象类型
+            object_type = data[0]
             h, w, l = float(data[8]), float(data[9]), float(data[10])
             x, y, z = float(data[11]), float(data[12]), float(data[13])
             rotation_y = float(data[14])
 
-            # 创建边界框
             bbox = create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, translation_vector)
-
+            
+            # 根据对象类型设置颜色
+            if object_type == 'Pedestrian':
+                bbox.color = (0, 1, 0)  # 绿色表示行人
+            elif object_type == 'Car':
+                bbox.color = (1, 0, 0)  # 红色表示汽车
+            elif object_type == 'Cyclist':
+                bbox.color = (1, 1, 0)  # 蓝色表示自行车
+            else:
+                bbox.color = (1, 1, 1)  # 黄色表示其他类型
+            
+            # 存储元数据
+            metadata[bbox] = {
+                'object_type': object_type,
+                'original_center': np.array([x, y, z]),
+                'original_extent': [h, w, l]
+            }
+            
             bboxes.append(bbox)
-    return bboxes
+    return bboxes, metadata  # 修改返回值为元组
 
 def read_calibration(file_path):
     """
@@ -117,6 +134,9 @@ def create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, t
     elif object_type == "Car":  # 车辆
         bbox.center = np.array([x, y, h / 2 + 0.32])  # 底部中心，z=0
         bbox.extent = [h, w, l]
+    elif object_type == "Bicycle":  # 自行车
+        bbox.center = np.array([x, y, h / 2 + 0.32])  # 底部中心，z=0
+        bbox.extent = [h, w, l]
 
     # 设置旋转
     R = np.array([
@@ -135,6 +155,54 @@ def create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, t
     bbox.translate(translation_vector)  # 将平移向量添加到边界框中心
 
     return bbox
+
+def calculate_bbox_volume(bbox):
+    """
+    计算边界框的体积
+
+    参数：
+        bbox: 边界框对象
+
+    返回：
+        volume: 边界框的体积
+    """
+    extent = bbox.extent
+    volume = extent[0] * extent[1] * extent[2]
+    return volume
+
+def check_bbox_size(bboxes, metadata, threshold=1.0):
+    """
+    检查边界框的体积是否小于阈值
+
+    参数：
+        bboxes: 边界框列表
+        metadata: 边界框元数据字典
+        threshold: 体积阈值，默认为1.0
+
+    返回：
+        small_bboxes: 体积小于阈值的边界框列表
+    """
+    small_bboxes = []
+    for bbox in bboxes:
+        volume = calculate_bbox_volume(bbox)
+        if volume < threshold:
+            small_bboxes.append(bbox)
+            info = metadata[bbox]
+            print(f"小体积边界框信息：")
+            print(f"  类型: {info['object_type']}")
+            print(f"  原始中心点: {info['original_center']}")
+            print(f"  原始尺寸 (长, 宽, 高): {info['original_extent']}")
+            print(f"  变换后尺寸: {bbox.extent}")
+            print(f"  体积: {volume:.2f}")
+            
+            # 调整边界框尺寸
+            original_extent = bbox.extent
+            bbox.extent = [original_extent[0],  # 高度不变
+                          original_extent[1] + 0.5,  # 宽度增加0.5
+                          original_extent[2] + 0.5]  # 长度增加0.5
+            print(f"  调整后尺寸: {bbox.extent}")
+            print("-" * 30)
+    return small_bboxes
 
 def visualize(point_cloud, bboxes):
     """
@@ -180,15 +248,18 @@ def visualize_point_clouds(data_folder, file_ids, frame_duration=0.5):
         pcd.points = o3d.utility.Vector3dVector(point_cloud)
         
         # 读取边界框数据
-        bboxes = read_bounding_boxes(f"{data_folder}/lidar_label/{file_id}.txt", rotation_matrix, translation_vector)
+        bboxes, bbox_metadata = read_bounding_boxes(f"{data_folder}/lidar_label/{file_id}.txt", rotation_matrix, translation_vector)
+        
+        # 检查并调整小体积边界框
+        threshold = 1.0
+        small_bboxes = check_bbox_size(bboxes, bbox_metadata, threshold)
 
         # 添加点云到可视化器
         vis.add_geometry(pcd)
         
-        # 设置边界框的颜色
+        # 添加边界框到可视化器
         for bbox in bboxes:
-            bbox.color = (1, 0, 0)  # 红色
-            vis.add_geometry(bbox)  # 添加边界框到可视化器
+            vis.add_geometry(bbox)
 
         vis.update_geometry(pcd)
         vis.poll_events()

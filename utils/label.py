@@ -80,6 +80,41 @@ def spawn_dataset(data):
     return data
 
 
+def get_bounding_box(actor, min_extent=0.5):
+    """
+    修复两轮车辆边界框异常问题
+    参数：
+        actor: CARLA中的Actor对象
+        min_extent: 最小边界框尺寸，默认为0.5米
+    返回：
+        carla.BoundingBox: 修正后的边界框
+    """
+    if not hasattr(actor, "bounding_box"):
+        return carla.BoundingBox(carla.Location(0, 0, min_extent), 
+                               carla.Vector3D(x=min_extent, y=min_extent, z=min_extent))
+    
+    bbox = actor.bounding_box
+    # 修复Carla 9.11+版本两轮车辆边界框错误
+    if bbox.extent.x * bbox.extent.y * bbox.extent.z == 0:
+        loc = carla.Location(bbox.extent)
+        bbox.extent = carla.Vector3D(bbox.location)
+        bbox.location = loc
+    
+    # 新增两轮车高度调整逻辑
+    if 'crossbike' in actor.type_id or 'motorcycle' in actor.type_id:
+        # 调整高度（z轴方向）
+        new_height = bbox.extent.z + 0.3
+        bbox.extent = carla.Vector3D(
+            x=bbox.extent.x,
+            y=bbox.extent.y,
+            z=new_height
+        )
+        # 同时调整位置中心点
+        bbox.location.z += 0.15  # 高度增加0.4，中心点上移0.2
+        
+    return bbox
+
+
 def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic):
     """
         筛选出在摄像头中可见的目标物并生成标签
@@ -96,7 +131,7 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
             kitti_label：RGB图像的KITTI标签
     """
     obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
-    obj_bbox = obj.bounding_box
+    obj_bbox = get_bounding_box(obj)
 
     if isinstance(obj, carla.EnvironmentObject):
         vertices_pixel = get_vertices_pixel(intrinsic, extrinsic, obj_bbox, obj_transform, 0)
@@ -110,7 +145,7 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
         rotation_y = get_relative_rotation_yaw(agent.get_transform().rotation, obj_transform.rotation) % math.pi
         midpoint = midpoint_from_world_to_camera(obj_transform.location, extrinsic)
         bbox_2d = get_2d_bbox_in_pixel(vertices_pixel)
-        ext = obj.bounding_box.extent
+        ext = obj_bbox.extent
         truncated = num_vertices_outside_camera / 8
         if num_visible_vertices >= 6:
             occluded = 0
@@ -167,7 +202,7 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic):
                 [1.0]  # 1.0]]
             ])
             rotation_y = math.radians(-obj_transform.rotation.yaw) % math.pi
-            ext = obj.bounding_box.extent
+            ext = get_bounding_box(obj).extent
 
             point_cloud_label = KittiDescriptor()
             point_cloud_label.set_truncated(0)
@@ -260,7 +295,6 @@ def obj_type(obj):
         返回：
             obj.type：CARLA物体种类
     """
-    print(obj.type_id)
     if isinstance(obj, carla.EnvironmentObject):
         return obj.type
     else:
@@ -270,11 +304,5 @@ def obj_type(obj):
             if obj.type_id.find('crossbike') != -1:
                 return 'Bicycle'
             return 'Car'
-        # if obj.type_id.find('bicycle') != -1:
-        #     return 'Bicycle'
-        # if obj.type_id.find('motorcycle') != -1:
-        #     return 'Motorcycle'
-        # if obj.type_id.find('trafficlight') != -1:
-        #     return 'TrafficLight'
             
         return None

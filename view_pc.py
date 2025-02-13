@@ -124,13 +124,13 @@ def create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, t
         bbox.extent = [h, w, l]
         bbox.color = (0, 1, 0)  # 绿色
     elif object_type == "Bicycle":  # 自行车
-        bbox.center = np.array([x, y, z])
+        bbox.center = np.array([x, y, h / 2 + 0.32])
         bbox.extent = [h, w, l]
-        bbox.color = (0, 0, 1)  # 蓝色
+        bbox.color =  (1, 1, 0)  # 黄色
     else:  # 其他类型
         bbox.center = np.array([x, y, z])
         bbox.extent = [h, w, l]
-        bbox.color = (1, 1, 0)  # 黄色
+        bbox.color = (0, 0, 1)  # 黄色
 
     # 设置旋转
     R = np.array([
