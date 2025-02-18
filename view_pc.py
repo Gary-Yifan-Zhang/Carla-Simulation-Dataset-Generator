@@ -52,6 +52,10 @@ def read_bounding_boxes(file_path, calibration_matrix, translation_vector):
             data = line.strip().split()
             object_type = data[0]
             h, w, l = float(data[8]), float(data[9]), float(data[10])
+            # 将hwl膨胀5%
+            h *= 1.05
+            w *= 1.05
+            l *= 1.05
             x, y, z = float(data[11]), float(data[12]), float(data[13])
             rotation_y = float(data[14])
 
@@ -221,7 +225,7 @@ def check_bbox_size(bboxes, metadata, threshold=1.0):
 if __name__ == "__main__":
     # 定义数据文件夹和文件ID
     data_folder = "data/training"
-    file_id = "000026"
+    file_id = "000090"
     lidar_index = 999  # 假设这是第一个雷达数据
     
     # 定义标定文件路径

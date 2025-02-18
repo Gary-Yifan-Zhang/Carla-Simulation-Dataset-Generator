@@ -88,6 +88,8 @@ class DatasetSave:
         img_filename_0 = self.IMAGE_PATH.format(self.captured_frame_no, 0)
         img_filename_4 = self.IMAGE_PATH.format(self.captured_frame_no, 4)
         img_filename_5 = self.IMAGE_PATH.format(self.captured_frame_no, 5)
+        img_filename_view = self.IMAGE_PATH.format(self.captured_frame_no, "view")
+        img_filename_bev = self.IMAGE_PATH.format(self.captured_frame_no, "bev")
         img_label_filename = self.IMAGE_LABEL_PATH.format(self.captured_frame_no)
         bbox_img_filename = self.BBOX_IMAGE_PATH.format(self.captured_frame_no)
 
@@ -113,6 +115,8 @@ class DatasetSave:
             save_image_data(img_filename_0, dt["sensor_data"][0])
             save_image_data(img_filename_4, dt["sensor_data"][4])
             save_image_data(img_filename_5, dt["sensor_data"][5])
+            save_image_data(img_filename_view,dt["sensor_data"][10])
+            save_image_data(img_filename_bev,dt["sensor_data"][11])
             save_kitti_label_data(img_label_filename, dt["image_labels_kitti"])
             save_bbox_image_data(bbox_img_filename, dt["bbox_img"])
 

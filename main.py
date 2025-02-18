@@ -63,6 +63,10 @@ def main():
                     if counter >= max_record:
                         print(f"达到最大记录次数{max_record}，程序即将退出...")
                         break
+                else:
+                    # 更新场景
+                    scene.update_spectator()
+                    scene.world.tick()
             else:
                 # --no-save模式下只更新场景
                 scene.update_spectator()
