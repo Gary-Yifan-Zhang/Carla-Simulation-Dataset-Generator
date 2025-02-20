@@ -3,6 +3,8 @@
 ![Python 3.6+](https://img.shields.io/badge/python-3.6%2B-blue)
 ![CARLA 0.9.12+](https://img.shields.io/badge/CARLA-0.9.12%2B-orange)
 
+![LiDAR Point Cloud Visualization](samples/scene.png)  
+
 <p align="center">
   <img src="framework.jpg" alt="System Architecture" width="600"/>
   <p align="center">Figure 1. System Architecture Diagram</p>
@@ -82,12 +84,12 @@ dataset/
 ## Visualization Samples
 
 ### RGB Image with 3D Annotations
-![RGB Image with 3D Annotations](samples/rgb_visualization.jpg)  
-*RGB image with 3D annotations overlay*
+![RGB Image with 2D Bounding Boxes](samples/front_bbox_img.gif)  
+*RGB Image with 2D Bounding Boxes*
 
 ### LiDAR Point Cloud Visualization
-![LiDAR Point Cloud Visualization](samples/lidar_visualization.jpg)  
-*LiDAR point cloud with semantic annotations*
+![LiDAR Point Cloud Visualization](samples/pointcloud_bbox.gif)  
+*LiDAR Point Cloud Visualization*
 
 ## Notes
 1. **The CARLA server must remain running** during data generation.
