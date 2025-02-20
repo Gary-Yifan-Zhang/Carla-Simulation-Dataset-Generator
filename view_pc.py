@@ -57,6 +57,7 @@ def read_bounding_boxes(file_path, calibration_matrix, translation_vector):
             w *= 1.05
             l *= 1.05
             x, y, z = float(data[11]), float(data[12]), float(data[13])
+            print(object_type,x,y,z)
             rotation_y = float(data[14])
 
             bbox = create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, translation_vector)
@@ -225,8 +226,8 @@ def check_bbox_size(bboxes, metadata, threshold=1.0):
 if __name__ == "__main__":
     # 定义数据文件夹和文件ID
     data_folder = "data/training"
-    file_id = "000090"
-    lidar_index = 999  # 假设这是第一个雷达数据
+    file_id = "000001"
+    lidar_index = 0  # 假设这是第一个雷达数据
     
     # 定义标定文件路径
     calibration_file_path = f"{data_folder}/calib/{file_id}.txt"

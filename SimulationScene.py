@@ -369,8 +369,8 @@ class SimulationScene:
         try:
             spectator = self.world.get_spectator()
             transform = self.get_agent_transform()
-            bv_transform = carla.Transform(transform.location + carla.Location(z=40, x=0),
-                                           carla.Rotation(yaw=0, pitch=-90))
+            bv_transform = carla.Transform(transform.location + carla.Location(z=10, x=-10, y=10),
+                                           carla.Rotation(roll=0, yaw=-70, pitch=-30))
             spectator.set_transform(bv_transform)
             return spectator
         except Exception as e:

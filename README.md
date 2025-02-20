@@ -1,23 +1,107 @@
-# Carla-Simulation-Dataset-Generator
+# CARLA-KITTI Roadside Dataset Auto-Generator
 
-## 项目简介
-本项目是针对在CARLA中自动生成和整理路侧仿真数据集而建立的，能够根据KITTI数据集格式自动生成和整理路侧数据集（RGB图像、激光雷达点云及其对应的标签文件）。
+![Python 3.6+](https://img.shields.io/badge/python-3.6%2B-blue)
+![CARLA 0.9.12+](https://img.shields.io/badge/CARLA-0.9.12%2B-orange)
 
-## 项目框架
-本项目的框架如下图所示
-![image](framework.jpg)
+<p align="center">
+  <img src="framework.jpg" alt="System Architecture" width="600"/>
+  <p align="center">Figure 1. System Architecture Diagram</p>
+</p>
 
-## 环境配置 
-在环境为[Python>=3.6](https://www.python.org)和[carla>=0.9.12](https://carla.readthedocs.io/en/0.9.12/)中进行下列安装：
+## Table of Contents
+1. [Project Background](#project-background)  
+2. [Key Features](#key-features)
+3. [Installation Guide](#installation-guide)
+4. [Quick Start](#quick-start)
+5. [Dataset Structure](#dataset-structure)
+6. [Visualization Samples](#visualization-samples)
+7. [Notes](#notes)
+8. [Acknowledgements](#acknowledgements)
 
-    git clone https://github.com/Philipcjh/Carla-Simulation-Dataset-Generator  # clone
-    cd Carla-Simulation-Dataset-Generator
-    pip install -r requirements.txt  # install
+## Project Background
+This project is a high-quality roadside dataset auto-generator developed based on the CARLA simulation environment. It supports the following data outputs:
+- **Multi-view RGB images** (resolution 1920×1080)
+- **3D LiDAR point cloud data**
+- **Annotation files** (including 2D/3D bounding boxes)
+- **Sensor calibration parameters**
 
-其中carla包的安装需要从本地导入，具体方法参考[基础API的使用](https://zhuanlan.zhihu.com/p/340031078)第0部分。
+The generated data is fully compatible with the KITTI dataset format, making it suitable for training and validating autonomous driving perception algorithms.
 
-## 使用方法
-在CARLA中点击play，然后运行[main.py](main.py)文件。
+## Key Features
+✅ **Multi-sensor synchronized data collection**  
+　├─ Cameras (front/side/top multi-angles)  
+　├─ LiDAR (32-beam)  
+　└─ Inertial Measurement Unit  
 
-## 参考代码
-本项目是参考[mmmmaomao/DataGenerator](https://github.com/mmmmaomao/DataGenerator)的代码修改而得到的。
+✅ **Intelligent traffic flow generation**  
+　├─ Random vehicle and pedestrian generation and control  
+　├─ Dynamic weather system  
+　└─ Support for complex road scenarios  
+
+✅ **Automatic annotation system**  
+　├─ Generates 2D/3D bounding box annotations  
+　├─ Supports object category labeling (vehicles/pedestrians/traffic signs, etc.)  
+　└─ Accurate position and orientation information  
+
+## Installation Guide
+
+### Environment Requirements
+- **Python**: >= 3.6
+- **CARLA Simulator**: >= 0.9.12
+
+### Install Dependencies
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Gary-Yifan-Zhang/Carla-Simulation-Dataset-Generator.git
+   pip install -r requirements.txt
+
+   # CARLA PythonAPI安装参考官方文档
+   # https://carla.readthedocs.io/en/latest/build_system/
+   ```
+### Quik Start
+
+```python
+# Step 1: Start CARLA server
+./CarlaUE4.sh -quality-level=Epic
+
+# tep 2: Run the generator script
+python main.py 
+```
+
+### Dataset Structure
+```bash
+dataset/
+├── image_2/            # Multi-view RGB images
+├── velodyne/           # LiDAR point cloud data
+├── label_2/            # 2D/3D annotation files
+├── calib/              # Sensor calibration parameters
+└── tracklets/          # Object motion trajectory data
+
+```
+
+## Visualization Samples
+
+### RGB Image with 3D Annotations
+![RGB Image with 3D Annotations](samples/rgb_visualization.jpg)  
+*RGB image with 3D annotations overlay*
+
+### LiDAR Point Cloud Visualization
+![LiDAR Point Cloud Visualization](samples/lidar_visualization.jpg)  
+*LiDAR point cloud with semantic annotations*
+
+## Notes
+1. **The CARLA server must remain running** during data generation.
+2. **A high-performance GPU is recommended** (e.g., 1080Ti or higher) for optimal performance.
+3. **Data generation rate** is approximately **8-12 FPS**, depending on hardware configuration.
+4. **Custom sensor layouts are supported**. Modify `config/sensors.json` to configure sensor placement.
+
+## Acknowledgements
+This project is developed based on the following open-source projects:  
+- [CARLA Simulator](https://carla.org/)  
+- [mmmmaomao/DataGenerator](https://github.com/mmmmaomao/DataGenerator)  
+- [KITTI Vision Benchmark Suite](https://www.cvlibs.net/datasets/kitti/)  
+
+---
+
+🔄 **Continuously updated** | 📧 **Issue reporting**: [your_email@example.com](mailto:your_email@example.com)  
+⭐️ **If this project is helpful to you, please give it a star on GitHub!**

@@ -110,7 +110,13 @@ def get_bounding_box(actor, min_extent=0.5):
         )
         # 同时调整位置中心点
         bbox.location.z += 0.15  # 高度增加0.4，中心点上移0.2
-        
+    
+    
+    if 'vehicle' in actor.type_id:
+        bbox.extent.x *=1.05
+        bbox.extent.y *=1.05
+        bbox.extent.z *=1.05
+    
     return bbox
 
 
