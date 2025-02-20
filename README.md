@@ -10,7 +10,7 @@
   <p align="center">Figure 1. System Architecture Diagram</p>
 </p>
 
-## Table of Contents
+## 📚 Table of Contents
 1. [Project Background](#project-background)  
 2. [Key Features](#key-features)
 3. [Installation Guide](#installation-guide)
@@ -20,7 +20,7 @@
 7. [Notes](#notes)
 8. [Acknowledgements](#acknowledgements)
 
-## Project Background
+## 🌟 Project Background
 This project is a high-quality roadside dataset auto-generator developed based on the CARLA simulation environment. It supports the following data outputs:
 - **Multi-view RGB images** (resolution 1920×1080)
 - **3D LiDAR point cloud data**
@@ -29,7 +29,7 @@ This project is a high-quality roadside dataset auto-generator developed based o
 
 The generated data is fully compatible with the KITTI dataset format, making it suitable for training and validating autonomous driving perception algorithms.
 
-## Key Features
+## 🌟 Project Background
 ✅ **Multi-sensor synchronized data collection**  
 　├─ Cameras (front/side/top multi-angles)  
 　├─ LiDAR (32-beam)  
@@ -45,7 +45,7 @@ The generated data is fully compatible with the KITTI dataset format, making it 
 　├─ Supports object category labeling (vehicles/pedestrians/traffic signs, etc.)  
 　└─ Accurate position and orientation information  
 
-## Installation Guide
+## 🛠️ Installation Guide
 
 ### Environment Requirements
 - **Python**: >= 3.6
@@ -60,7 +60,8 @@ The generated data is fully compatible with the KITTI dataset format, making it 
    # CARLA PythonAPI安装参考官方文档
    # https://carla.readthedocs.io/en/latest/build_system/
    ```
-### Quik Start
+## 🚀 Quick Start
+
 
 ```python
 # Step 1: Start CARLA server
@@ -70,7 +71,7 @@ The generated data is fully compatible with the KITTI dataset format, making it 
 python main.py 
 ```
 
-### Dataset Structure
+## 📂 Dataset Structure
 ```bash
 dataset/
 ├── image_2/            # Multi-view RGB images
@@ -81,7 +82,7 @@ dataset/
 
 ```
 
-## Visualization Samples
+## 🎨 Visualization Samples
 
 ### RGB Image with 3D Annotations
 ![RGB Image with 2D Bounding Boxes](samples/front_bbox_img.gif)  
@@ -91,17 +92,26 @@ dataset/
 ![LiDAR Point Cloud Visualization](samples/pointcloud_bbox.gif)  
 *LiDAR Point Cloud Visualization*
 
-## Notes
+## 📝 Notes
 1. **The CARLA server must remain running** during data generation.
 2. **A high-performance GPU is recommended** (e.g., 1080Ti or higher) for optimal performance.
 3. **Data generation rate** is approximately **8-12 FPS**, depending on hardware configuration.
 4. **Custom sensor layouts are supported**. Modify `config/sensors.json` to configure sensor placement.
 
-## Acknowledgements
+## 🙏 Acknowledgements
 This project is developed based on the following open-source projects:  
 - [CARLA Simulator](https://carla.org/)  
 - [mmmmaomao/DataGenerator](https://github.com/mmmmaomao/DataGenerator)  
 - [KITTI Vision Benchmark Suite](https://www.cvlibs.net/datasets/kitti/)  
+
+## 📅 TODO List
+- [ ] Add more weather scenarios support
+- [ ] Optimize data generation efficiency
+- [ ] Add more sensor types (e.g., radar, ultrasonic)
+- [ ] Support custom traffic rules
+- [ ] Develop data quality inspection tools
+- [ ] Add multi-agent collaborative data collection
+
 
 ---
 
