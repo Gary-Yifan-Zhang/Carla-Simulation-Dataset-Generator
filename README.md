@@ -105,15 +105,14 @@ This project is developed based on the following open-source projects:
 - [KITTI Vision Benchmark Suite](https://www.cvlibs.net/datasets/kitti/)  
 
 ## 📅 TODO List
-- [ ] Add more weather scenarios support
-- [ ] Optimize data generation efficiency
-- [ ] Add more sensor types (e.g., radar, ultrasonic)
-- [ ] Support custom traffic rules
-- [ ] Develop data quality inspection tools
-- [ ] Add multi-agent collaborative data collection
+- [ ] Further modify data types
+- [ ] Add bounding boxes to multi-view images
+- [ ] Multi-radar fusion
+- [ ] Create more complex scenarios using OpenScenario
+- [ ] Migrate to CARLA with UE5
 
 
 ---
 
-🔄 **Continuously updated** | 📧 **Issue reporting**: [your_email@example.com](mailto:your_email@example.com)  
+🔄 **Continuously updated** | 📧 **Issue reporting**: [Yifan Zhang](Gary.Yifan.Zhang@gmail.com)  
 ⭐️ **If this project is helpful to you, please give it a star on GitHub!**
