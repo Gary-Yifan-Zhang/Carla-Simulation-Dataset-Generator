@@ -115,17 +115,17 @@ class DatasetSave:
             save_image_data(img_filename_0, dt["sensor_data"][0])
             save_image_data(img_filename_4, dt["sensor_data"][4])
             save_image_data(img_filename_5, dt["sensor_data"][5])
-            save_image_data(img_filename_view,dt["sensor_data"][10])
-            save_image_data(img_filename_bev,dt["sensor_data"][11])
+            # save_image_data(img_filename_view,dt["sensor_data"][10])
+            # save_image_data(img_filename_bev,dt["sensor_data"][11])
             save_kitti_label_data(img_label_filename, dt["image_labels_kitti"])
             save_bbox_image_data(bbox_img_filename, dt["bbox_img"])
 
             #TODO: 修改为保存多个雷达数据
             save_lidar_data(lidar_filename, dt["sensor_data"][2], extrinsic)
-            save_lidar_data(lidar_filename_1, dt["sensor_data"][6], extrinsic)
-            save_lidar_data(lidar_filename_2, dt["sensor_data"][7], extrinsic)
-            save_lidar_data(lidar_filename_3, dt["sensor_data"][8], extrinsic)
-            save_lidar_data(lidar_filename_4, dt["sensor_data"][9], extrinsic)
+            # save_lidar_data(lidar_filename_1, dt["sensor_data"][6], extrinsic)
+            # save_lidar_data(lidar_filename_2, dt["sensor_data"][7], extrinsic)
+            # save_lidar_data(lidar_filename_3, dt["sensor_data"][8], extrinsic)
+            # save_lidar_data(lidar_filename_4, dt["sensor_data"][9], extrinsic)
             save_kitti_label_data(lidar_label_filename, dt["pc_labels_kitti"])
 
             save_ego_data(ego_state_filename, dt["transform"], dt["velocity"], dt["acceleration"])

@@ -35,6 +35,7 @@ class KittiDescriptor:
         self.location = location
         self.rotation_y = rotation_y
         self.extent = extent
+        self.obj_id = None 
 
     def set_type(self, obj_type: str):
         self.type = obj_type
@@ -119,6 +120,10 @@ class KittiDescriptor:
                    pi <= rotation_y <= pi, "Rotation y must be in range [-pi..pi] - found {}".format(
             rotation_y)
         self.rotation_y = rotation_y
+        
+    def set_id(self, obj_id: int):
+        """设置物体的唯一ID"""
+        self.obj_id = obj_id
 
     def __str__(self):
         """ Returns the kitti formatted string of the datapoint if it is valid (all critical variables filled out),
@@ -129,6 +134,6 @@ class KittiDescriptor:
             bbox_format = " ".join([str(x) for x in self.bbox])
 
         # kitti目标检测数据的标准格式
-        return "{} {} {} {} {} {} {} {}".format(self.type, self.truncated, self.occluded,
+        return "{} {} {} {} {} {} {} {}".format(self.type, self.obj_id if self.obj_id is not None else -1, self.truncated, self.occluded,
                                                 self.alpha, bbox_format, self.dimensions, self.location,
                                                 self.rotation_y)
