@@ -171,7 +171,6 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
         kitti_label.set_type(obj_tp)
         kitti_label.set_3d_object_location(midpoint)
         kitti_label.set_rotation_y(rotation_y)
-        print(obj.id)
         kitti_label.set_id(obj.id)
         return kitti_label
     return None

@@ -202,3 +202,15 @@ def save_ego_data(filename, transform, velocity, acceleration):
         f.write("Velocity: {}\n".format(velocity))
         f.write("Acceleration: {}\n".format(acceleration))
     logging.info("Wrote ego state data to %s", filename)
+    
+def save_semantic_image(filename, semantic_image):
+    """ 保存语义分割图像到指定文件
+
+    参数：
+        filename：保存文件的路径
+        semantic_image：语义分割图像数组，通常是单通道的类别标签
+    """
+    # 将语义图像转换为PIL图像
+    img = Image.fromarray(semantic_image.astype(np.uint8))
+    # 保存图像
+    img.save(filename)
