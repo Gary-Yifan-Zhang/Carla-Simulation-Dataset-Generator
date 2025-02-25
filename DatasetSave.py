@@ -109,6 +109,8 @@ class DatasetSave:
         img_filename_view = self.IMAGE_PATH.format(self.captured_frame_no, "view")
         img_filename_bev = self.IMAGE_PATH.format(self.captured_frame_no, "bev")
         img_filename_seg = self.IMAGE_PATH.format(self.captured_frame_no, "seg")
+        img_filename_seg_1 = self.IMAGE_PATH.format(self.captured_frame_no, "seg_1")
+        img_filename_seg_2 = self.IMAGE_PATH.format(self.captured_frame_no, "seg_2")
         # img_label_filename = self.IMAGE_LABEL_PATH.format(self.captured_frame_no)
         # bbox_img_filename = self.BBOX_IMAGE_PATH.format(self.captured_frame_no)
 
@@ -134,13 +136,12 @@ class DatasetSave:
             save_image_data(img_filename_0, dt["sensor_data"][0])
             save_image_data(img_filename_1, dt["sensor_data"][4])
             save_image_data(img_filename_2, dt["sensor_data"][5])
-            save_image_data(img_filename_seg, dt["sensor_data"][12])
+            save_image_data(img_filename_seg, dt["sensor_data"][8])
+            save_image_data(img_filename_seg_1, dt["sensor_data"][9])
+            save_image_data(img_filename_seg_2, dt["sensor_data"][10])
             # save_image_data(img_filename_view,dt["sensor_data"][10])
             # save_image_data(img_filename_bev,dt["sensor_data"][11])
-            # save_kitti_label_data(img_label_filename, dt["image_labels_kitti"])
-            # print('save_kitti_label_data')
-            # save_bbox_image_data(bbox_img_filename, dt["bbox_img"])
-            # print('save_bbox_image_data')
+
             
             # 保存三个摄像头的标签和标注图像
             save_kitti_label_data(img_label_filename_0, dt["image_labels_kitti"])

@@ -58,25 +58,25 @@ SENSOR_CONFIG:
   #     location: [0, 0, 1.0]
   #     rotation: [0, 0, 0]
 
-  SUB_LIDAR_1:
-    TRANSFORM: {location: [0, -0.8, 1.6], rotation: [0, 0, 0]}
-    BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
+  # SUB_LIDAR_1:
+  #   TRANSFORM: {location: [0, -0.8, 1.6], rotation: [0, 0, 0]}
+  #   BLUEPRINT: sensor.lidar.ray_cast
+  #   ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
 
-  SUB_LIDAR_2:
-    TRANSFORM: {location: [0, 0.8, 1.6], rotation: [0, 0, 0]}
-    BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
+  # SUB_LIDAR_2:
+  #   TRANSFORM: {location: [0, 0.8, 1.6], rotation: [0, 0, 0]}
+  #   BLUEPRINT: sensor.lidar.ray_cast
+  #   ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
 
-  SUB_LIDAR_3:
-    TRANSFORM: {location: [-1, -0.8, 1.6], rotation: [0, 0, 0]}
-    BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
+  # SUB_LIDAR_3:
+  #   TRANSFORM: {location: [-1, -0.8, 1.6], rotation: [0, 0, 0]}
+  #   BLUEPRINT: sensor.lidar.ray_cast
+  #   ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
 
-  SUB_LIDAR_4:
-    TRANSFORM: {location: [-1, 0.8, 1.6], rotation: [0, 0, 0]}
-    BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
+  # SUB_LIDAR_4:
+  #   TRANSFORM: {location: [-1, 0.8, 1.6], rotation: [0, 0, 0]}
+  #   BLUEPRINT: sensor.lidar.ray_cast
+  #   ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
 
   VIEW_RGB_1:
     BLUEPRINT: sensor.camera.rgb
@@ -98,8 +98,18 @@ SENSOR_CONFIG:
       location: [0.0, 0.0, 40.0]
       rotation: [-90, 0, 0]
 
-  EMANTIC:
+  SEMANTIC:
     TRANSFORM: {location: [0, 0.0, 1.6], rotation: [0, 0, 0]}
+    BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
+
+  SEMANTIC_1:
+    TRANSFORM: {location: [0, 0.1, 1.6], rotation: [0, 0, 0]}
+    BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
+
+  SEMANTIC_2:
+    TRANSFORM: {location: [0, -0.1, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.semantic_segmentation
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
