@@ -39,10 +39,16 @@ def spawn_dataset(data):
         sensors_data = dataDict["sensor_data"]
 
         image_labels_kitti = []
+        image_labels_kitti_1 = []
+        image_labels_kitti_2 = []
         pc_labels_kitti = []
 
         rgb_image = raw_image_to_rgb_array(sensors_data[0])
+        rgb_image_1 = raw_image_to_rgb_array(sensors_data[4])
+        rgb_image_2 = raw_image_to_rgb_array(sensors_data[5])
         image = rgb_image.copy()
+        image_1 = rgb_image_1.copy()
+        image_2 = rgb_image_2.copy()
 
         depth_data = depth_image_to_array(sensors_data[1])
         semantic_lidar = np.frombuffer(sensors_data[3].raw_data, dtype=np.dtype('f4,f4, f4, f4, i4, i4'))
@@ -50,12 +56,13 @@ def spawn_dataset(data):
         # 对环境中的目标物体生成标签
         data["agents_data"][agent]["visible_environment_objects"] = []
         for obj in environment_objects:
-            image_label_kitti = is_visible_in_camera(agent, obj, image, depth_data, intrinsic, extrinsic)
+            # print("extrinsic: ", extrinsic)
+            image_label_kitti = is_visible_in_camera(agent, obj, image, depth_data, intrinsic, extrinsic[0])
             if image_label_kitti is not None:
                 data["agents_data"][agent]["visible_environment_objects"].append(obj)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic)
+            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[0])
             if pc_label_kitti is not None:
                 print(pc_label_kitti)
                 pc_labels_kitti.append(pc_label_kitti)
@@ -63,18 +70,46 @@ def spawn_dataset(data):
         # 对actors中的目标物体生成标签
         data["agents_data"][agent]["visible_actors"] = []
         for act in actors:
-            image_label_kitti = is_visible_in_camera(agent, act, image, depth_data, intrinsic, extrinsic)
+            # print("extrinsic: ", extrinsic[0])
+            image_label_kitti = is_visible_in_camera(agent, act, image, depth_data, intrinsic, extrinsic[0])
             if image_label_kitti is not None:
                 data["agents_data"][agent]["visible_actors"].append(act)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, extrinsic)
+            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, extrinsic[0])
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
+                
+        # 新增对第二个摄像头（sensors_data[4]）的处理
+        for obj in environment_objects:
+            image_label_kitti_1 = is_visible_in_camera(agent, obj, image_1, depth_data, intrinsic, extrinsic[4])  # 使用第四个外参矩阵
+            if image_label_kitti_1 is not None:
+                image_labels_kitti_1.append(image_label_kitti_1)
+
+        for act in actors:
+            image_label_kitti_1 = is_visible_in_camera(agent, act, image_1, depth_data, intrinsic, extrinsic[4])
+            if image_label_kitti_1 is not None:
+                image_labels_kitti_1.append(image_label_kitti_1)
+
+        # 新增对第三个摄像头（sensors_data[5]）的处理
+        for obj in environment_objects:
+            image_label_kitti_2 = is_visible_in_camera(agent, obj, image_2, depth_data, intrinsic, extrinsic[5])  # 使用第五个外参矩阵
+            if image_label_kitti_2 is not None:
+                image_labels_kitti_2.append(image_label_kitti_2)
+
+        for act in actors:
+            image_label_kitti_2 = is_visible_in_camera(agent, act, image_2, depth_data, intrinsic, extrinsic[5])
+            if image_label_kitti_2 is not None:
+                image_labels_kitti_2.append(image_label_kitti_2)
+
 
         data["agents_data"][agent]["rgb_image"] = rgb_image
         data["agents_data"][agent]["bbox_img"] = image
+        data["agents_data"][agent]["bbox_img_1"] = image_1   # 新增第二个摄像头标注图
+        data["agents_data"][agent]["bbox_img_2"] = image_2   # 新增第三个摄像头标注图
         data["agents_data"][agent]["image_labels_kitti"] = image_labels_kitti
+        data["agents_data"][agent]["image_labels_kitti_1"] = image_labels_kitti_1
+        data["agents_data"][agent]["image_labels_kitti_2"] = image_labels_kitti_2
         data["agents_data"][agent]["pc_labels_kitti"] = pc_labels_kitti
     return data
 

@@ -316,8 +316,11 @@ class SimulationScene:
             data["agents_data"][agent]["intrinsic"] = set_camera_intrinsic(image_width, image_height)
             
             # 设置传感器外参
-            data["agents_data"][agent]["extrinsic"] = np.mat(
-                self.actors["sensors"][agent][0].get_transform().get_matrix())
+            data["agents_data"][agent]["extrinsic"] = [
+                np.mat(sensor.get_transform().get_matrix())
+                for sensor in self.actors["sensors"][agent]
+            ]
+            
             
             # 设置传感器的carla位姿
             data["agents_data"][agent]["transform"] = self.actors["sensors"][agent][0].get_transform()

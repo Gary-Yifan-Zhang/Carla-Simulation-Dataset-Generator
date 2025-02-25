@@ -225,9 +225,9 @@ def check_bbox_size(bboxes, metadata, threshold=1.0):
 
 if __name__ == "__main__":
     # 定义数据文件夹和文件ID
-    data_folder = "data/training"
+    data_folder = "data/training_20250225_144625"
     file_id = "000001"
-    lidar_index = 0  # 假设这是第一个雷达数据
+    lidar_index = 1  # 假设这是第一个雷达数据
     
     # 定义标定文件路径
     calibration_file_path = f"{data_folder}/calib/{file_id}.txt"
