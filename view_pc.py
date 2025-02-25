@@ -51,14 +51,14 @@ def read_bounding_boxes(file_path, calibration_matrix, translation_vector):
         for line in f:
             data = line.strip().split()
             object_type = data[0]
-            h, w, l = float(data[8]), float(data[9]), float(data[10])
+            h, w, l = float(data[9]), float(data[10]), float(data[11])
             # 将hwl膨胀5%
             h *= 1.05
             w *= 1.05
             l *= 1.05
-            x, y, z = float(data[11]), float(data[12]), float(data[13])
+            x, y, z = float(data[12]), float(data[13]), float(data[14])
             print(object_type,x,y,z)
-            rotation_y = float(data[14])
+            rotation_y = float(data[15])
 
             bbox = create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, translation_vector)
             

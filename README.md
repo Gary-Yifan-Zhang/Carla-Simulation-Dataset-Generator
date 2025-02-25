@@ -150,6 +150,68 @@ dataset/
   - `dimensions`: 3D object dimensions (height, width, length)
   - `location`: 3D object location (x, y, z) in camera coordinates
   - `rotation_y`: Rotation around Y-axis in camera coordinates
+
+## 📡 Sensor Configuration
+
+### 🚗 Main Sensors
+- **RGB Camera**:
+  - Resolution: 1920x1080
+  - FOV: 90°
+  - Position: Front center (0, 0.0, 1.6)
+  
+- **Depth Camera**:
+  - Resolution: 1920x1080
+  - FOV: 90°
+  - Position: Front center (0, 0, 1.6)
+
+- **LiDAR**:
+  - Range: 70m
+  - Rotation Frequency: 20Hz
+  - Vertical FOV: -10° to +20°
+  - Points per Second: 2.56M
+  - Channels: 128
+  - Position: Front center (0, 0, 1.6)
+
+- **Semantic LiDAR**:
+  - Same specifications as LiDAR
+  - Additional semantic information
+
+### 🎥 Auxiliary Cameras
+- **Sub RGB Cameras** (2 units):
+  - Resolution: 1920x1080
+  - FOV: 90°
+  - Positions: 
+    - Left: (0, 0.1, 1.6)
+    - Right: (0, -0.1, 1.6)
+
+- **View RGB Camera**:
+  - Resolution: 1920x1080
+  - FOV: 90°
+  - Position: (1.0, -3.2, 1.6)
+  - Rotation: 30° yaw
+
+- **BEV Camera**:
+  - Resolution: 720x360
+  - FOV: 90°
+  - Position: (0.0, 0.0, 40.0)
+  - Rotation: -90° pitch (top-down view)
+
+### 🛰️ Auxiliary LiDARs (4 units):
+  - Range: 70m
+  - Rotation Frequency: 20Hz
+  - Vertical FOV: -10° to +20°
+  - Points per Second: 640K
+  - Channels: 128
+  - Positions:
+    - Front Left: (0, -0.8, 1.6)
+    - Front Right: (0, 0.8, 1.6)
+    - Rear Left: (-1, -0.8, 1.6)
+    - Rear Right: (-1, 0.8, 1.6)
+
+### 🎨 Semantic Camera:
+  - Resolution: 1920x1080
+  - FOV: 90°
+  - Position: Front center (0, 0.0, 1.6)
   
 ## 🎨 Visualization Samples
 

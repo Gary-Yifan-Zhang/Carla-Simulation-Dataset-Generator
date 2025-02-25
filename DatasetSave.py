@@ -1,5 +1,6 @@
 from utils.save import *
 from utils.utils import config_transform_to_carla_transform
+import time
 
 
 class DatasetSave:
@@ -33,7 +34,10 @@ class DatasetSave:
             参数：
                 root_path：根目录的路径
         """
-        PHASE = "training"
+
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        print(timestamp)
+        PHASE = f"training_{timestamp}"
         self.OUTPUT_FOLDER = os.path.join(root_path, PHASE)
         folders = ['calib', 'image', 'image_label', 'bbox_img', 'velodyne', 'lidar_label', 'ego_state']
 

@@ -135,6 +135,6 @@ class KittiDescriptor:
             bbox_format = " ".join([str(x) for x in self.bbox])
 
         # kitti目标检测数据的标准格式
-        return "{} {} {} {} {} {} {} {}".format(self.type, self.obj_id if self.obj_id is not None else -1, self.truncated, self.occluded,
+        return "{} {} {} {} {} {} {} {} {}".format(self.type, self.obj_id if self.obj_id is not None else -1, self.truncated, self.occluded,
                                                 self.alpha, bbox_format, self.dimensions, self.location,
                                                 self.rotation_y)
