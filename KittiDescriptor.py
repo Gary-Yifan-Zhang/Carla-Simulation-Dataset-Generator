@@ -2,6 +2,7 @@
 #Values    Name      Description
 ----------------------------------------------------------------------------
    1    type         Describes the type of object: 'Car', 'Pedestrian', 'Vehicles', 'Vegetation', 'TrafficSigns', etc.
+   1    id           Unique ID for the object, -1 if not specified
    1    truncated    Float from 0 (non-truncated) to 1 (truncated), where
                      truncated refers to the object leaving image boundaries
    1    occluded     Integer (0,1,2,3) indicating occlusion state:
