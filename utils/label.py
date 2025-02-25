@@ -133,7 +133,18 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
             extrinsic：相机外参
 
         返回：
-            kitti_label：RGB图像的KITTI标签
+            kitti_label：包含以下信息的KITTI标签（按照KITTI标准格式顺序）：
+                - type: 物体类型（如'Car', 'Pedestrian'等）
+                - id: 物体唯一ID，未指定时为-1
+                - truncated: 截断程度，0（未截断）到1（完全截断），表示物体离开图像边界的程度
+                - occlusion: 遮挡状态整数(0,1,2):
+                    0 = 完全可见, 1 = 部分遮挡, 2 = 大部分遮挡
+                - alpha: 观测角度，固定为0（相机数据无此信息）
+                - bbox: 图像中物体的2D边界框（基于0的索引）:
+                    包含左、上、右、下像素坐标
+                - dimensions: 3D物体尺寸（高度、宽度、长度）
+                - location: 物体在相机坐标系中的3D位置（x, y, z）
+                - rotation_y: 物体绕Y轴的旋转角度
     """
     obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
     obj_bbox = get_bounding_box(obj)
@@ -187,7 +198,16 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic):
             extrinsic：激光雷达外参
 
         返回：
-            kitti_label：RGB图像的KITTI标签
+            kitti_label：包含以下信息的KITTI标签（按照KITTI标准格式顺序）：
+                - type: 物体类型（如'Car', 'Pedestrian'等）
+                - id: 物体唯一ID，未指定时为-1
+                - truncated: 截断程度，固定为0（激光雷达不受图像边界限制）
+                - occlusion: 遮挡状态，固定为0（激光雷达直接检测物体表面）
+                - alpha: 观测角度，固定为0（激光雷达无此信息）
+                - bbox: 2D边界框，固定为[0, 0, 0, 0]（激光雷达无2D边界框信息）
+                - dimensions: 3D物体尺寸（高度、宽度、长度）
+                - location: 物体在激光雷达坐标系中的3D位置（x, y, z）
+                - rotation_y: 物体绕Y轴的旋转角度
     """
     pc_num = 0
 
@@ -210,6 +230,7 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic):
             ext = get_bounding_box(obj).extent
 
             point_cloud_label = KittiDescriptor()
+            point_cloud_label.set_id(obj_id=obj.id)
             point_cloud_label.set_truncated(0)
             point_cloud_label.set_occlusion(0)
             point_cloud_label.set_bbox([0, 0, 0, 0])

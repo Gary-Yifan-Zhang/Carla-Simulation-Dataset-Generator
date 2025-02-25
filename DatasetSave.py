@@ -86,8 +86,8 @@ class DatasetSave:
         calib_filename = self.CALIBRATION_PATH.format(self.captured_frame_no)
 
         img_filename_0 = self.IMAGE_PATH.format(self.captured_frame_no, 0)
-        img_filename_4 = self.IMAGE_PATH.format(self.captured_frame_no, 4)
-        img_filename_5 = self.IMAGE_PATH.format(self.captured_frame_no, 5)
+        img_filename_1 = self.IMAGE_PATH.format(self.captured_frame_no, 1)
+        img_filename_2 = self.IMAGE_PATH.format(self.captured_frame_no, 2)
         img_filename_view = self.IMAGE_PATH.format(self.captured_frame_no, "view")
         img_filename_bev = self.IMAGE_PATH.format(self.captured_frame_no, "bev")
         img_filename_seg = self.IMAGE_PATH.format(self.captured_frame_no, "seg")
@@ -114,8 +114,8 @@ class DatasetSave:
 
             save_calibration_matrices([camera_transform, lidar_transform], calib_filename, dt["intrinsic"])
             save_image_data(img_filename_0, dt["sensor_data"][0])
-            save_image_data(img_filename_4, dt["sensor_data"][4])
-            save_image_data(img_filename_5, dt["sensor_data"][5])
+            save_image_data(img_filename_1, dt["sensor_data"][4])
+            save_image_data(img_filename_2, dt["sensor_data"][5])
             print("RGB: ")
             print(dt["sensor_data"][5])
             print("SEG: ")
