@@ -74,11 +74,21 @@ python main.py
 ## 📂 Dataset Structure
 ```bash
 dataset/
-├── image_2/            # Multi-view RGB images
-├── velodyne/           # LiDAR point cloud data
-├── label_2/            # 2D/3D annotation files
-├── calib/              # Sensor calibration parameters
-└── tracklets/          # Object motion trajectory data
+├── bbox_img/          # RGB images with 2D bounding boxes
+├── calib/             # Sensor calibration parameters
+├── ego_state/         # Ego vehicle state information
+├── image/             # Raw RGB images
+├── image_label/       # Image annotation files
+├── lidar_label/       # LiDAR annotation files
+├── mask/              # Segmentation masks
+│   ├── nonrigid/      # Non-rigid object masks
+│   ├── rigid/         # Rigid object masks
+│   └── sky/           # Sky region masks
+├── masked_images/     # Masked images
+│   ├── nonrigid/      # Images with non-rigid object masks
+│   ├── rigid/         # Images with rigid object masks
+│   └── sky/           # Images with sky region masks
+└── velodyne/          # LiDAR point cloud data
 ```
 
 ## 📝 Data Format Specification

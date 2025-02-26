@@ -53,7 +53,7 @@ class SimulationScene:
         self.init_settings = self.world.get_settings()
         settings = self.world.get_settings()
         settings.synchronous_mode = True
-        # 固定时间步长 (0.05s, 20fps)
+        # 固定时间步长 (0.01s)
         settings.fixed_delta_seconds = 0.01
         self.world.apply_settings(settings)
 
