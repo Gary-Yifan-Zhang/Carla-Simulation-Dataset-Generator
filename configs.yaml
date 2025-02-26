@@ -1,6 +1,6 @@
 CARLA_CONFIG:
   NUM_OF_VEHICLES: 50
-  NUM_OF_WALKERS: 50
+  NUM_OF_WALKERS: 100
 
 AGENT_CONFIG:
   TRANSFORM: { location: [ 124, 226, 0.65 ], rotation: [ 0, 0, 0 ] }
@@ -113,6 +113,16 @@ SENSOR_CONFIG:
     BLUEPRINT: sensor.camera.semantic_segmentation
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
+  DEPTH_RGB_1:
+    TRANSFORM: {location: [0, 0.1, 1.6], rotation: [0, 0, 0]}
+    BLUEPRINT: sensor.camera.depth
+    ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
+
+  DEPTH_RGB_2:
+    TRANSFORM: {location: [0, -0.1, 1.6], rotation: [0, 0, 0]}
+    BLUEPRINT: sensor.camera.depth
+    ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
+
 
 FILTER_CONFIG:
   PRELIMINARY_FILTER_DISTANCE: 50
@@ -123,5 +133,5 @@ FILTER_CONFIG:
 
 SAVE_CONFIG:
   ROOT_PATH: data
-  STEP: 3
+  STEP: 10
   MAX_RECORD_COUNT: 30

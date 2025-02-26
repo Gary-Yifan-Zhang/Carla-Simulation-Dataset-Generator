@@ -51,6 +51,8 @@ def spawn_dataset(data):
         image_2 = rgb_image_2.copy()
 
         depth_data = depth_image_to_array(sensors_data[1])
+        depth_data_1 = depth_image_to_array(sensors_data[11])
+        depth_data_2 = depth_image_to_array(sensors_data[12])
         semantic_lidar = np.frombuffer(sensors_data[3].raw_data, dtype=np.dtype('f4,f4, f4, f4, i4, i4'))
 
         # 对环境中的目标物体生成标签
@@ -82,23 +84,23 @@ def spawn_dataset(data):
                 
         # 新增对第二个摄像头（sensors_data[4]）的处理
         for obj in environment_objects:
-            image_label_kitti_1 = is_visible_in_camera(agent, obj, image_1, depth_data, intrinsic, extrinsic[4])  # 使用第四个外参矩阵
+            image_label_kitti_1 = is_visible_in_camera(agent, obj, image_1, depth_data_1, intrinsic, extrinsic[4])  # 使用第四个外参矩阵
             if image_label_kitti_1 is not None:
                 image_labels_kitti_1.append(image_label_kitti_1)
 
         for act in actors:
-            image_label_kitti_1 = is_visible_in_camera(agent, act, image_1, depth_data, intrinsic, extrinsic[4])
+            image_label_kitti_1 = is_visible_in_camera(agent, act, image_1, depth_data_1, intrinsic, extrinsic[4])
             if image_label_kitti_1 is not None:
                 image_labels_kitti_1.append(image_label_kitti_1)
 
         # 新增对第三个摄像头（sensors_data[5]）的处理
         for obj in environment_objects:
-            image_label_kitti_2 = is_visible_in_camera(agent, obj, image_2, depth_data, intrinsic, extrinsic[5])  # 使用第五个外参矩阵
+            image_label_kitti_2 = is_visible_in_camera(agent, obj, image_2, depth_data_2, intrinsic, extrinsic[5])  # 使用第五个外参矩阵
             if image_label_kitti_2 is not None:
                 image_labels_kitti_2.append(image_label_kitti_2)
 
         for act in actors:
-            image_label_kitti_2 = is_visible_in_camera(agent, act, image_2, depth_data, intrinsic, extrinsic[5])
+            image_label_kitti_2 = is_visible_in_camera(agent, act, image_2, depth_data_2, intrinsic, extrinsic[5])
             if image_label_kitti_2 is not None:
                 image_labels_kitti_2.append(image_label_kitti_2)
 

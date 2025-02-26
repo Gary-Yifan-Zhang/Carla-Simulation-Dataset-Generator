@@ -54,7 +54,7 @@ class SimulationScene:
         settings = self.world.get_settings()
         settings.synchronous_mode = True
         # 固定时间步长 (0.05s, 20fps)
-        settings.fixed_delta_seconds = 0.05
+        settings.fixed_delta_seconds = 0.01
         self.world.apply_settings(settings)
 
     def spawn_actors(self):

@@ -108,7 +108,7 @@ class DatasetSave:
         img_filename_2 = self.IMAGE_PATH.format(self.captured_frame_no, 2)
         img_filename_view = self.IMAGE_PATH.format(self.captured_frame_no, "view")
         img_filename_bev = self.IMAGE_PATH.format(self.captured_frame_no, "bev")
-        img_filename_seg = self.IMAGE_PATH.format(self.captured_frame_no, "seg")
+        img_filename_seg = self.IMAGE_PATH.format(self.captured_frame_no, "seg_0")
         img_filename_seg_1 = self.IMAGE_PATH.format(self.captured_frame_no, "seg_1")
         img_filename_seg_2 = self.IMAGE_PATH.format(self.captured_frame_no, "seg_2")
         # img_label_filename = self.IMAGE_LABEL_PATH.format(self.captured_frame_no)
