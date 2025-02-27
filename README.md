@@ -81,7 +81,12 @@ dataset/
 ├── image_label/       # Image annotation files
 ├── lidar_label/       # LiDAR annotation files
 ├── mask/              # Segmentation masks
+│   ├── bbox/          # Bounding box masks
+│   ├── ego/           # Ego vehicle masks
 │   ├── nonrigid/      # Non-rigid object masks
+│   ├── object_intersection/ # Object intersection masks
+│   │   ├── nonrigid/  # Non-rigid object intersection masks
+│   │   └── rigid/     # Rigid object intersection masks
 │   ├── rigid/         # Rigid object masks
 │   └── sky/           # Sky region masks
 ├── masked_images/     # Masked images
@@ -90,6 +95,7 @@ dataset/
 │   └── sky/           # Images with sky region masks
 └── velodyne/          # LiDAR point cloud data
 ```
+
 
 ## 📝 Data Format Specification
 ```python
@@ -232,6 +238,11 @@ dataset/
 ### LiDAR Point Cloud Visualization
 ![LiDAR Point Cloud Visualization](samples/pointcloud_bbox.gif)  
 *LiDAR Point Cloud Visualization*
+
+### Segmentation Masks
+![Segmentation Masks](samples/masks.png)  
+*Visualization of different types of segmentation masks including rigid, non-rigid, and sky masks*
+
 
 ## 📝 Notes
 1. **The CARLA server must remain running** during data generation.
