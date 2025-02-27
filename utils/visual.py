@@ -13,6 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.utils import yaml_to_config
 import open3d as o3d
+import cv2
 
 
 config = yaml_to_config("configs.yaml")
@@ -327,7 +328,42 @@ def get_ego_mask(img_array):
     ego_mask = flood_fill(working_array, seed_point, 0, tolerance=10)
     return ego_mask == 0
 
+def view_images(image_dir, image_ext='_camera_0.png', window_name='Image Sequence', delay=200):
+    """
+    查看指定目录下的图片序列
+    
+    参数:
+        image_dir (str): 图片目录路径
+        image_ext (str): 图片扩展名，默认为'.png'
+        window_name (str): 显示窗口的名称，默认为'Image Sequence'
+        delay (int): 图片显示时间间隔（毫秒），默认为200ms
+    """
+    # 获取所有指定扩展名的图片
+    images = sorted([img for img in os.listdir(image_dir) if img.endswith(image_ext)])
+    
+    # 遍历并显示图片
+    for img_name in images:
+        img_path = os.path.join(image_dir, img_name)
+        img = cv2.imread(img_path)
+        
+        if img is None:
+            print(f"无法读取图片: {img_path}")
+            continue
+            
+        cv2.imshow(window_name, img)
+        
+        # 按任意键继续，按'q'退出
+        if cv2.waitKey(delay) & 0xFF == ord('q'):
+            break
+
+    cv2.destroyAllWindows()
+
+
 if __name__ == "__main__":
-    seg_path = './data/training_20250226_102047/image/000010_camera_seg_0.png'
-    img_path = './data/training_20250226_102047/image/000010_camera_0.png'
-    plot_segmentation_results(seg_path, img_path)
+    # seg_path = './data/training_20250226_102047/image/000010_camera_seg_0.png'
+    # img_path = './data/training_20250226_102047/image/000010_camera_0.png'
+    # plot_segmentation_results(seg_path, img_path)
+    
+    # 新增图片查看功能示例
+    image_dir = './data/training_20250226_102047/image'
+    view_images(image_dir)

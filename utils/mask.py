@@ -326,11 +326,11 @@ if __name__ == "__main__":
     mask_dir = f'{base_dir}/mask'
     output_dir = f'{base_dir}/masked_images'
     
-    # 可以选择处理哪种mask类型
+    # # 可以选择处理哪种mask类型
     # create_masks(image_dir, mask_dir)
     # apply_mask(image_dir, mask_dir, output_dir)
-#     generate_bbox_masks(
-#     label_dir='../data/training_20250226_102047/image_label',
-#     output_dir='../data/training_20250226_102047/mask/bbox'
-# )
+    # generate_bbox_masks(
+    # label_dir='../data/training_20250226_102047/image_label',
+    # output_dir='../data/training_20250226_102047/mask/bbox'
+    # )
     combine_masks()
