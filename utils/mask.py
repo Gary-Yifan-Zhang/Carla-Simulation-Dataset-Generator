@@ -5,6 +5,7 @@ from tqdm import tqdm
 from skimage.segmentation import flood_fill  # 新增导入
 import cv2
 
+
 def get_ego_mask(mask_array):
     """生成ego车辆区域的掩码"""
     working_array = mask_array.astype(np.uint8) * 255
@@ -40,7 +41,7 @@ def create_masks(input_dir, output_dir):
     :param output_dir: 输出掩码目录
     """
     os.makedirs(output_dir, exist_ok=True)
-    
+
     # 创建四个输出子目录（新增ego目录）
     subdirs = ['sky', 'rigid', 'nonrigid', 'ego']
     for subdir in subdirs:
@@ -48,9 +49,9 @@ def create_masks(input_dir, output_dir):
 
     # 新增：记录已保存的相机ego mask
     processed_cameras = set()
-    
-    seg_files = [f for f in os.listdir(input_dir) if f.endswith('_camera_seg_0.png') or 
-                 f.endswith('_camera_seg_1.png') or 
+
+    seg_files = [f for f in os.listdir(input_dir) if f.endswith('_camera_seg_0.png') or
+                 f.endswith('_camera_seg_1.png') or
                  f.endswith('_camera_seg_2.png')]
     print(f"开始处理 {len(seg_files)} 张分割图像...")
 
@@ -61,19 +62,18 @@ def create_masks(input_dir, output_dir):
             parts = filename.split('_camera_seg')
             base_name = parts[0]
             suffix = parts[1].split('.')[0]  # 获取后缀编号（空字符串、_1、_2）
-            
+
             # 读取并处理图像
             img_array = np.array(Image.open(file_path))
-            
+
             # 创建三个新的RGB图像
             height, width, _ = img_array.shape
             sky_img = np.zeros((height, width, 3), dtype=np.uint8)
             rigid_img = np.zeros((height, width, 3), dtype=np.uint8)
             nonrigid_img = np.zeros((height, width, 3), dtype=np.uint8)
-            
+
             parts = filename.split('_')
             camera_id = int(parts[-1].split('.')[0])  # 获取最后的数字作为相机ID
-            
 
             # 处理天空图像
             for id in sky_ids:
@@ -85,24 +85,23 @@ def create_masks(input_dir, output_dir):
                 mask = img_array[:, :, 0] == id
                 # 新增ego mask排除逻辑
                 ego_mask = get_ego_mask(mask)
-                 
+
                 mask[ego_mask] = False  # 排除ego车辆区域
                 rigid_img[mask] = (255, 255, 255)
-            
 
             # 处理非刚性物体图像
             for id in nonrigid_ids:
                 mask = img_array[:, :, 0] == id
                 nonrigid_img[mask] = (255, 255, 255)  # 白色
-                  
-            
+
             # # 保存处理结果
             # Image.fromarray(sky_img).save(f'{output_dir}/sky/{base_name}_sky{suffix}.png')
             # Image.fromarray(rigid_img).save(f'{output_dir}/rigid/{base_name}_rigid{suffix}.png')
             # Image.fromarray(nonrigid_img).save(f'{output_dir}/nonrigid/{base_name}_nonrigid{suffix}.png')
 
     print("所有图像处理完成！")
-    
+
+
 def apply_mask(image_dir, mask_dir, output_dir):
     """
     将原图像与mask叠加，输出mask之后的图像
@@ -112,15 +111,16 @@ def apply_mask(image_dir, mask_dir, output_dir):
     """
     # 定义三种mask类型
     mask_types = ['sky', 'rigid', 'nonrigid']
-    
+
     # 为每种mask类型创建输出子目录
     output_dirs = {}
     for mask_type in mask_types:
         output_dirs[mask_type] = os.path.join(output_dir, mask_type)
         os.makedirs(output_dirs[mask_type], exist_ok=True)
-    
+
     # 获取所有原图像文件
-    image_files = [f for f in os.listdir(image_dir) if f.endswith('.png') and '_camera_' in f]
+    image_files = [f for f in os.listdir(
+        image_dir) if f.endswith('.png') and '_camera_' in f]
     print(f"开始处理 {len(image_files)} 张原图像...")
 
     for filename in tqdm(image_files, desc="处理进度"):
@@ -158,19 +158,19 @@ def apply_mask(image_dir, mask_dir, output_dir):
             masked_image = np.where(mask[..., None] == 255, image, 0)
 
             # 保存结果到对应的子目录
-            output_path = os.path.join(output_dirs[mask_type], 
-                                     f"{frame_num}_masked_{mask_type}_camera_{camera_num}.png")
+            output_path = os.path.join(output_dirs[mask_type],
+                                       f"{frame_num}_masked_{mask_type}_camera_{camera_num}.png")
             Image.fromarray(masked_image).save(output_path)
 
     print("所有图像处理完成！")
 
 
 def generate_bbox_masks(label_dir='../data/training_20250226_102047/image_label',
-                       output_dir='../data/training_20250226_102047/mask/bbox',
-                       width=1920,
-                       height=1080,
-                       show=False,
-                       save=True):
+                        output_dir='../data/training_20250226_102047/mask/bbox',
+                        width=1920,
+                        height=1080,
+                        show=False,
+                        save=True):
     """
     生成边界框掩码的生成器函数（更新路径参数）
     参数:
@@ -186,12 +186,13 @@ def generate_bbox_masks(label_dir='../data/training_20250226_102047/image_label'
         os.makedirs(output_dir, exist_ok=True)
 
     # 获取所有标注文件（保持与create_masks相同的文件过滤逻辑）
-    seg_files = [f for f in os.listdir(label_dir) if f.endswith('.txt') and '_camera_' in f]
+    seg_files = [f for f in os.listdir(
+        label_dir) if f.endswith('.txt') and '_camera_' in f]
     print(f"开始处理 {len(seg_files)} 个标注文件...")
 
     for filename in tqdm(seg_files, desc="生成边界框掩码"):
         file_path = os.path.join(label_dir, filename)
-   
+
         if not filename.endswith('.txt'):
             continue
 
@@ -206,18 +207,18 @@ def generate_bbox_masks(label_dir='../data/training_20250226_102047/image_label'
                     parts = line.strip().split()
                     if len(parts) < 9:
                         continue
-                    
+
                     left = int(float(parts[5]))
                     top = int(float(parts[6]))
                     right = int(float(parts[7]))
                     bottom = int(float(parts[8]))
-                    
+
                     # 坐标安全限制
                     left = max(0, min(left, width-1))
                     right = max(0, min(right, width-1))
                     top = max(0, min(top, height-1))
                     bottom = max(0, min(bottom, height-1))
-                    
+
                     mask[top:bottom, left:right] = 1
                     bboxes.append((left, top, right, bottom))
 
@@ -225,20 +226,20 @@ def generate_bbox_masks(label_dir='../data/training_20250226_102047/image_label'
         if show:
             import matplotlib.pyplot as plt
             plt.figure(figsize=(15, 6))
-            
+
             # 掩码可视化
             plt.subplot(1, 2, 1)
             plt.imshow(mask, cmap='gray')
             plt.title(f'Mask Preview: {filename}')
-            
+
             # 边界框可视化
             plt.subplot(1, 2, 2)
             fake_img = np.zeros((height, width, 3), dtype=np.uint8)
             for box in bboxes:
-                cv2.rectangle(fake_img, 
-                            (box[0], box[1]),
-                            (box[2], box[3]),
-                            (0, 255, 0), 2)
+                cv2.rectangle(fake_img,
+                              (box[0], box[1]),
+                              (box[2], box[3]),
+                              (0, 255, 0), 2)
             plt.imshow(fake_img)
             plt.title(f'BBoxes: {len(bboxes)} objects')
             plt.tight_layout()
@@ -246,17 +247,19 @@ def generate_bbox_masks(label_dir='../data/training_20250226_102047/image_label'
 
         # 保存结果
         if save:
-            mask_name = filename.replace('.txt', '_mask.png').replace('_camera_', '_bbox_')
+            mask_name = filename.replace(
+                '.txt', '_mask.png').replace('_camera_', '_bbox_')
             output_path = os.path.join(output_dir, mask_name)
             Image.fromarray(mask * 255).save(output_path)
 
         else:
             print(f'Processed: {filename} (not saved)')
 
+
 def combine_masks(base_dir='../data/training_20250226_102047',
-                                label_subdir='image_label',
-                                mask_subdirs=('mask/rigid', 'mask/nonrigid'),
-                                output_subdir='mask/object_intersection'):
+                  label_subdir='image_label',
+                  mask_subdirs=('mask/rigid', 'mask/nonrigid'),
+                  output_subdir='mask/object_intersection'):
     """
     刚体与非刚体掩码交集合成函数（新增）
     功能：
@@ -268,49 +271,52 @@ def combine_masks(base_dir='../data/training_20250226_102047',
     label_dir = os.path.join(base_dir, label_subdir)
     output_root = os.path.join(base_dir, output_subdir)
     os.makedirs(output_root, exist_ok=True)
-    
+
     # 创建类别子目录
     for mask_type in mask_subdirs:
         type_dir = os.path.join(output_root, mask_type.split('/')[-1])
         os.makedirs(type_dir, exist_ok=True)
-    
+
     # 获取标注文件（保持原有过滤逻辑）
-    seg_files = [f for f in os.listdir(label_dir) 
-                if f.endswith('.txt') and '_camera_' in f]
-    
+    seg_files = [f for f in os.listdir(label_dir)
+                 if f.endswith('.txt') and '_camera_' in f]
+
     print(f"开始处理 {len(seg_files)} 个文件...")
-    
+
     for filename in tqdm(seg_files, desc="合成刚体/非刚体"):
         # 解析文件名
         base_name = filename.replace('.txt', '')
         frame_num, camera_id = base_name.split('_camera_')
-        
+
         # 生成bbox掩码（复用原有安全机制）
         bbox_mask = np.zeros((1080, 1920), dtype=np.uint8)
         with open(os.path.join(label_dir, filename), 'r') as f:
             for line in f:
                 if line.strip():
                     parts = line.strip().split()
-                    left, top = map(lambda x: max(0, int(float(x))), (parts[5], parts[6]))
-                    right, bottom = map(lambda x: min(1920, int(float(x))), (parts[7], parts[8]))
+                    left, top = map(lambda x: max(
+                        0, int(float(x))), (parts[5], parts[6]))
+                    right, bottom = map(lambda x: min(
+                        1920, int(float(x))), (parts[7], parts[8]))
                     bbox_mask[top:bottom, left:right] = 255
 
         # 分别处理两类掩码
         for mask_type in mask_subdirs:
             type_name = mask_type.split('/')[-1]  # rigid/nonrigid
             input_path = os.path.join(base_dir, mask_type,
-                                     f"{frame_num}_{type_name}_{camera_id}.png")
+                                      f"{frame_num}_{type_name}_{camera_id}.png")
             output_path = os.path.join(output_root, type_name,
-                                      f"{frame_num}_intersection_{type_name}_{camera_id}.png")
-            
+                                       f"{frame_num}_intersection_{type_name}_{camera_id}.png")
+
             if not os.path.exists(input_path):
                 continue
-                
+
             # 处理掩码交集
             original_mask = np.array(Image.open(input_path).convert('L'))
-            _, binary_mask = cv2.threshold(original_mask, 1, 255, cv2.THRESH_BINARY)
+            _, binary_mask = cv2.threshold(
+                original_mask, 1, 255, cv2.THRESH_BINARY)
             intersection = cv2.bitwise_and(binary_mask, bbox_mask)
-            
+
             # 保存优化后的掩码
             Image.fromarray(intersection).save(output_path, compress_level=9)
 
@@ -320,12 +326,12 @@ def combine_masks(base_dir='../data/training_20250226_102047',
 if __name__ == "__main__":
     # 定义基础路径
     base_dir = '../data/training_20250226_102047'
-    
+
     # 基于base路径定义其他路径
     image_dir = f'{base_dir}/image'
     mask_dir = f'{base_dir}/mask'
     output_dir = f'{base_dir}/masked_images'
-    
+
     # # 可以选择处理哪种mask类型
     # create_masks(image_dir, mask_dir)
     # apply_mask(image_dir, mask_dir, output_dir)
