@@ -21,13 +21,13 @@ SENSOR_CONFIG:
   LIDAR:
     TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 2560000, channels: 128}
+    ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 10240000, channels: 128}
 
  
   SEMANTIC_LIDAR:
     TRANSFORM: { location: [0, 0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast_semantic
-    ATTRIBUTE: { range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 2560000, channels: 128 }
+    ATTRIBUTE: { range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 10240000, channels: 128 }
 
   SUB_RGB_1:
     BLUEPRINT: sensor.camera.rgb

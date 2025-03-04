@@ -256,7 +256,7 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic):
         # 统计属于目标物体的点云数量
         if point[4] == obj.id:
             pc_num += 1
-
+        print(pc_num)
         if pc_num >= MIN_VISIBLE_NUM_FOR_POINT_CLOUDS:
             obj_tp = obj_type(obj)
             obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
