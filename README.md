@@ -262,6 +262,7 @@ This project is developed based on the following open-source projects:
 - [ ] Multi-radar fusion
 - [ ] Create more complex scenarios using OpenScenario
 - [ ] Migrate to CARLA with UE5
+- [ ] Bugs in 3D bounding boxes of traffic lights
 
 
 ---
