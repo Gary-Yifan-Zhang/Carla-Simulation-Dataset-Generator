@@ -53,8 +53,8 @@ class SimulationScene:
         self.init_settings = self.world.get_settings()
         settings = self.world.get_settings()
         settings.synchronous_mode = True
-        # 固定时间步长 (0.05s, 20fps)
-        settings.fixed_delta_seconds = 0.05
+        # 固定时间步长 (0.01s)
+        settings.fixed_delta_seconds = 0.01
         self.world.apply_settings(settings)
 
     def spawn_actors(self):
@@ -299,6 +299,7 @@ class SimulationScene:
         self.frame = self.world.tick()
 
         data["environment_objects"] = self.world.get_environment_objects(carla.CityObjectLabel.Any)
+
         data["actors"] = self.world.get_actors()
 
         # 生成RGB图像的分辨率
@@ -316,8 +317,11 @@ class SimulationScene:
             data["agents_data"][agent]["intrinsic"] = set_camera_intrinsic(image_width, image_height)
             
             # 设置传感器外参
-            data["agents_data"][agent]["extrinsic"] = np.mat(
-                self.actors["sensors"][agent][0].get_transform().get_matrix())
+            data["agents_data"][agent]["extrinsic"] = [
+                np.mat(sensor.get_transform().get_matrix())
+                for sensor in self.actors["sensors"][agent]
+            ]
+            
             
             # 设置传感器的carla位姿
             data["agents_data"][agent]["transform"] = self.actors["sensors"][agent][0].get_transform()

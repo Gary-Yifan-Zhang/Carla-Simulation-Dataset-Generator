@@ -1,6 +1,6 @@
 CARLA_CONFIG:
   NUM_OF_VEHICLES: 50
-  NUM_OF_WALKERS: 50
+  NUM_OF_WALKERS: 100
 
 AGENT_CONFIG:
   TRANSFORM: { location: [ 124, 226, 0.65 ], rotation: [ 0, 0, 0 ] }
@@ -14,21 +14,20 @@ SENSOR_CONFIG:
       
 
   DEPTH_RGB:
-    TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 0, 0]}
+    TRANSFORM: {location: [0, 0.0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.depth
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
   LIDAR:
     TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 2560000, channels: 128}
+    ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 10240000, channels: 128}
 
  
-
   SEMANTIC_LIDAR:
     TRANSFORM: { location: [0, 0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast_semantic
-    ATTRIBUTE: { range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 2560000, channels: 128 }
+    ATTRIBUTE: { range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 10240000, channels: 128 }
 
   SUB_RGB_1:
     BLUEPRINT: sensor.camera.rgb
@@ -37,7 +36,7 @@ SENSOR_CONFIG:
       image_size_y: 1080
       fov: 90
     TRANSFORM:
-      location: [0, 0.1, 1.6]
+      location: [0, 0.5, 1.6]
       rotation: [0, 0, 0]
 
   SUB_RGB_2:
@@ -58,25 +57,25 @@ SENSOR_CONFIG:
   #     location: [0, 0, 1.0]
   #     rotation: [0, 0, 0]
 
-  SUB_LIDAR_1:
-    TRANSFORM: {location: [0, -0.8, 1.6], rotation: [0, 0, 0]}
-    BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
+  # SUB_LIDAR_1:
+  #   TRANSFORM: {location: [0, -0.8, 1.6], rotation: [0, 0, 0]}
+  #   BLUEPRINT: sensor.lidar.ray_cast
+  #   ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
 
-  SUB_LIDAR_2:
-    TRANSFORM: {location: [0, 0.8, 1.6], rotation: [0, 0, 0]}
-    BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
+  # SUB_LIDAR_2:
+  #   TRANSFORM: {location: [0, 0.8, 1.6], rotation: [0, 0, 0]}
+  #   BLUEPRINT: sensor.lidar.ray_cast
+  #   ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
 
-  SUB_LIDAR_3:
-    TRANSFORM: {location: [-1, -0.8, 1.6], rotation: [0, 0, 0]}
-    BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
+  # SUB_LIDAR_3:
+  #   TRANSFORM: {location: [-1, -0.8, 1.6], rotation: [0, 0, 0]}
+  #   BLUEPRINT: sensor.lidar.ray_cast
+  #   ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
 
-  SUB_LIDAR_4:
-    TRANSFORM: {location: [-1, 0.8, 1.6], rotation: [0, 0, 0]}
-    BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
+  # SUB_LIDAR_4:
+  #   TRANSFORM: {location: [-1, 0.8, 1.6], rotation: [0, 0, 0]}
+  #   BLUEPRINT: sensor.lidar.ray_cast
+  #   ATTRIBUTE: {range: 70, rotation_frequency: 20, upper_fov: 20, lower_fov: -10, points_per_second: 640000, channels: 128}
 
   VIEW_RGB_1:
     BLUEPRINT: sensor.camera.rgb
@@ -98,9 +97,29 @@ SENSOR_CONFIG:
       location: [0.0, 0.0, 40.0]
       rotation: [-90, 0, 0]
 
-  EMANTIC:
+  SEMANTIC:
     TRANSFORM: {location: [0, 0.0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
+
+  SEMANTIC_1:
+    TRANSFORM: {location: [0, 0.5, 1.6], rotation: [0, 0, 0]}
+    BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
+
+  SEMANTIC_2:
+    TRANSFORM: {location: [0, -0.1, 1.6], rotation: [0, 0, 0]}
+    BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
+
+  DEPTH_RGB_1:
+    TRANSFORM: {location: [0, 0.5, 1.6], rotation: [0, 0, 0]}
+    BLUEPRINT: sensor.camera.depth
+    ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
+
+  DEPTH_RGB_2:
+    TRANSFORM: {location: [0, -0.1, 1.6], rotation: [0, 0, 0]}
+    BLUEPRINT: sensor.camera.depth
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
 
@@ -113,5 +132,5 @@ FILTER_CONFIG:
 
 SAVE_CONFIG:
   ROOT_PATH: data
-  STEP: 3
-  MAX_RECORD_COUNT: 100
+  STEP: 10
+  MAX_RECORD_COUNT: 30

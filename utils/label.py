@@ -26,7 +26,9 @@ def spawn_dataset(data):
     """
     # 筛选环境中的车辆
     environment_objects = data["environment_objects"]
-    environment_objects = [x for x in environment_objects if x.type == "vehicle"]
+
+    environment_objects = [x for x in environment_objects if x.type == "vehicle" or x.type in [carla.CityObjectLabel.TrafficSigns, 
+                                      carla.CityObjectLabel.TrafficLight]]
 
     # 筛选actors中的车辆与行人
     actors = data["actors"]
@@ -39,52 +41,87 @@ def spawn_dataset(data):
         sensors_data = dataDict["sensor_data"]
 
         image_labels_kitti = []
+        image_labels_kitti_1 = []
+        image_labels_kitti_2 = []
         pc_labels_kitti = []
 
         rgb_image = raw_image_to_rgb_array(sensors_data[0])
+        rgb_image_1 = raw_image_to_rgb_array(sensors_data[4])
+        rgb_image_2 = raw_image_to_rgb_array(sensors_data[5])
         image = rgb_image.copy()
+        image_1 = rgb_image_1.copy()
+        image_2 = rgb_image_2.copy()
 
         depth_data = depth_image_to_array(sensors_data[1])
+        depth_data_1 = depth_image_to_array(sensors_data[11])
+        depth_data_2 = depth_image_to_array(sensors_data[12])
         semantic_lidar = np.frombuffer(sensors_data[3].raw_data, dtype=np.dtype('f4,f4, f4, f4, i4, i4'))
 
         # 对环境中的目标物体生成标签
         data["agents_data"][agent]["visible_environment_objects"] = []
         for obj in environment_objects:
-            image_label_kitti = is_visible_in_camera(agent, obj, image, depth_data, intrinsic, extrinsic)
+            image_label_kitti = is_visible_in_camera(agent, obj, image, depth_data, intrinsic, extrinsic[0])
             if image_label_kitti is not None:
                 data["agents_data"][agent]["visible_environment_objects"].append(obj)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic)
+            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[0])
             if pc_label_kitti is not None:
-                print(pc_label_kitti)
                 pc_labels_kitti.append(pc_label_kitti)
 
         # 对actors中的目标物体生成标签
         data["agents_data"][agent]["visible_actors"] = []
         for act in actors:
-            image_label_kitti = is_visible_in_camera(agent, act, image, depth_data, intrinsic, extrinsic)
+            image_label_kitti = is_visible_in_camera(agent, act, image, depth_data, intrinsic, extrinsic[0])
             if image_label_kitti is not None:
                 data["agents_data"][agent]["visible_actors"].append(act)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, extrinsic)
+            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, extrinsic[0])
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
+                
+        # 新增对第二个摄像头（sensors_data[4]）的处理
+        for obj in environment_objects:
+            image_label_kitti_1 = is_visible_in_camera(agent, obj, image_1, depth_data_1, intrinsic, extrinsic[4])  # 使用第四个外参矩阵
+            if image_label_kitti_1 is not None:
+                image_labels_kitti_1.append(image_label_kitti_1)
+
+        for act in actors:
+            image_label_kitti_1 = is_visible_in_camera(agent, act, image_1, depth_data_1, intrinsic, extrinsic[4])
+            if image_label_kitti_1 is not None:
+                image_labels_kitti_1.append(image_label_kitti_1)
+
+        # 新增对第三个摄像头（sensors_data[5]）的处理
+        for obj in environment_objects:
+            image_label_kitti_2 = is_visible_in_camera(agent, obj, image_2, depth_data_2, intrinsic, extrinsic[5])  # 使用第五个外参矩阵
+            if image_label_kitti_2 is not None:
+                image_labels_kitti_2.append(image_label_kitti_2)
+
+        for act in actors:
+            image_label_kitti_2 = is_visible_in_camera(agent, act, image_2, depth_data_2, intrinsic, extrinsic[5])
+            if image_label_kitti_2 is not None:
+                image_labels_kitti_2.append(image_label_kitti_2)
+
 
         data["agents_data"][agent]["rgb_image"] = rgb_image
         data["agents_data"][agent]["bbox_img"] = image
+        data["agents_data"][agent]["bbox_img_1"] = image_1   # 新增第二个摄像头标注图
+        data["agents_data"][agent]["bbox_img_2"] = image_2   # 新增第三个摄像头标注图
         data["agents_data"][agent]["image_labels_kitti"] = image_labels_kitti
+        data["agents_data"][agent]["image_labels_kitti_1"] = image_labels_kitti_1
+        data["agents_data"][agent]["image_labels_kitti_2"] = image_labels_kitti_2
         data["agents_data"][agent]["pc_labels_kitti"] = pc_labels_kitti
     return data
 
 
-def get_bounding_box(actor, min_extent=0.5):
+def get_bounding_box(actor, min_extent=0.5, is_environment_object=False):
     """
     修复两轮车辆边界框异常问题
     参数：
         actor: CARLA中的Actor对象
         min_extent: 最小边界框尺寸，默认为0.5米
+        is_environment_object: 是否为环境物体，默认为False
     返回：
         carla.BoundingBox: 修正后的边界框
     """
@@ -99,23 +136,24 @@ def get_bounding_box(actor, min_extent=0.5):
         bbox.extent = carla.Vector3D(bbox.location)
         bbox.location = loc
     
-    # 新增两轮车高度调整逻辑
-    if 'crossbike' in actor.type_id or 'motorcycle' in actor.type_id:
-        # 调整高度（z轴方向）
-        new_height = bbox.extent.z + 0.3
-        bbox.extent = carla.Vector3D(
-            x=bbox.extent.x,
-            y=bbox.extent.y,
-            z=new_height
-        )
-        # 同时调整位置中心点
-        bbox.location.z += 0.15  # 高度增加0.4，中心点上移0.2
-    
-    
-    if 'vehicle' in actor.type_id:
-        bbox.extent.x *=1.05
-        bbox.extent.y *=1.05
-        bbox.extent.z *=1.05
+    # 如果是环境物体，跳过以下调整逻辑
+    if not is_environment_object:
+        # 新增两轮车高度调整逻辑
+        if 'crossbike' in actor.type_id or 'motorcycle' in actor.type_id:
+            # 调整高度（z轴方向）
+            new_height = bbox.extent.z + 0.3
+            bbox.extent = carla.Vector3D(
+                x=bbox.extent.x,
+                y=bbox.extent.y,
+                z=new_height
+            )
+            # 同时调整位置中心点
+            bbox.location.z += 0.15  # 高度增加0.4，中心点上移0.2
+        
+        if 'vehicle' in actor.type_id:
+            bbox.extent.x *=1.05
+            bbox.extent.y *=1.05
+            bbox.extent.z *=1.05
     
     return bbox
 
@@ -133,10 +171,21 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
             extrinsic：相机外参
 
         返回：
-            kitti_label：RGB图像的KITTI标签
+            kitti_label：包含以下信息的KITTI标签（按照KITTI标准格式顺序）：
+                - type: 物体类型（如'Car', 'Pedestrian'等）
+                - id: 物体唯一ID，未指定时为-1
+                - truncated: 截断程度，0（未截断）到1（完全截断），表示物体离开图像边界的程度
+                - occlusion: 遮挡状态整数(0,1,2):
+                    0 = 完全可见, 1 = 部分遮挡, 2 = 大部分遮挡
+                - alpha: 观测角度，固定为0（相机数据无此信息）
+                - bbox: 图像中物体的2D边界框（基于0的索引）:
+                    包含左、上、右、下像素坐标
+                - dimensions: 3D物体尺寸（高度、宽度、长度）
+                - location: 物体在相机坐标系中的3D位置（x, y, z）
+                - rotation_y: 物体绕Y轴的旋转角度
     """
     obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
-    obj_bbox = get_bounding_box(obj)
+    obj_bbox = get_bounding_box(obj, is_environment_object=isinstance(obj, carla.EnvironmentObject))
 
     if isinstance(obj, carla.EnvironmentObject):
         vertices_pixel = get_vertices_pixel(intrinsic, extrinsic, obj_bbox, obj_transform, 0)
@@ -187,39 +236,65 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic):
             extrinsic：激光雷达外参
 
         返回：
-            kitti_label：RGB图像的KITTI标签
+            kitti_label：包含以下信息的KITTI标签（按照KITTI标准格式顺序）：
+                - type: 物体类型（如'Car', 'Pedestrian'等）
+                - id: 物体唯一ID，未指定时为-1
+                - truncated: 截断程度，固定为0（激光雷达不受图像边界限制）
+                - occlusion: 遮挡状态，固定为0（激光雷达直接检测物体表面）
+                - alpha: 观测角度，固定为0（激光雷达无此信息）
+                - bbox: 2D边界框，固定为[0, 0, 0, 0]（激光雷达无2D边界框信息）
+                - dimensions: 3D物体尺寸（高度、宽度、长度）
+                - location: 物体在激光雷达坐标系中的3D位置（x, y, z）
+                - rotation_y: 物体绕Y轴的旋转角度
     """
     pc_num = 0
 
+    # 如果是环境物体，直接检查距离
+    if isinstance(obj, carla.EnvironmentObject):
+        obj_transform = obj.transform
+        distance = math.sqrt(
+            (obj_transform.location.x - extrinsic[0, 3])**2 +
+            (obj_transform.location.y - extrinsic[1, 3])**2
+        )
+        if distance <= MAX_RENDER_DEPTH_IN_METERS:
+            return create_point_cloud_label(obj, obj_transform, extrinsic)
+        return None
+
+    # 对于非环境物体，仍然使用点云数量判断
     for point in semantic_lidar:
-        # 统计属于目标物体的点云数量
         if point[4] == obj.id:
             pc_num += 1
-
         if pc_num >= MIN_VISIBLE_NUM_FOR_POINT_CLOUDS:
-            obj_tp = obj_type(obj)
-            obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
-            # 将原点设置在激光雷达所在的xy，z=0处
-            midpoint = np.array([
-                [obj_transform.location.x - extrinsic[0, 3]],  # [[X,
-                [obj_transform.location.y - extrinsic[1, 3]],  # Y,
-                [obj_transform.location.z],  # Z,
-                [1.0]  # 1.0]]
-            ])
-            rotation_y = math.radians(-obj_transform.rotation.yaw) % math.pi
-            ext = get_bounding_box(obj).extent
-
-            point_cloud_label = KittiDescriptor()
-            point_cloud_label.set_truncated(0)
-            point_cloud_label.set_occlusion(0)
-            point_cloud_label.set_bbox([0, 0, 0, 0])
-            point_cloud_label.set_3d_object_dimensions(ext)
-            point_cloud_label.set_type(obj_tp)
-            point_cloud_label.set_lidar_object_location(midpoint)
-            point_cloud_label.set_rotation_y(rotation_y)
-            return point_cloud_label
+            obj_transform = obj.get_transform()
+            return create_point_cloud_label(obj, obj_transform, extrinsic)
     return None
 
+def create_point_cloud_label(obj, obj_transform, extrinsic):
+    """
+        创建点云标签的通用函数
+    """
+    obj_tp = obj_type(obj)
+    midpoint = np.array([
+        [obj_transform.location.x - extrinsic[0, 3]],  # [[X,
+        [obj_transform.location.y - extrinsic[1, 3]],  # Y,
+        [obj_transform.location.z],  # Z,
+        [1.0]  # 1.0]]
+    ])
+   
+    rotation_y = math.radians(-obj_transform.rotation.yaw) % math.pi
+
+    bbox  = get_bounding_box(obj, is_environment_object=isinstance(obj, carla.EnvironmentObject))
+    ext = bbox.extent
+    point_cloud_label = KittiDescriptor()
+    point_cloud_label.set_id(obj_id=obj.id)
+    point_cloud_label.set_truncated(0)
+    point_cloud_label.set_occlusion(0)
+    point_cloud_label.set_bbox([0, 0, 0, 0])
+    point_cloud_label.set_3d_object_dimensions(ext)
+    point_cloud_label.set_type(obj_tp)
+    point_cloud_label.set_lidar_object_location(midpoint)
+    point_cloud_label.set_rotation_y(rotation_y)
+    return point_cloud_label
 
 def get_occlusion_stats(vertices, depth_image):
     """

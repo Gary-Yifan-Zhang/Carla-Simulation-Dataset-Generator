@@ -1,9 +1,47 @@
+"""
+可视化工具模块
+
+使用说明：
+1. 从项目根目录运行：
+   python -m utils.visual
+2. 或者直接运行：
+   python utils/visual.py
+"""
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from utils.utils import yaml_to_config
 import open3d as o3d
+import cv2
+
 
 config = yaml_to_config("configs.yaml")
 WINDOW_WIDTH = config["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_x"]
 WINDOW_HEIGHT = config["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_y"]
+
+from PIL import Image
+import matplotlib.pyplot as plt
+import numpy as np
+from skimage.segmentation import flood_fill
+
+# 定义类别和颜色映射
+ID_TO_COLOR = {
+    11: (70, 130, 180),    # Sky
+    12: (220, 20, 60),     # Pedestrian
+    13: (255, 0, 0),       # Rider
+    14: (0, 0, 142),       # Car
+    15: (0, 0, 70),        # Truck
+    16: (0, 60, 100),      # Bus
+    17: (0, 80, 100),      # Train
+    18: (0, 0, 230),       # Motorcycle
+    19: (119, 11, 32)      # Bicycle
+}
+
+# 定义类别分组
+SKY_IDS = [11]
+RIGID_IDS = [14, 15, 16, 17]
+NONRIGID_IDS = [12, 13, 18, 19]
 
 
 def rectify_2d_bounding_box(bbox_2d):
@@ -215,3 +253,117 @@ def draw_3d_bounding_box_on_point_cloud(point_cloud, vertices_2d):
 
     # 可视化点云和边界框
     o3d.visualization.draw_geometries([pcd, line_set])
+
+def plot_segmentation_results(seg_path, img_path):
+    """主函数：绘制分割结果"""
+    # 读取图像
+    img_array = np.array(Image.open(seg_path))
+    
+    # 创建各分类mask
+    sky_mask = create_mask(img_array, SKY_IDS)
+    rigid_mask = create_mask(img_array, RIGID_IDS, exclude_ego=True)
+    nonrigid_mask = create_mask(img_array, NONRIGID_IDS)
+    dynamic_mask = rigid_mask | nonrigid_mask
+    ego_mask = get_ego_mask(img_array[:, :, 0])
+    
+    # 创建绘图布局
+    plt.figure(figsize=(15, 8))
+    
+    # 原始图像
+    plt.subplot(2, 3, 1)
+    plt.imshow(Image.open(img_path))
+    plt.title('Original Image')
+    plt.axis('off')
+    
+    # 动态物体
+    plt.subplot(2, 3, 2)
+    plt.imshow(dynamic_mask, cmap='gray')
+    plt.title('Dynamic')
+    plt.axis('off')
+    
+    # 天空区域
+    plt.subplot(2, 3, 3)
+    plt.imshow(sky_mask, cmap='gray')
+    plt.title('Sky')
+    plt.axis('off')
+    
+    # 刚性动态物体
+    plt.subplot(2, 3, 4)
+    plt.imshow(rigid_mask, cmap='gray')
+    plt.title('Rigid Dynamic')
+    plt.axis('off')
+    
+    # 非刚性动态物体
+    plt.subplot(2, 3, 5)
+    plt.imshow(nonrigid_mask, cmap='gray')
+    plt.title('Nonrigid')
+    plt.axis('off')
+    
+    # Ego Mask
+    plt.subplot(2, 3, 6)
+    plt.imshow(ego_mask, cmap='gray')
+    plt.title('Ego Vehicle Mask')
+    plt.axis('off')
+    
+    plt.tight_layout()
+    plt.show()
+
+def create_mask(img_array, ids, exclude_ego=False):
+    """创建指定类别的mask"""
+    mask = np.zeros(img_array.shape[:2], dtype=bool)
+    for id in ids:
+        mask |= img_array[:, :, 0] == id
+    
+    if exclude_ego:
+        ego_mask = get_ego_mask(img_array[:, :, 0])
+        mask[ego_mask] = False
+    
+    return mask
+
+def get_ego_mask(img_array):
+    """获取ego车辆mask"""
+    working_array = img_array.astype(np.uint8) * 255
+    height, width = working_array.shape[:2]
+    seed_point = (height - 1, width // 2)
+    ego_mask = flood_fill(working_array, seed_point, 0, tolerance=10)
+    return ego_mask == 0
+
+def view_images(image_dir, image_ext='_camera_0.png', window_name='Image Sequence', delay=200):
+    """
+    查看指定目录下的图片序列
+    
+    参数:
+        image_dir (str): 图片目录路径
+        image_ext (str): 图片扩展名，默认为'.png'
+        window_name (str): 显示窗口的名称，默认为'Image Sequence'
+        delay (int): 图片显示时间间隔（毫秒），默认为200ms
+    """
+    # 获取所有指定扩展名的图片
+    images = sorted([img for img in os.listdir(image_dir) if img.endswith(image_ext)])
+    
+    # 遍历并显示图片
+    for img_name in images:
+        img_path = os.path.join(image_dir, img_name)
+        img = cv2.imread(img_path)
+        
+        if img is None:
+            print(f"无法读取图片: {img_path}")
+            continue
+            
+        cv2.imshow(window_name, img)
+        
+        # 按任意键继续，按'q'退出
+        if cv2.waitKey(delay) & 0xFF == ord('q'):
+            break
+
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    # seg_path = './data/training_20250226_102047/image/000010_camera_seg_0.png'
+    # img_path = './data/training_20250226_102047/image/000010_camera_0.png'
+    # plot_segmentation_results(seg_path, img_path)
+    
+    # 新增图片查看功能示例
+    image_dir = './data/training_20250226_102047/image'
+    view_images(image_dir)

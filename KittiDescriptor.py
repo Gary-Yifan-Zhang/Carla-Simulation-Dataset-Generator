@@ -2,6 +2,7 @@
 #Values    Name      Description
 ----------------------------------------------------------------------------
    1    type         Describes the type of object: 'Car', 'Pedestrian', 'Vehicles', 'Vegetation', 'TrafficSigns', etc.
+   1    id           Unique ID for the object, -1 if not specified
    1    truncated    Float from 0 (non-truncated) to 1 (truncated), where
                      truncated refers to the object leaving image boundaries
    1    occluded     Integer (0,1,2,3) indicating occlusion state:
@@ -110,8 +111,10 @@ class KittiDescriptor:
         x, y, z = [float(x) for x in obj_location][0:3]
         assert None not in [self.extent, self.type], "Extent and type must be set before location!"
 
-        # 对于行人和车辆，调整 z 坐标
-        z -= self.extent[0]  # 统一处理
+        if self.type == "Pedestrian":
+            # Since the midpoint/location of the pedestrian is in the middle of the agent, while for car it is at the
+            # bottom we need to subtract the bbox extent in the height direction when adding location of pedestrian.
+            z -= self.extent[0]
 
         self.location = " ".join(map(str, [y, -z, x]))
 
@@ -134,6 +137,6 @@ class KittiDescriptor:
             bbox_format = " ".join([str(x) for x in self.bbox])
 
         # kitti目标检测数据的标准格式
-        return "{} {} {} {} {} {} {} {}".format(self.type, self.obj_id if self.obj_id is not None else -1, self.truncated, self.occluded,
+        return "{} {} {} {} {} {} {} {} {}".format(self.type, self.obj_id if self.obj_id is not None else -1, self.truncated, self.occluded,
                                                 self.alpha, bbox_format, self.dimensions, self.location,
                                                 self.rotation_y)

@@ -51,14 +51,14 @@ def read_bounding_boxes(file_path, calibration_matrix, translation_vector):
         for line in f:
             data = line.strip().split()
             object_type = data[0]
-            h, w, l = float(data[8]), float(data[9]), float(data[10])
+            h, w, l = float(data[9]), float(data[10]), float(data[11])
             # 将hwl膨胀5%
             h *= 1.05
             w *= 1.05
             l *= 1.05
-            x, y, z = float(data[11]), float(data[12]), float(data[13])
+            x, y, z = float(data[12]), float(data[13]), float(data[14])
             print(object_type,x,y,z)
-            rotation_y = float(data[14])
+            rotation_y = float(data[15])
 
             bbox = create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, translation_vector)
             
@@ -134,6 +134,10 @@ def create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, t
         bbox.center = np.array([x, y, h / 2 + 0.32])
         bbox.extent = [h, w, l]
         bbox.color =  (1, 1, 0)  # 黄色
+    elif object_type == "TrafficLight" or object_type == "TrafficSigns":  # 自行车
+        bbox.center = np.array([x, y, h / 2 + 0.32])
+        bbox.extent = [h, w, l]
+        bbox.color =  (0, 0, 1)  # 黄色
     else:  # 其他类型
         bbox.center = np.array([x, y, z])
         bbox.extent = [h, w, l]
@@ -225,7 +229,7 @@ def check_bbox_size(bboxes, metadata, threshold=1.0):
 
 if __name__ == "__main__":
     # 定义数据文件夹和文件ID
-    data_folder = "data/training"
+    data_folder = "data/training_20250304_163033"
     file_id = "000001"
     lidar_index = 0  # 假设这是第一个雷达数据
     
