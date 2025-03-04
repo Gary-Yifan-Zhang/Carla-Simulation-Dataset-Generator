@@ -26,8 +26,6 @@ def spawn_dataset(data):
     """
     # 筛选环境中的车辆
     environment_objects = data["environment_objects"]
-    #打印出environment_objects 中的 x.type 
-    # print("environment_objects:", [x.type for x in environment_objects])
 
     environment_objects = [x for x in environment_objects if x.type == "vehicle" or x.type in [carla.CityObjectLabel.TrafficSigns, 
                                       carla.CityObjectLabel.TrafficLight]]
@@ -68,7 +66,6 @@ def spawn_dataset(data):
                 image_labels_kitti.append(image_label_kitti)
 
             pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[0])
-            print("pc_label_kitti:", pc_label_kitti)
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
 
@@ -252,23 +249,19 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic):
     """
     pc_num = 0
 
-    print("Is visible in lidar")
     # 如果是环境物体，直接检查距离
     if isinstance(obj, carla.EnvironmentObject):
-        print("Setting environment variable")
         obj_transform = obj.transform
         distance = math.sqrt(
             (obj_transform.location.x - extrinsic[0, 3])**2 +
             (obj_transform.location.y - extrinsic[1, 3])**2
         )
-        print(distance)    # 以下代码示例了如何在 KittiDescriptor 类中创建点云标签)
         if distance <= MAX_RENDER_DEPTH_IN_METERS:
             return create_point_cloud_label(obj, obj_transform, extrinsic)
         return None
 
     # 对于非环境物体，仍然使用点云数量判断
     for point in semantic_lidar:
-        print("Dynamical Objects")
         if point[4] == obj.id:
             pc_num += 1
         if pc_num >= MIN_VISIBLE_NUM_FOR_POINT_CLOUDS:
@@ -281,20 +274,17 @@ def create_point_cloud_label(obj, obj_transform, extrinsic):
         创建点云标签的通用函数
     """
     obj_tp = obj_type(obj)
-    print(obj_tp)
     midpoint = np.array([
         [obj_transform.location.x - extrinsic[0, 3]],  # [[X,
         [obj_transform.location.y - extrinsic[1, 3]],  # Y,
-        [obj_transform.location.z],  # Z,
+        [obj_transform.location.z - extrinsic[2, 3]],  # Z,
         [1.0]  # 1.0]]
     ])
    
     rotation_y = math.radians(-obj_transform.rotation.yaw) % math.pi
-    # print(rotation_y)
+
     bbox  = get_bounding_box(obj, is_environment_object=isinstance(obj, carla.EnvironmentObject))
     ext = bbox.extent
-    # print(ext)
-    # print("Creating point cloud label")
     point_cloud_label = KittiDescriptor()
     point_cloud_label.set_id(obj_id=obj.id)
     point_cloud_label.set_truncated(0)
@@ -388,7 +378,6 @@ def obj_type(obj):
     if isinstance(obj, carla.EnvironmentObject):
         return obj.type
     else:
-        # print(obj.type_id)
         if obj.type_id.find('walker') != -1:
             return 'Pedestrian'
         if obj.type_id.find('vehicle') != -1:
