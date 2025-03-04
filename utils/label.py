@@ -26,7 +26,11 @@ def spawn_dataset(data):
     """
     # 筛选环境中的车辆
     environment_objects = data["environment_objects"]
-    environment_objects = [x for x in environment_objects if x.type == "vehicle"]
+    #打印出environment_objects 中的 x.type 
+    # print("environment_objects:", [x.type for x in environment_objects])
+
+    environment_objects = [x for x in environment_objects if x.type == "vehicle" or x.type in [carla.CityObjectLabel.TrafficSigns, 
+                                      carla.CityObjectLabel.TrafficLight]]
 
     # 筛选actors中的车辆与行人
     actors = data["actors"]
@@ -58,21 +62,19 @@ def spawn_dataset(data):
         # 对环境中的目标物体生成标签
         data["agents_data"][agent]["visible_environment_objects"] = []
         for obj in environment_objects:
-            # print("extrinsic: ", extrinsic)
             image_label_kitti = is_visible_in_camera(agent, obj, image, depth_data, intrinsic, extrinsic[0])
             if image_label_kitti is not None:
                 data["agents_data"][agent]["visible_environment_objects"].append(obj)
                 image_labels_kitti.append(image_label_kitti)
 
             pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[0])
+            print("pc_label_kitti:", pc_label_kitti)
             if pc_label_kitti is not None:
-                print(pc_label_kitti)
                 pc_labels_kitti.append(pc_label_kitti)
 
         # 对actors中的目标物体生成标签
         data["agents_data"][agent]["visible_actors"] = []
         for act in actors:
-            # print("extrinsic: ", extrinsic[0])
             image_label_kitti = is_visible_in_camera(agent, act, image, depth_data, intrinsic, extrinsic[0])
             if image_label_kitti is not None:
                 data["agents_data"][agent]["visible_actors"].append(act)
@@ -116,12 +118,13 @@ def spawn_dataset(data):
     return data
 
 
-def get_bounding_box(actor, min_extent=0.5):
+def get_bounding_box(actor, min_extent=0.5, is_environment_object=False):
     """
     修复两轮车辆边界框异常问题
     参数：
         actor: CARLA中的Actor对象
         min_extent: 最小边界框尺寸，默认为0.5米
+        is_environment_object: 是否为环境物体，默认为False
     返回：
         carla.BoundingBox: 修正后的边界框
     """
@@ -136,23 +139,24 @@ def get_bounding_box(actor, min_extent=0.5):
         bbox.extent = carla.Vector3D(bbox.location)
         bbox.location = loc
     
-    # 新增两轮车高度调整逻辑
-    if 'crossbike' in actor.type_id or 'motorcycle' in actor.type_id:
-        # 调整高度（z轴方向）
-        new_height = bbox.extent.z + 0.3
-        bbox.extent = carla.Vector3D(
-            x=bbox.extent.x,
-            y=bbox.extent.y,
-            z=new_height
-        )
-        # 同时调整位置中心点
-        bbox.location.z += 0.15  # 高度增加0.4，中心点上移0.2
-    
-    
-    if 'vehicle' in actor.type_id:
-        bbox.extent.x *=1.05
-        bbox.extent.y *=1.05
-        bbox.extent.z *=1.05
+    # 如果是环境物体，跳过以下调整逻辑
+    if not is_environment_object:
+        # 新增两轮车高度调整逻辑
+        if 'crossbike' in actor.type_id or 'motorcycle' in actor.type_id:
+            # 调整高度（z轴方向）
+            new_height = bbox.extent.z + 0.3
+            bbox.extent = carla.Vector3D(
+                x=bbox.extent.x,
+                y=bbox.extent.y,
+                z=new_height
+            )
+            # 同时调整位置中心点
+            bbox.location.z += 0.15  # 高度增加0.4，中心点上移0.2
+        
+        if 'vehicle' in actor.type_id:
+            bbox.extent.x *=1.05
+            bbox.extent.y *=1.05
+            bbox.extent.z *=1.05
     
     return bbox
 
@@ -184,7 +188,7 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
                 - rotation_y: 物体绕Y轴的旋转角度
     """
     obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
-    obj_bbox = get_bounding_box(obj)
+    obj_bbox = get_bounding_box(obj, is_environment_object=isinstance(obj, carla.EnvironmentObject))
 
     if isinstance(obj, carla.EnvironmentObject):
         vertices_pixel = get_vertices_pixel(intrinsic, extrinsic, obj_bbox, obj_transform, 0)
@@ -361,6 +365,7 @@ def obj_type(obj):
     if isinstance(obj, carla.EnvironmentObject):
         return obj.type
     else:
+        # print(obj.type_id)
         if obj.type_id.find('walker') != -1:
             return 'Pedestrian'
         if obj.type_id.find('vehicle') != -1:

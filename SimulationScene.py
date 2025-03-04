@@ -299,6 +299,7 @@ class SimulationScene:
         self.frame = self.world.tick()
 
         data["environment_objects"] = self.world.get_environment_objects(carla.CityObjectLabel.Any)
+
         data["actors"] = self.world.get_actors()
 
         # 生成RGB图像的分辨率
