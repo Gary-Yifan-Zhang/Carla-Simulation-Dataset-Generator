@@ -252,36 +252,59 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic):
     """
     pc_num = 0
 
+    print("Is visible in lidar")
+    # 如果是环境物体，直接检查距离
+    if isinstance(obj, carla.EnvironmentObject):
+        print("Setting environment variable")
+        obj_transform = obj.transform
+        distance = math.sqrt(
+            (obj_transform.location.x - extrinsic[0, 3])**2 +
+            (obj_transform.location.y - extrinsic[1, 3])**2
+        )
+        print(distance)    # 以下代码示例了如何在 KittiDescriptor 类中创建点云标签)
+        if distance <= MAX_RENDER_DEPTH_IN_METERS:
+            return create_point_cloud_label(obj, obj_transform, extrinsic)
+        return None
+
+    # 对于非环境物体，仍然使用点云数量判断
     for point in semantic_lidar:
-        # 统计属于目标物体的点云数量
+        print("Dynamical Objects")
         if point[4] == obj.id:
             pc_num += 1
-        print(pc_num)
         if pc_num >= MIN_VISIBLE_NUM_FOR_POINT_CLOUDS:
-            obj_tp = obj_type(obj)
-            obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
-            # 将原点设置在激光雷达所在的xy，z=0处
-            midpoint = np.array([
-                [obj_transform.location.x - extrinsic[0, 3]],  # [[X,
-                [obj_transform.location.y - extrinsic[1, 3]],  # Y,
-                [obj_transform.location.z],  # Z,
-                [1.0]  # 1.0]]
-            ])
-            rotation_y = math.radians(-obj_transform.rotation.yaw) % math.pi
-            ext = get_bounding_box(obj).extent
-
-            point_cloud_label = KittiDescriptor()
-            point_cloud_label.set_id(obj_id=obj.id)
-            point_cloud_label.set_truncated(0)
-            point_cloud_label.set_occlusion(0)
-            point_cloud_label.set_bbox([0, 0, 0, 0])
-            point_cloud_label.set_3d_object_dimensions(ext)
-            point_cloud_label.set_type(obj_tp)
-            point_cloud_label.set_lidar_object_location(midpoint)
-            point_cloud_label.set_rotation_y(rotation_y)
-            return point_cloud_label
+            obj_transform = obj.get_transform()
+            return create_point_cloud_label(obj, obj_transform, extrinsic)
     return None
 
+def create_point_cloud_label(obj, obj_transform, extrinsic):
+    """
+        创建点云标签的通用函数
+    """
+    obj_tp = obj_type(obj)
+    print(obj_tp)
+    midpoint = np.array([
+        [obj_transform.location.x - extrinsic[0, 3]],  # [[X,
+        [obj_transform.location.y - extrinsic[1, 3]],  # Y,
+        [obj_transform.location.z],  # Z,
+        [1.0]  # 1.0]]
+    ])
+   
+    rotation_y = math.radians(-obj_transform.rotation.yaw) % math.pi
+    # print(rotation_y)
+    bbox  = get_bounding_box(obj, is_environment_object=isinstance(obj, carla.EnvironmentObject))
+    ext = bbox.extent
+    # print(ext)
+    # print("Creating point cloud label")
+    point_cloud_label = KittiDescriptor()
+    point_cloud_label.set_id(obj_id=obj.id)
+    point_cloud_label.set_truncated(0)
+    point_cloud_label.set_occlusion(0)
+    point_cloud_label.set_bbox([0, 0, 0, 0])
+    point_cloud_label.set_3d_object_dimensions(ext)
+    point_cloud_label.set_type(obj_tp)
+    point_cloud_label.set_lidar_object_location(midpoint)
+    point_cloud_label.set_rotation_y(rotation_y)
+    return point_cloud_label
 
 def get_occlusion_stats(vertices, depth_image):
     """
