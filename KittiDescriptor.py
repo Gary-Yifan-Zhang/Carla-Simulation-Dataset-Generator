@@ -111,8 +111,10 @@ class KittiDescriptor:
         x, y, z = [float(x) for x in obj_location][0:3]
         assert None not in [self.extent, self.type], "Extent and type must be set before location!"
 
-        # 对于行人和车辆，调整 z 坐标
-        z -= self.extent[0]  # 统一处理
+        if self.type == "Pedestrian":
+            # Since the midpoint/location of the pedestrian is in the middle of the agent, while for car it is at the
+            # bottom we need to subtract the bbox extent in the height direction when adding location of pedestrian.
+            z -= self.extent[0]
 
         self.location = " ".join(map(str, [y, -z, x]))
 

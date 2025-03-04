@@ -277,7 +277,7 @@ def create_point_cloud_label(obj, obj_transform, extrinsic):
     midpoint = np.array([
         [obj_transform.location.x - extrinsic[0, 3]],  # [[X,
         [obj_transform.location.y - extrinsic[1, 3]],  # Y,
-        [obj_transform.location.z - extrinsic[2, 3]],  # Z,
+        [obj_transform.location.z],  # Z,
         [1.0]  # 1.0]]
     ])
    
