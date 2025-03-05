@@ -39,7 +39,8 @@ class DatasetSave:
         print(timestamp)
         PHASE = f"training_{timestamp}"
         self.OUTPUT_FOLDER = os.path.join(root_path, PHASE)
-        folders = ['calib', 'image', 'image_label', 'bbox_img', 'velodyne', 'lidar_label', 'ego_state']
+        folders = ['calib', 'image', 'image_label', 'bbox_img', 
+              'velodyne', 'lidar_label', 'ego_state', 'extrinsic']
 
         for folder in folders:
             directory = os.path.join(self.OUTPUT_FOLDER, folder)
@@ -55,6 +56,8 @@ class DatasetSave:
         self.LIDAR_PATH = os.path.join(self.OUTPUT_FOLDER, 'velodyne/{0:06}_lidar_{1}.bin')
         self.LIDAR_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'lidar_label/{0:06}.txt')
         self.EGO_STATE_PATH = os.path.join(self.OUTPUT_FOLDER, 'ego_state/{0:06}.txt')
+        self.EXTRINSIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'extrinsic/{{id}}.txt')
+
 
     def get_current_files_num(self):
         """
@@ -123,6 +126,17 @@ class DatasetSave:
         lidar_label_filename = self.LIDAR_LABEL_PATH.format(self.captured_frame_no)
 
         ego_state_filename = os.path.join(self.EGO_STATE_PATH.format(self.captured_frame_no))
+        
+        # 定义传感器到文件编号的映射
+        sensor_mapping = {
+            "RGB": "000",
+            "SUB_RGB_1": "001", 
+            "SUB_RGB_2": "002"
+        }
+        
+        # 保存外参文件
+        base_extrinsic_path = self.EXTRINSIC_PATH.format(self.captured_frame_no)
+        save_extrinsic_matrices(self.config, base_extrinsic_path, sensor_mapping)
 
         for agent, dt in data["agents_data"].items():
             extrinsic = dt["extrinsic"]

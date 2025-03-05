@@ -4,6 +4,7 @@ import os
 import logging
 import math
 import carla
+from utils.utils import config_transform_to_carla_transform
 
 
 def save_ref_files(folder, index):
@@ -214,3 +215,66 @@ def save_semantic_image(filename, semantic_image):
     img = Image.fromarray(semantic_image.astype(np.uint8))
     # 保存图像
     img.save(filename)
+
+
+
+def save_extrinsic_matrices(config, base_filename, sensor_mapping):
+    """
+    按传感器映射保存单独的外参文件
+    
+    参数：
+        config: 配置文件对象
+        base_filename: 基础文件名格式（需包含{id}占位符）
+        sensor_mapping: 传感器到文件编号的映射字典
+    """
+    
+    for sensor_name, file_id in sensor_mapping.items():
+        filename = base_filename.format(id=file_id)
+        
+        # 从配置获取传感器transform并转换为carla.Transform
+        transform = config_transform_to_carla_transform(
+            config["SENSOR_CONFIG"][sensor_name]["TRANSFORM"]
+        )
+        
+        # 构建齐次变换矩阵
+        translation = np.array([
+            transform.location.x,
+            transform.location.y, 
+            transform.location.z
+        ])
+        
+        # 将欧拉角转换为旋转矩阵
+        roll = math.radians(transform.rotation.roll)
+        pitch = math.radians(transform.rotation.pitch)
+        yaw = math.radians(transform.rotation.yaw)
+        
+        # 旋转矩阵（ZYX顺序）
+        Rz = np.array([
+            [math.cos(yaw), -math.sin(yaw), 0],
+            [math.sin(yaw), math.cos(yaw), 0],
+            [0, 0, 1]
+        ])
+        
+        Ry = np.array([
+            [math.cos(pitch), 0, math.sin(pitch)],
+            [0, 1, 0],
+            [-math.sin(pitch), 0, math.cos(pitch)]
+        ])
+        
+        Rx = np.array([
+            [1, 0, 0],
+            [0, math.cos(roll), -math.sin(roll)],
+            [0, math.sin(roll), math.cos(roll)]
+        ])
+        
+        rotation = Rz @ Ry @ Rx
+        # 构建4x4齐次矩阵
+        extrinsic = np.identity(4)
+        extrinsic[:3, :3] = rotation
+        extrinsic[:3, 3] = translation
+        
+        with open(filename, 'w') as f:     
+            np.savetxt(f, extrinsic, fmt='%.6f')
+            
+        logging.info("Wrote %s extrinsic matrix to %s", sensor_name, filename)
+
