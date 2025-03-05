@@ -399,11 +399,16 @@ def obj_type(obj):
 
 def get_custom_id(obj, agent):
     """
-    生成自定义ID的逻辑：
-    1. 如果是ego车辆（agent本身），返回0
-    2. 其他物体使用递增ID
+    更新后的自定义ID生成逻辑：
+    1. 环境物体固定返回-1
+    2. ego车辆返回0
+    3. 其他物体使用递增ID
     """
     global NEXT_ID, GLOBAL_ID_MAP
+    
+    # 如果是环境物体
+    if isinstance(obj, carla.EnvironmentObject):
+        return -1
     
     # 如果是ego车辆
     if obj.id == agent.id:
