@@ -94,10 +94,10 @@ def create_masks(input_dir, output_dir):
                 mask = img_array[:, :, 0] == id
                 nonrigid_img[mask] = (255, 255, 255)  # 白色
 
-            # # 保存处理结果
-            # Image.fromarray(sky_img).save(f'{output_dir}/sky/{base_name}_sky{suffix}.png')
-            # Image.fromarray(rigid_img).save(f'{output_dir}/rigid/{base_name}_rigid{suffix}.png')
-            # Image.fromarray(nonrigid_img).save(f'{output_dir}/nonrigid/{base_name}_nonrigid{suffix}.png')
+            # 保存处理结果
+            Image.fromarray(sky_img).save(f'{output_dir}/sky/{base_name}_sky{suffix}.png')
+            Image.fromarray(rigid_img).save(f'{output_dir}/rigid/{base_name}_rigid{suffix}.png')
+            Image.fromarray(nonrigid_img).save(f'{output_dir}/nonrigid/{base_name}_nonrigid{suffix}.png')
 
     print("所有图像处理完成！")
 
@@ -165,22 +165,18 @@ def apply_mask(image_dir, mask_dir, output_dir):
     print("所有图像处理完成！")
 
 
-def generate_bbox_masks(label_dir='../data/training_20250226_102047/image_label',
-                        output_dir='../data/training_20250226_102047/mask/bbox',
-                        width=1920,
-                        height=1080,
-                        show=False,
-                        save=True):
+def generate_bbox_masks(label_dir, output_dir, **kwargs):
     """
-    生成边界框掩码的生成器函数（更新路径参数）
-    参数:
-        label_dir (str): 标注文件目录（直接指定完整路径）
-        output_dir (str): 掩码输出目录（直接指定完整路径）
-        width (int): 图像宽度（默认1920）
-        height (int): 图像高度（默认1080）
-        show (bool): 显示调试窗口（默认False）
-        save (bool): 保存生成掩码（默认True）
+    更新后的边界框掩码生成函数（带路径参数）
+    :param label_dir: 标注文件目录（必须参数）
+    :param output_dir: 输出目录（必须参数）
+    :param kwargs: 可选参数 width/height/show/save
     """
+    # 从kwargs获取参数或使用默认值
+    width = kwargs.get('width', 1920)
+    height = kwargs.get('height', 1080)
+    show = kwargs.get('show', False)
+    save = kwargs.get('save', True)
     # 创建输出目录（如果不存在）
     if save:
         os.makedirs(output_dir, exist_ok=True)
@@ -256,17 +252,17 @@ def generate_bbox_masks(label_dir='../data/training_20250226_102047/image_label'
             print(f'Processed: {filename} (not saved)')
 
 
-def combine_masks(base_dir='../data/training_20250226_102047',
-                  label_subdir='image_label',
-                  mask_subdirs=('mask/rigid', 'mask/nonrigid'),
-                  output_subdir='mask/object_intersection'):
+def combine_masks(base_dir, **kwargs):
     """
-    刚体与非刚体掩码交集合成函数（新增）
-    功能：
-    1. 生成bbox二值掩码
-    2. 分别与两类掩码取像素级交集
-    3. 按类别分开保存结果
+    更新后的组合掩码函数
+    :param base_dir: 数据集根目录（必须参数）
+    :param kwargs: 可选参数 label_subdir/mask_subdirs/output_subdir
     """
+    # 从kwargs获取参数并设置默认值
+    label_subdir = kwargs.get('label_subdir', 'image_label')
+    mask_subdirs = kwargs.get('mask_subdirs', ('mask/rigid', 'mask/nonrigid'))
+    output_subdir = kwargs.get('output_subdir', 'mask/object_intersection')
+    
     # 路径配置
     label_dir = os.path.join(base_dir, label_subdir)
     output_root = os.path.join(base_dir, output_subdir)
@@ -321,6 +317,47 @@ def combine_masks(base_dir='../data/training_20250226_102047',
             Image.fromarray(intersection).save(output_path, compress_level=9)
 
     print("刚体/非刚体掩码分离保存完成！")
+    
+def process_all_masks(base_dir):
+    """
+    完整的mask处理流水线
+    参数:
+        base_dir: 数据集根目录 (包含image/和image_label/)
+    """
+    # 定义标准路径
+    image_dir = os.path.join(base_dir, "image")
+    label_dir = os.path.join(base_dir, "image_label")
+    mask_dir = os.path.join(base_dir, "mask")
+    masked_images_dir = os.path.join(base_dir, "masked_images")
+    bbox_dir = os.path.join(mask_dir, "bbox")
+    
+    # 按顺序执行处理流程
+    print("\n" + "="*40)
+    print("开始生成基础语义分割掩码")
+    create_masks(image_dir, mask_dir)
+    
+    print("\n" + "="*40)
+    print("生成叠加mask的可视化图像")
+    apply_mask(image_dir, mask_dir, masked_images_dir)
+    
+    print("\n" + "="*40)
+    print("生成边界框掩码")
+    generate_bbox_masks(
+        label_dir=label_dir,
+        output_dir=bbox_dir,
+        width=1920,  # 从配置读取或保持默认
+        height=1080
+    )
+    
+    print("\n" + "="*40)
+    print("生成组合掩码")
+    combine_masks(
+        base_dir=base_dir,
+        label_subdir="image_label",
+        mask_subdirs=('mask/rigid', 'mask/nonrigid'),
+        output_subdir="mask/object_intersection"
+    )
+
 
 
 if __name__ == "__main__":

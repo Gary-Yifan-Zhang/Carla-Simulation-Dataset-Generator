@@ -3,6 +3,7 @@ from SimulationScene import SimulationScene
 from DatasetSave import DatasetSave
 import time
 import argparse
+from utils.mask import process_all_masks
 
 
 
@@ -62,6 +63,13 @@ def main():
                     
                     if counter >= max_record:
                         print(f"达到最大记录次数{max_record}，程序即将退出...")
+                        # 自动生成所有mask
+                        print("开始自动生成mask...")
+                        time.sleep(1)  # 等待一秒
+                        # 自动生成mask并保存
+                        process_all_masks(dataset_save.OUTPUT_FOLDER)
+                        print("mask已生成并保存...")
+                        print("********************************************************")
                         break
                 else:
                     # 更新场景
