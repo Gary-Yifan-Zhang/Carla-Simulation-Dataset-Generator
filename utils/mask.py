@@ -93,11 +93,19 @@ def create_masks(input_dir, output_dir):
             for id in nonrigid_ids:
                 mask = img_array[:, :, 0] == id
                 nonrigid_img[mask] = (255, 255, 255)  # 白色
+            
+            # 新增：生成ego mask
+            ego_mask = get_ego_mask(img_array[:, :, 0])
+            ego_img = np.zeros((height, width, 3), dtype=np.uint8)
+            ego_img[ego_mask] = (255, 255, 255)  # 白色表示ego区域
+
 
             # 保存处理结果
             Image.fromarray(sky_img).save(f'{output_dir}/sky/{base_name}_sky{suffix}.png')
             Image.fromarray(rigid_img).save(f'{output_dir}/rigid/{base_name}_rigid{suffix}.png')
             Image.fromarray(nonrigid_img).save(f'{output_dir}/nonrigid/{base_name}_nonrigid{suffix}.png')
+            Image.fromarray(ego_img).save(f'{output_dir}/ego/{base_name}_ego{suffix}.png')  # 新增行
+
 
     print("所有图像处理完成！")
 

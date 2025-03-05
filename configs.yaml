@@ -36,7 +36,7 @@ SENSOR_CONFIG:
       image_size_y: 1080
       fov: 90
     TRANSFORM:
-      location: [0, 0.5, 1.6]
+      location: [0, 0.1, 1.6]
       rotation: [0, 0, 0]
 
   SUB_RGB_2:
@@ -103,7 +103,7 @@ SENSOR_CONFIG:
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
   SEMANTIC_1:
-    TRANSFORM: {location: [0, 0.5, 1.6], rotation: [0, 0, 0]}
+    TRANSFORM: {location: [0, 0.1, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.semantic_segmentation
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
@@ -113,7 +113,7 @@ SENSOR_CONFIG:
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
   DEPTH_RGB_1:
-    TRANSFORM: {location: [0, 0.5, 1.6], rotation: [0, 0, 0]}
+    TRANSFORM: {location: [0, 0.1, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.depth
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
