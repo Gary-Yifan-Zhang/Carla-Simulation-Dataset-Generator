@@ -14,6 +14,10 @@ WINDOW_WIDTH = config["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_x"]
 WINDOW_HEIGHT = config["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_y"]
 
 
+GLOBAL_ID_MAP = {}
+NEXT_ID = 1
+
+
 def spawn_dataset(data):
     """
         处理传感器原始数据，生成KITTI数据集(RGB图像，激光雷达点云，KITTI标签等)
@@ -26,7 +30,6 @@ def spawn_dataset(data):
     """
     # 筛选环境中的车辆
     environment_objects = data["environment_objects"]
-
     environment_objects = [x for x in environment_objects if x.type == "vehicle" or x.type in [carla.CityObjectLabel.TrafficSigns, 
                                       carla.CityObjectLabel.TrafficLight]]
 
@@ -35,7 +38,14 @@ def spawn_dataset(data):
     actors = [x for x in actors if x.type_id.find("vehicle") != -1 or x.type_id.find("walker") != -1]
 
     agents_data = data["agents_data"]
+    
+    # 在每个agent处理前重置ID计数器
+    global NEXT_ID
+    NEXT_ID = 1
+    GLOBAL_ID_MAP.clear()
+    
     for agent, dataDict in agents_data.items():
+        GLOBAL_ID_MAP[agent.id] = 0
         intrinsic = dataDict["intrinsic"]
         extrinsic = dataDict["extrinsic"]
         sensors_data = dataDict["sensor_data"]
@@ -220,7 +230,7 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
         kitti_label.set_type(obj_tp)
         kitti_label.set_3d_object_location(midpoint)
         kitti_label.set_rotation_y(rotation_y)
-        kitti_label.set_id(obj.id)
+        kitti_label.set_id(get_custom_id(obj, agent))
         return kitti_label
     return None
 
@@ -257,7 +267,7 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic):
             (obj_transform.location.y - extrinsic[1, 3])**2
         )
         if distance <= MAX_RENDER_DEPTH_IN_METERS:
-            return create_point_cloud_label(obj, obj_transform, extrinsic)
+            return create_point_cloud_label(obj, obj_transform, extrinsic, agent)
         return None
 
     # 对于非环境物体，仍然使用点云数量判断
@@ -266,10 +276,10 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic):
             pc_num += 1
         if pc_num >= MIN_VISIBLE_NUM_FOR_POINT_CLOUDS:
             obj_transform = obj.get_transform()
-            return create_point_cloud_label(obj, obj_transform, extrinsic)
+            return create_point_cloud_label(obj, obj_transform, extrinsic, agent)
     return None
 
-def create_point_cloud_label(obj, obj_transform, extrinsic):
+def create_point_cloud_label(obj, obj_transform, extrinsic, agent):
     """
         创建点云标签的通用函数
     """
@@ -286,7 +296,7 @@ def create_point_cloud_label(obj, obj_transform, extrinsic):
     bbox  = get_bounding_box(obj, is_environment_object=isinstance(obj, carla.EnvironmentObject))
     ext = bbox.extent
     point_cloud_label = KittiDescriptor()
-    point_cloud_label.set_id(obj_id=obj.id)
+    point_cloud_label.set_id(get_custom_id(obj, agent))
     point_cloud_label.set_truncated(0)
     point_cloud_label.set_occlusion(0)
     point_cloud_label.set_bbox([0, 0, 0, 0])
@@ -386,3 +396,29 @@ def obj_type(obj):
             return 'Car'
             
         return None
+
+def get_custom_id(obj, agent):
+    """
+    更新后的自定义ID生成逻辑：
+    1. 环境物体固定返回-1
+    2. ego车辆返回0
+    3. 其他物体使用递增ID
+    """
+    global NEXT_ID, GLOBAL_ID_MAP
+    
+    # 如果是环境物体
+    if isinstance(obj, carla.EnvironmentObject):
+        return -1
+    
+    # 如果是ego车辆
+    if obj.id == agent.id:
+        return 0
+    
+    # 如果物体已有映射ID则返回
+    if obj.id in GLOBAL_ID_MAP:
+        return GLOBAL_ID_MAP[obj.id]
+    
+    # 为新物体分配ID并递增
+    GLOBAL_ID_MAP[obj.id] = NEXT_ID
+    NEXT_ID += 1
+    return GLOBAL_ID_MAP[obj.id]

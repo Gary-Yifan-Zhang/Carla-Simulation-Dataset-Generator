@@ -73,27 +73,28 @@ python main.py
 
 ## 📂 Dataset Structure
 ```bash
-dataset/
-├── bbox_img/          # RGB images with 2D bounding boxes
-├── calib/             # Sensor calibration parameters
-├── ego_state/         # Ego vehicle state information
-├── image/             # Raw RGB images
-├── image_label/       # Image annotation files
-├── lidar_label/       # LiDAR annotation files
-├── mask/              # Segmentation masks
-│   ├── bbox/          # Bounding box masks
-│   ├── ego/           # Ego vehicle masks
-│   ├── nonrigid/      # Non-rigid object masks
-│   ├── object_intersection/ # Object intersection masks
-│   │   ├── nonrigid/  # Non-rigid object intersection masks
-│   │   └── rigid/     # Rigid object intersection masks
-│   ├── rigid/         # Rigid object masks
-│   └── sky/           # Sky region masks
-├── masked_images/     # Masked images
-│   ├── nonrigid/      # Images with non-rigid object masks
-│   ├── rigid/         # Images with rigid object masks
-│   └── sky/           # Images with sky region masks
-└── velodyne/          # LiDAR point cloud data
+training_YYYYMMDD_HHMMSS/
+├── bbox_img/            # RGB images with 2D bounding boxes
+├── calib/               # Calibration files for cameras and LiDAR
+├── ego_state/           # Ego vehicle state (pose, velocity, acceleration)
+├── extrinsic/           # Extrinsic matrices (4x4 homogeneous transformation) for sensors
+├── image/               # Raw RGB images
+├── image_label/         # Image annotation files
+├── lidar_label/         # LiDAR point cloud annotation files
+├── mask/                # Various mask images
+│   ├── bbox/            # Bounding box region masks
+│   ├── ego/             # Ego vehicle region masks
+│   ├── nonrigid/        # Non-rigid object masks
+│   ├── object_intersection/  # Object intersection masks
+│   │   ├── nonrigid/    # Non-rigid object intersection regions
+│   │   └── rigid/       # Rigid object intersection regions
+│   ├── rigid/           # Rigid object masks
+│   └── sky/             # Sky region masks
+├── masked_images/       # Images with masks applied
+│   ├── nonrigid/        # Non-rigid object masked images
+│   ├── rigid/           # Rigid object masked images
+│   └── sky/             # Sky region masked images
+└── velodyne/            # LiDAR point cloud data
 ```
 
 
@@ -104,7 +105,7 @@ dataset/
 # Values    Name      Description
 ----------------------------------------------------------------------------
    1    type         Object type: 'Car', 'Pedestrian', 'Vehicles', 'Vegetation', 'TrafficSigns', etc.
-   1    id           Unique ID for the object, -1 if not specified
+   1    id           Unique ID for the object, -1 if TrafficSigns
    1    truncated    Float from 0 (non-truncated) to 1 (truncated), where
                      truncated refers to the object leaving image boundaries
    1    occluded     Integer (0,1,2,3) indicating occlusion state:

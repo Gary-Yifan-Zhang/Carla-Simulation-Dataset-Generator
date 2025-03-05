@@ -360,10 +360,10 @@ def view_images(image_dir, image_ext='_camera_0.png', window_name='Image Sequenc
 
 
 if __name__ == "__main__":
-    # seg_path = './data/training_20250226_102047/image/000010_camera_seg_0.png'
-    # img_path = './data/training_20250226_102047/image/000010_camera_0.png'
-    # plot_segmentation_results(seg_path, img_path)
+    seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
+    img_path = './data/training_20250305_130741/image/000000_camera_0.png'
+    plot_segmentation_results(seg_path, img_path)
     
-    # 新增图片查看功能示例
-    image_dir = './data/training_20250226_102047/image'
-    view_images(image_dir)
+    # # 新增图片查看功能示例
+    # image_dir = './data/training_20250226_102047/image'
+    # view_images(image_dir)
