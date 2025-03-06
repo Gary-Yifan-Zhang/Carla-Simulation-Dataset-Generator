@@ -25,6 +25,7 @@ class DatasetSave:
         self.LIDAR_LABEL_PATH = None
         
         self.DEPTH_PATH = None 
+        self.SEMANTIC_PATH = None
 
         self.generate_path(self.config["SAVE_CONFIG"]["ROOT_PATH"])
         self.captured_frame_no = self.get_current_files_num()
@@ -42,7 +43,8 @@ class DatasetSave:
         PHASE = f"training_{timestamp}"
         self.OUTPUT_FOLDER = os.path.join(root_path, PHASE)
         folders = ['calib', 'image', 'image_label', 'bbox_img', 
-              'velodyne', 'lidar_label', 'ego_state', 'extrinsic', 'depth']
+              'velodyne', 'lidar_label', 'ego_state', 'extrinsic', 
+              'depth', 'semantic']
 
         for folder in folders:
             directory = os.path.join(self.OUTPUT_FOLDER, folder)
@@ -60,6 +62,8 @@ class DatasetSave:
         self.EGO_STATE_PATH = os.path.join(self.OUTPUT_FOLDER, 'ego_state/{0:06}.txt')
         self.EXTRINSIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'extrinsic/{{id}}.txt')
         self.DEPTH_PATH = os.path.join(self.OUTPUT_FOLDER, 'depth/{0:06}_depth_{1}.png')
+        self.SEMANTIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'semantic/{0:06}_semantic_{1}.png')
+
 
 
     def get_current_files_num(self):
@@ -124,6 +128,9 @@ class DatasetSave:
         depth_filename_1 = self.DEPTH_PATH.format(self.captured_frame_no, 1)
         depth_filename_2 = self.DEPTH_PATH.format(self.captured_frame_no, 2)
 
+        semantic_filename_0 = self.SEMANTIC_PATH.format(self.captured_frame_no, 0)
+        semantic_filename_1 = self.SEMANTIC_PATH.format(self.captured_frame_no, 1)
+        semantic_filename_2 = self.SEMANTIC_PATH.format(self.captured_frame_no, 2)
 
         lidar_filename = self.LIDAR_PATH.format(self.captured_frame_no, 0)
         lidar_filename_1 = self.LIDAR_PATH.format(self.captured_frame_no, 1)
@@ -178,7 +185,10 @@ class DatasetSave:
             save_depth_image_data(depth_filename_1, dt["sensor_data"][11])
             save_depth_image_data(depth_filename_2, dt["sensor_data"][12])
             
-
+            save_semantic_image_data(semantic_filename_0, dt["sensor_data"][8])
+            save_semantic_image_data(semantic_filename_1, dt["sensor_data"][9])
+            save_semantic_image_data(semantic_filename_2, dt["sensor_data"][10])
+            
 
             #TODO: 修改为保存多个雷达数据
             save_lidar_data(lidar_filename, dt["sensor_data"][2], extrinsic[2])
