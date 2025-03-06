@@ -495,6 +495,108 @@ def project_lidar_to_camera(bin_path, img_path, cam_intrinsic, Tr_velo_to_cam, m
 
     return mask, depth_map, overlap_img
 
+def save_depth_and_mask(depth_map, mask, save_dir):
+    """
+    保存深度图和mask到指定目录
+    
+    参数：
+        depth_map: 深度图矩阵
+        mask: 掩码矩阵
+        save_dir: 保存目录路径
+    """
+    import os
+    import numpy as np
+    import cv2
+    
+    # 创建保存目录
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # 保存深度图
+    depth_path = os.path.join(save_dir, 'depth.npy')
+    np.save(depth_path, depth_map)
+    
+    # 保存mask
+    mask_path = os.path.join(save_dir, 'mask.png')
+    cv2.imwrite(mask_path, mask.astype(np.uint8) * 255)
+    
+    print(f"深度图和mask已保存到: {save_dir}")
+
+def depth_to_pcd(save_dir):
+    """
+    从保存的深度图和mask生成点云并可视化
+    
+    参数：
+        save_dir: 保存深度图和mask的目录路径
+    """
+    import numpy as np
+    import cv2
+    
+    # 加载保存的数据
+    depth_map = np.load(os.path.join(save_dir, 'depth.npy'))
+    mask = cv2.imread(os.path.join(save_dir, 'mask.png'), cv2.IMREAD_GRAYSCALE) > 0
+    
+    # 解析内参参数（使用默认值，可根据实际情况修改）
+    fx = 960.0
+    fy = 960.0
+    cx = 960.0
+    cy = 540.0
+
+    # 获取有效像素坐标
+    valid_coords = np.argwhere(mask)
+    u = valid_coords[:, 1]  # 宽度方向 (列索引)
+    v = valid_coords[:, 0]  # 高度方向 (行索引)
+    Z = depth_map[mask]     # 深度值 (单位：米)
+
+    # 核心转换公式
+    X = (u - cx) * Z / fx
+    Y = (v - cy) * Z / fy
+    
+    points = np.column_stack((X, Y, Z))
+
+    # Open3D可视化
+    try:
+        import open3d as o3d
+        # 生成有效点云
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(points) 
+
+        # 创建可视化窗口
+        vis = o3d.visualization.Visualizer()
+        vis.create_window(window_name='LiDAR Depth Projection', width=1280, height=720)
+        
+        # 添加坐标系（缩小尺寸避免遮挡）
+        coord_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=2.0)
+        vis.add_geometry(coord_frame)
+        vis.add_geometry(pcd)
+
+        # 设置优化后的视角参数
+        view_ctl = vis.get_view_control()
+        view_ctl.set_front([-0.5, -0.3, 0.8])  # 最佳观测角度
+        view_ctl.set_up([0, 0, 1])             # 保持Z轴向上
+        view_ctl.set_zoom(0.3)                 # 适合车辆尺寸的缩放
+
+        # 添加点云着色
+        pcd.paint_uniform_color([0.2, 0.7, 0.3])  # 绿色点云
+        
+        # 运行可视化
+        print("\n按Q退出可视化窗口...")
+        vis.run()
+        vis.destroy_window()
+
+        # 输出统计信息
+        print("\n=== 点云统计 ===")
+        print(f"有效点数: {len(points)}")
+        print(f"X范围: [{np.min(X):.2f}, {np.max(X):.2f}] m")
+        print(f"Y范围: [{np.min(Y):.2f}, {np.max(Y):.2f}] m")
+        print(f"Z范围: [{np.min(Z):.2f}, {np.max(Z):.2f}] m")
+
+    except ImportError:
+        print("请安装open3d: pip install open3d")
+    except Exception as e:
+        print(f"可视化错误: {str(e)}")
+
+    return points
+
 if __name__ == "__main__":
     # seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
     # img_path = './data/training_20250305_130741/image/000000_camera_0.png'
@@ -570,13 +672,19 @@ if __name__ == "__main__":
         bin_path, img_path, cam_intrinsic, Tr_velo_to_cam, max_depth=100.0
     )
 
-    # # 保存结果
-    # cv2.imwrite(f"mask_{frame_id:06}.png", mask.astype(np.uint8)*255)
-    # np.save(f"depth_{frame_id:06}.npy", depth_map)
-    # cv2.imwrite(f"projection_{frame_id:06}.jpg", overlap_img)
+    # # # 保存结果
+    # # cv2.imwrite(f"mask_{frame_id:06}.png", mask.astype(np.uint8)*255)
+    # # np.save(f"depth_{frame_id:06}.npy", depth_map)
+    # # cv2.imwrite(f"projection_{frame_id:06}.jpg", overlap_img)
 
-    # 可视化
-    cv2.imshow('Projection Overlay', overlap_img)
-    key = cv2.waitKey(0)  # 等待按键
-    if key == ord('q'):  # 按下 'q' 键退出
-        cv2.destroyAllWindows()
+    # # 可视化
+    # cv2.imshow('Projection Overlay', overlap_img)
+    # key = cv2.waitKey(0)  # 等待按键
+    # if key == ord('q'):  # 按下 'q' 键退出
+    #     cv2.destroyAllWindows()
+    
+    # 保存深度图和mask
+    save_depth_and_mask(depth_map, mask, './saved_data')
+
+    # 读取并可视化
+    depth_to_pcd('./saved_data')
