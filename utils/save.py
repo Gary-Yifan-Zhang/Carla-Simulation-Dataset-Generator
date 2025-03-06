@@ -37,7 +37,7 @@ def save_depth_image_data(filename, depth_image):
             depth_image：CARLA原始深度图像数据
     """
     logging.info("Wrote depth image data to %s", filename)
-    depth_image.save_to_disk(filename, carla.ColorConverter.Depth)
+    depth_image.save_to_disk(filename, carla.ColorConverter.LogarithmicDepth)
 
 
 def save_bbox_image_data(filename, image):

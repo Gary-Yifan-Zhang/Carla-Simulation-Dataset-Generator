@@ -358,12 +358,82 @@ def view_images(image_dir, image_ext='_camera_0.png', window_name='Image Sequenc
 
     cv2.destroyAllWindows()
 
+def depth_to_pointcloud(depth_path, camera_matrix, show=True):
+    """
+    将深度图转换为点云并可视化
+    参数：
+        depth_path: 深度图路径（16位PNG）
+        camera_matrix: 3x4相机投影矩阵（支持P0-P3）
+        show: 是否显示点云
+    """
+    max_distance = 250
+    # 解析相机参数矩阵
+    K = camera_matrix.reshape(3,4)[:3,:3]  # 提取内参矩阵
+    fx, fy = K[0,0], K[1,1]
+    cx, cy = K[0,2], K[1,2]
+
+    # 读取深度图（16位PNG，单位毫米）
+    depth_image = cv2.imread(depth_path, cv2.IMREAD_UNCHANGED)
+    depth = depth_image.astype(np.float32)    # 转换为米
+    print(depth)
+
+    # 矢量化计算提升性能
+    u = np.arange(depth.shape[1])
+    v = np.arange(depth.shape[0])
+    u, v = np.meshgrid(u, v)
+    
+    # 计算三维坐标
+    z = depth
+    valid_mask = z > 0
+    if max_distance is not None:
+        valid_mask = valid_mask & (depth <= max_distance)
+
+    x = (u[valid_mask] - cx) * z[valid_mask] / fx
+    y = (v[valid_mask] - cy) * z[valid_mask] / fy
+    points = np.column_stack((x, y, z[valid_mask]))
+
+    # 创建Open3D点云
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+
+    if show:
+        # 创建可视化窗口
+        vis = o3d.visualization.Visualizer()
+        vis.create_window(window_name=f'Point Cloud: {os.path.basename(depth_path)}')
+        
+        # 添加坐标系和几何体
+        coord_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1.0)
+        vis.add_geometry(pcd)
+        vis.add_geometry(coord_frame)
+        
+        # 设置视角参数
+        view_ctl = vis.get_view_control()
+        view_ctl.set_front([0, -1, 0])  # 相机朝向正前方
+        view_ctl.set_up([0, 0, 1])      # 上方向为Z轴
+        view_ctl.set_zoom(0.5)          # 初始缩放比例
+        
+        # 运行可视化
+        vis.run()
+        vis.destroy_window()
+
+    return pcd
 
 if __name__ == "__main__":
-    seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
-    img_path = './data/training_20250305_130741/image/000000_camera_0.png'
-    plot_segmentation_results(seg_path, img_path)
+    # seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
+    # img_path = './data/training_20250305_130741/image/000000_camera_0.png'
+    # plot_segmentation_results(seg_path, img_path)
     
     # # 新增图片查看功能示例
     # image_dir = './data/training_20250226_102047/image'
     # view_images(image_dir)
+    
+    P0 = np.array([960.0, 0.0, 960.0, 0.0,
+                   0.0, 960.0, 540.0, 0.0,
+                   0.0, 0.0, 1.0, 0.0])
+    
+    # 生成并显示点云（以P0相机为例）
+    point_cloud = depth_to_pointcloud(
+        depth_path="./data/training_20250306_110708/depth/000000_depth_0.png",
+        camera_matrix=P0,
+        show=True
+    )
