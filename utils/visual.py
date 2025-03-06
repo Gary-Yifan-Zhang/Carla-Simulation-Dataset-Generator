@@ -495,45 +495,58 @@ def project_lidar_to_camera(bin_path, img_path, cam_intrinsic, Tr_velo_to_cam, m
 
     return mask, depth_map, overlap_img
 
-def save_depth_and_mask(depth_map, mask, save_dir):
+def save_depth_and_mask(depth_map, mask, overlap_img, data_root, frame_id, camera_id):
     """
-    保存深度图和mask到指定目录
+    保存深度图、mask和overlap_img到data_root/lidar_depth目录
     
     参数：
         depth_map: 深度图矩阵
         mask: 掩码矩阵
-        save_dir: 保存目录路径
+        overlap_img: 投影可视化图像
+        data_root: 数据根目录路径
+        frame_id: 帧ID
+        camera_id: 相机ID
     """
     import os
     import numpy as np
     import cv2
     
     # 创建保存目录
+    save_dir = os.path.join(data_root, 'lidar_depth')
     os.makedirs(save_dir, exist_ok=True)
     
-    # 保存深度图
-    depth_path = os.path.join(save_dir, 'depth.npy')
-    np.save(depth_path, depth_map)
+    # 将mask和value保存为字典
+    lidar_data = {
+        'mask': mask,
+        'value': depth_map[mask]  # 只保存有效点的深度值
+    }
     
-    # 保存mask
-    mask_path = os.path.join(save_dir, 'mask.png')
-    cv2.imwrite(mask_path, mask.astype(np.uint8) * 255)
+    # 保存为npy文件
+    npy_path = os.path.join(save_dir, f'{frame_id:06}_camera_{camera_id}.npy')
+    np.save(npy_path, lidar_data)
     
-    print(f"深度图和mask已保存到: {save_dir}")
+    # 保存overlap_img
+    overlap_path = os.path.join(save_dir, f'{frame_id:06}_camera_{camera_id}_overlap.png')
+    cv2.imwrite(overlap_path, overlap_img)
+    
+    print(f"数据已保存到: {npy_path} 和 {overlap_path}")
 
-def depth_to_pcd(save_dir):
+def depth_to_pcd(data_root, frame_id, camera_id):
     """
-    从保存的深度图和mask生成点云并可视化
+    从保存的npy文件生成点云并可视化
     
     参数：
-        save_dir: 保存深度图和mask的目录路径
+        data_root: 数据根目录路径
+        frame_id: 帧ID
+        camera_id: 相机ID
     """
     import numpy as np
     import cv2
     
     # 加载保存的数据
-    depth_map = np.load(os.path.join(save_dir, 'depth.npy'))
-    mask = cv2.imread(os.path.join(save_dir, 'mask.png'), cv2.IMREAD_GRAYSCALE) > 0
+    save_dir = os.path.join(data_root, 'lidar_depth')
+    npy_path = os.path.join(save_dir, f'{frame_id:06}_camera_{camera_id}.npy')
+    lidar_data = np.load(npy_path, allow_pickle=True).item()
     
     # 解析内参参数（使用默认值，可根据实际情况修改）
     fx = 960.0
@@ -542,10 +555,10 @@ def depth_to_pcd(save_dir):
     cy = 540.0
 
     # 获取有效像素坐标
-    valid_coords = np.argwhere(mask)
+    valid_coords = np.argwhere(lidar_data['mask'])
     u = valid_coords[:, 1]  # 宽度方向 (列索引)
     v = valid_coords[:, 0]  # 高度方向 (行索引)
-    Z = depth_map[mask]     # 深度值 (单位：米)
+    Z = lidar_data['value'] # 深度值 (单位：米)
 
     # 核心转换公式
     X = (u - cx) * Z / fx
@@ -652,6 +665,7 @@ if __name__ == "__main__":
 
     # 应用旋转
     Tr_velo_to_cam[:, :3] = Tr_velo_to_cam[:, :3] @ R_z
+    print(Tr_velo_to_cam)
 
     
 #     # # 修改后的外参矩阵（包含绕Z轴逆时针90度旋转）
@@ -684,7 +698,10 @@ if __name__ == "__main__":
     #     cv2.destroyAllWindows()
     
     # 保存深度图和mask
-    save_depth_and_mask(depth_map, mask, './saved_data')
+    # 保存深度图、mask和overlap_img
+    frame_id = 3
+    camera_id = 0
+    save_depth_and_mask(depth_map, mask, overlap_img, data_root, frame_id, camera_id)
 
     # 读取并可视化
-    depth_to_pcd('./saved_data')
+    depth_to_pcd(data_root, frame_id, camera_id)
