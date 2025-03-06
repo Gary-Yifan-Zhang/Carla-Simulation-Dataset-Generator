@@ -26,6 +26,22 @@ def save_image_data(filename, image):
     """
     logging.info("Wrote image data to %s", filename)
     image.save_to_disk(filename)
+    
+def save_semantic_image_data(filename, semantic_image):
+    """
+    保存语义分割图像数据
+
+    参数：
+        filename: 保存文件的完整路径（包括文件名和扩展名）
+        semantic_image: 从CARLA获取的语义分割图像数据
+
+    说明：
+        1. 使用CityScapes调色板保存语义分割图像
+        2. 输出文件格式为PNG
+        3. 图像包含不同类别的颜色编码信息
+    """
+    logging.info("Wrote semantic image data to %s", filename)
+    semantic_image.save_to_disk(filename, carla.ColorConverter.CityScapesPalette)
 
 
 def save_depth_image_data(filename, depth_image):
