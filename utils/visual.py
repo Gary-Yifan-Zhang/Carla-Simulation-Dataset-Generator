@@ -418,6 +418,83 @@ def depth_to_pointcloud(depth_path, camera_matrix, show=True):
 
     return pcd
 
+def read_velodyne_bin(bin_path):
+    """ 读取KITTI格式的雷达bin文件 """
+    point_cloud = np.fromfile(bin_path, dtype=np.float32).reshape(-1, 4)
+    return point_cloud[:, :3]  # 取x,y,z坐标
+
+def project_3d_to_2d(points_3d, fx, fy, cx, cy):
+    points_2d = []
+    for point in points_3d:
+        X, Y, Z = point
+        x = (fx * X / Z) + cx
+        y = (fy * Y / Z) + cy
+        points_2d.append((x, y))
+    return np.array(points_2d)
+
+
+def project_lidar_to_camera(bin_path, img_path, cam_intrinsic, Tr_velo_to_cam, max_depth=100.0):
+    """
+    将雷达点云投影到相机图像并生成mask和深度图
+    
+    参数：
+        bin_path: 雷达点云路径(.bin)
+        img_path: 对应相机图像路径
+        cam_intrinsic: 相机内参矩阵(3x3)
+        Tr_velo_to_cam: 雷达到相机的外参矩阵(3x4)
+        max_depth: 最大有效深度（米）
+        
+    返回：
+        mask: 投影点存在的像素位置（布尔矩阵）
+        depth_map: 对应位置的深度值（单位：米）
+        overlap_img: 投影可视化图像
+    """
+    # 读取数据
+    points_velo = read_velodyne_bin(bin_path)
+    img = cv2.imread(img_path)
+    height, width = img.shape[:2]
+
+    # 转换外参矩阵为齐次坐标形式 (4x4)
+    Tr = np.vstack([Tr_velo_to_cam.reshape(3,4), [0, 0, 0, 1]])
+
+    # 坐标系转换：雷达坐标系 → 相机坐标系
+    ones = np.ones((points_velo.shape[0], 1))
+    points_velo_hom = np.hstack([points_velo, ones])
+    points_cam = (Tr @ points_velo_hom.T).T[:, :3]
+
+    # 过滤有效点（z>0且在最大深度内）
+    valid = (points_cam[:, 2] > 0) & (points_cam[:, 2] <= max_depth)
+    points_cam = points_cam[valid]
+
+    # 使用优化后的投影函数
+    fx, fy = cam_intrinsic[0, 0], cam_intrinsic[1, 1]
+    cx, cy = cam_intrinsic[0, 2], cam_intrinsic[1, 2]
+    uv = project_3d_to_2d(points_cam, fx, fy, cx, cy)
+    uv = np.floor(uv).astype(int)
+
+    # 过滤图像范围内的点
+    in_view = (uv[:, 0] >= 0) & (uv[:, 0] < width) & (uv[:, 1] >= 0) & (uv[:, 1] < height)
+    uv = uv[in_view]
+    depths = points_cam[in_view, 2]
+
+    # 初始化输出矩阵
+    mask = np.zeros((height, width), dtype=bool)
+    depth_map = np.zeros((height, width), dtype=np.float32)
+    
+    # 可视化图像（原始图像叠加投影点）
+    overlap_img = img.copy()
+    
+    # 更新mask和depth（保留最近点的深度）
+    for (u, v), d in zip(uv, depths):
+        if depth_map[v, u] == 0 or d < depth_map[v, u]:
+            depth_map[v, u] = d
+            mask[v, u] = True
+            # 用颜色表示深度（红色越深表示越近）
+            color = (0, 0, 255 * (1 - d/max_depth))
+            cv2.circle(overlap_img, (u, v), 1, color, -1)
+
+    return mask, depth_map, overlap_img
+
 if __name__ == "__main__":
     # seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
     # img_path = './data/training_20250305_130741/image/000000_camera_0.png'
@@ -427,13 +504,79 @@ if __name__ == "__main__":
     # image_dir = './data/training_20250226_102047/image'
     # view_images(image_dir)
     
-    P0 = np.array([960.0, 0.0, 960.0, 0.0,
-                   0.0, 960.0, 540.0, 0.0,
-                   0.0, 0.0, 1.0, 0.0])
+    # P0 = np.array([960.0, 0.0, 960.0, 0.0,
+    #                0.0, 960.0, 540.0, 0.0,
+    #                0.0, 0.0, 1.0, 0.0])
     
-    # 生成并显示点云（以P0相机为例）
-    point_cloud = depth_to_pointcloud(
-        depth_path="./data/training_20250306_110708/depth/000000_depth_0.png",
-        camera_matrix=P0,
-        show=True
+    # # 生成并显示点云（以P0相机为例）
+    # point_cloud = depth_to_pointcloud(
+    #     depth_path="./data/training_20250306_110708/depth/000000_depth_0.png",
+    #     camera_matrix=P0,
+    #     show=True
+    # )
+    
+    # 输入参数
+    frame_id = 3
+    data_root = "./data/training_20250306_110708"
+    
+    # 路径配置
+    bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_0.bin"
+    img_path = f"{data_root}/image/{frame_id:06}_camera_0.png"
+    
+    # 相机参数 (P0矩阵)
+    cam_intrinsic = np.array([
+        [960.0, 0.0, 960.0],
+        [0.0, 960.0, 540.0],
+        [0.0, 0.0, 1.0]
+    ])
+    
+    # 外参矩阵 (Tr_velo_to_cam)
+    # It looks like the code is a comment in Python. Comments in Python start with a hash symbol (#)
+    # and are used to provide explanations or notes within the code. In this case, the comment appears
+    # to be describing a function or variable named "Tr_velo_to_cam".
+    # 绕Z轴顺时针旋转90度的旋转矩阵
+    R_z = np.array([
+        [0, 1, 0],
+        [-1, 0, 0],
+        [0, 0, 1]
+    ])
+
+    # 原始外参矩阵
+    Tr_velo_to_cam = np.array([
+        0.0, -1.0, 0.0, 0.0,
+        0.0, 0.0, -1.0, 1.6+0.19,
+        1.0, 0.0, 0.0, 0.0
+    ]).reshape(3, 4)
+
+    # 应用旋转
+    Tr_velo_to_cam[:, :3] = Tr_velo_to_cam[:, :3] @ R_z
+
+    
+#     # # 修改后的外参矩阵（包含绕Z轴逆时针90度旋转）
+#     Tr_velo_to_cam = np.array([
+#     1.0,  0.0,  0.0, 0.0,  # X_velo → -X_cam
+#      0.0,  0.0, -1.0, 0.0,  # Y_velo → -Z_cam
+#      0.0, -1.0,  0.0, 0.0   # Z_velo → -Y_cam
+# ])
+    
+#     Tr_velo_to_cam = np.array([
+#         1.0, 0.0, 0.0, 0.0,
+#         0.0, 1.0, 0.0, 0.0,
+#         0.0, 0.0, 1.0, 0.0
+#     ])
+
+    # 执行投影
+    mask, depth_map, overlap_img = project_lidar_to_camera(
+        bin_path, img_path, cam_intrinsic, Tr_velo_to_cam, max_depth=100.0
     )
+
+    # # 保存结果
+    # cv2.imwrite(f"mask_{frame_id:06}.png", mask.astype(np.uint8)*255)
+    # np.save(f"depth_{frame_id:06}.npy", depth_map)
+    # cv2.imwrite(f"projection_{frame_id:06}.jpg", overlap_img)
+
+    # 可视化
+    cv2.imshow('Projection Overlay', overlap_img)
+    key = cv2.waitKey(0)  # 等待按键
+    if key == ord('q'):  # 按下 'q' 键退出
+        cv2.destroyAllWindows()
