@@ -23,6 +23,8 @@ class DatasetSave:
 
         self.LIDAR_PATH = None
         self.LIDAR_LABEL_PATH = None
+        
+        self.DEPTH_PATH = None 
 
         self.generate_path(self.config["SAVE_CONFIG"]["ROOT_PATH"])
         self.captured_frame_no = self.get_current_files_num()
@@ -40,7 +42,7 @@ class DatasetSave:
         PHASE = f"training_{timestamp}"
         self.OUTPUT_FOLDER = os.path.join(root_path, PHASE)
         folders = ['calib', 'image', 'image_label', 'bbox_img', 
-              'velodyne', 'lidar_label', 'ego_state', 'extrinsic']
+              'velodyne', 'lidar_label', 'ego_state', 'extrinsic', 'depth']
 
         for folder in folders:
             directory = os.path.join(self.OUTPUT_FOLDER, folder)
@@ -57,6 +59,7 @@ class DatasetSave:
         self.LIDAR_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'lidar_label/{0:06}.txt')
         self.EGO_STATE_PATH = os.path.join(self.OUTPUT_FOLDER, 'ego_state/{0:06}.txt')
         self.EXTRINSIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'extrinsic/{{id}}.txt')
+        self.DEPTH_PATH = os.path.join(self.OUTPUT_FOLDER, 'depth/{0:06}_depth_{1}.png')
 
 
     def get_current_files_num(self):
@@ -116,6 +119,11 @@ class DatasetSave:
         img_filename_seg_2 = self.IMAGE_PATH.format(self.captured_frame_no, "seg_2")
         # img_label_filename = self.IMAGE_LABEL_PATH.format(self.captured_frame_no)
         # bbox_img_filename = self.BBOX_IMAGE_PATH.format(self.captured_frame_no)
+        
+        depth_filename_0 = self.DEPTH_PATH.format(self.captured_frame_no, 0)
+        depth_filename_1 = self.DEPTH_PATH.format(self.captured_frame_no, 1)
+        depth_filename_2 = self.DEPTH_PATH.format(self.captured_frame_no, 2)
+
 
         lidar_filename = self.LIDAR_PATH.format(self.captured_frame_no, 0)
         lidar_filename_1 = self.LIDAR_PATH.format(self.captured_frame_no, 1)
@@ -165,6 +173,11 @@ class DatasetSave:
             save_bbox_image_data(bbox_img_filename_0, dt["bbox_img"])
             save_bbox_image_data(bbox_img_filename_1, dt["bbox_img_1"])
             save_bbox_image_data(bbox_img_filename_2, dt["bbox_img_2"])
+            
+            save_depth_image_data(depth_filename_0, dt["sensor_data"][1])
+            save_depth_image_data(depth_filename_1, dt["sensor_data"][11])
+            save_depth_image_data(depth_filename_2, dt["sensor_data"][12])
+            
 
 
             #TODO: 修改为保存多个雷达数据
