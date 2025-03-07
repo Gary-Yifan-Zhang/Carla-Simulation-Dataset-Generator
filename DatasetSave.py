@@ -61,6 +61,8 @@ class DatasetSave:
         self.LIDAR_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'lidar_label/{0:06}.txt')
         self.EGO_STATE_PATH = os.path.join(self.OUTPUT_FOLDER, 'ego_state/{0:06}.txt')
         self.EXTRINSIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'extrinsic/{{id}}.txt')
+        self.GLOBEL_EXTRINSIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'extrinsic/{0:06}.npz')
+        self.EXTRINSIC_TXT_PATH = os.path.join(self.OUTPUT_FOLDER, 'extrinsic/{0:06}.txt')
         self.DEPTH_PATH = os.path.join(self.OUTPUT_FOLDER, 'depth/{0:06}_depth_{1}.png')
         self.SEMANTIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'semantic/{0:06}_semantic_{1}.png')
 
@@ -152,6 +154,21 @@ class DatasetSave:
         # 保存外参文件
         base_extrinsic_path = self.EXTRINSIC_PATH.format(self.captured_frame_no)
         save_extrinsic_matrices(self.config, base_extrinsic_path, sensor_mapping)
+        
+        sensor_mapping = {
+            "RGB": 0,
+            "SUB_RGB_1": 1,
+            "SUB_RGB_2": 2,
+            "LIDAR": 3
+        }
+        
+        # 保存外参文件（每帧一个）
+        extrinsic_filename = self.GLOBEL_EXTRINSIC_PATH.format(self.captured_frame_no)
+        save_globel_extrinsic_matrices(self.config, extrinsic_filename, sensor_mapping)
+        # save_extrinsic_txt(self.config,      # 新增标准txt格式
+        #     self.EXTRINSIC_TXT_PATH.format(self.captured_frame_no),
+        #     sensor_mapping
+        # )
 
         for agent, dt in data["agents_data"].items():
             extrinsic = dt["extrinsic"]

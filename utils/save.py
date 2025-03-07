@@ -4,7 +4,7 @@ import os
 import logging
 import math
 import carla
-from utils.utils import config_transform_to_carla_transform
+from utils.utils import config_transform_to_carla_transform, calculate_extrinsic_matrix
 
 
 def save_ref_files(folder, index):
@@ -294,3 +294,98 @@ def save_extrinsic_matrices(config, base_filename, sensor_mapping):
             
         logging.info("Wrote %s extrinsic matrix to %s", sensor_name, filename)
 
+def save_globel_extrinsic_matrices(config, filename, sensor_mapping):
+    """
+    保存所有传感器的外参矩阵到单个文件
+    
+    参数：
+        config: 配置文件对象
+        filename: 输出文件名
+        sensor_mapping: 传感器到索引的映射字典
+    """
+    extrinsic_dict = {}
+    
+    for sensor_name, sensor_id in sensor_mapping.items():
+        transform = config_transform_to_carla_transform(
+            config["SENSOR_CONFIG"][sensor_name]["TRANSFORM"]
+        )
+        
+        # 构建4x4齐次变换矩阵
+        translation = np.array([
+            transform.location.x,
+            transform.location.y, 
+            transform.location.z
+        ])
+        
+        # 计算旋转矩阵
+        roll = math.radians(transform.rotation.roll)
+        pitch = math.radians(transform.rotation.pitch)
+        yaw = math.radians(transform.rotation.yaw)
+        
+        Rz = np.array([
+            [math.cos(yaw), -math.sin(yaw), 0],
+            [math.sin(yaw), math.cos(yaw), 0],
+            [0, 0, 1]
+        ])
+        
+        Ry = np.array([
+            [math.cos(pitch), 0, math.sin(pitch)],
+            [0, 1, 0],
+            [-math.sin(pitch), 0, math.cos(pitch)]
+        ])
+        
+        Rx = np.array([
+            [1, 0, 0],
+            [0, math.cos(roll), -math.sin(roll)],
+            [0, math.sin(roll), math.cos(roll)]
+        ])
+        
+        rotation = Rz @ Ry @ Rx
+        
+        # 构建齐次矩阵
+        extrinsic = np.identity(4)
+        extrinsic[:3, :3] = rotation
+        extrinsic[:3, 3] = translation
+        
+        extrinsic_dict[sensor_name] = extrinsic.tolist()
+    
+    # 保存为numpy压缩格式
+    np.savez_compressed(
+        filename,
+        **extrinsic_dict,
+        sensor_mapping=sensor_mapping
+    )
+    logging.info(f"Saved extrinsic matrices to {filename}")
+    
+def save_extrinsic_txt(config, filename, sensor_mapping):
+    """
+    保存标准txt格式外参（每帧一个文件）
+    格式示例：
+    RGB
+    0.999 0.012 0.034 1.234
+    0.011 0.998 0.052 2.345
+    0.033 0.051 0.997 3.456
+    0.000 0.000 0.000 1.000
+    LIDAR
+    0.888 0.023 0.456 4.567
+    ...
+    """
+    with open(filename, 'w') as f:
+        for sensor_name in sensor_mapping.keys():
+            # 获取变换矩阵
+            transform = config_transform_to_carla_transform(
+                config["SENSOR_CONFIG"][sensor_name]["TRANSFORM"]
+            )
+            
+            # 计算4x4齐次矩阵（与之前相同）
+            extrinsic = calculate_extrinsic_matrix(transform)  # 复用原有矩阵计算逻辑
+            
+            # 写入传感器名称
+            f.write(f"{sensor_name}\n")
+            
+            # 写入矩阵数据（保留6位小数）
+            for row in extrinsic:
+                f.write(" ".join([f"{x:.6f}" for x in row]) + "\n")
+            f.write("\n")  # 添加空行分隔不同传感器
+    
+    logging.info(f"Saved txt extrinsic to {filename}")

@@ -631,7 +631,7 @@ if __name__ == "__main__":
     # )
     
     # 输入参数
-    frame_id = 3
+    frame_id = 1
     data_root = "./data/training_20250306_110708"
     
     # 路径配置
@@ -659,7 +659,7 @@ if __name__ == "__main__":
     # 原始外参矩阵
     Tr_velo_to_cam = np.array([
         0.0, -1.0, 0.0, 0.0,
-        0.0, 0.0, -1.0, 1.6+0.19,
+        0.0, 0.0, -1.0, 2.023560,
         1.0, 0.0, 0.0, 0.0
     ]).reshape(3, 4)
 
@@ -691,17 +691,17 @@ if __name__ == "__main__":
     # # np.save(f"depth_{frame_id:06}.npy", depth_map)
     # # cv2.imwrite(f"projection_{frame_id:06}.jpg", overlap_img)
 
-    # # 可视化
-    # cv2.imshow('Projection Overlay', overlap_img)
-    # key = cv2.waitKey(0)  # 等待按键
-    # if key == ord('q'):  # 按下 'q' 键退出
-    #     cv2.destroyAllWindows()
+    # 可视化
+    cv2.imshow('Projection Overlay', overlap_img)
+    key = cv2.waitKey(0)  # 等待按键
+    if key == ord('q'):  # 按下 'q' 键退出
+        cv2.destroyAllWindows()
     
     # 保存深度图和mask
     # 保存深度图、mask和overlap_img
-    frame_id = 3
-    camera_id = 0
-    save_depth_and_mask(depth_map, mask, overlap_img, data_root, frame_id, camera_id)
+    # frame_id = 1
+    # camera_id = 0
+    # save_depth_and_mask(depth_map, mask, overlap_img, data_root, frame_id, camera_id)
 
-    # 读取并可视化
-    depth_to_pcd(data_root, frame_id, camera_id)
+    # # 读取并可视化
+    # depth_to_pcd(data_root, frame_id, camera_id)
