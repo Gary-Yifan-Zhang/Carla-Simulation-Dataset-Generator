@@ -3,7 +3,7 @@ import carla
 import math
 import numpy as np
 import logging
-
+import logging
 
 def yaml_to_config(file):
     """
@@ -217,6 +217,8 @@ def load_extrinsic_npz(file_path, sensor_name=None):
     
 if __name__ == "__main__":
     # 示例1：加载全部数据
-    all_extrinsics, mapping = load_extrinsic_npz("extrinsic/000001.npz")
+    all_extrinsics, mapping = load_extrinsic_npz("./data/training_20250311_142557/extrinsic/000004.npz")
     print(f"包含传感器: {list(all_extrinsics.keys())}")
     print(f"RGB传感器矩阵:\n{all_extrinsics['RGB']}")
+    print(f"LIDAR传感器矩阵:\n{all_extrinsics['LIDAR']}")
+    print(f"SUB RGB1传感器矩阵:\n{all_extrinsics['SUB_RGB_1']}")

@@ -106,9 +106,9 @@ def save_lidar_data(filename, point_cloud, extrinsic, format="bin"):
         logging.debug("Lidar min/max of x: {} {}".format(
             lidar_array[:, 0].min(), lidar_array[:, 0].max()))
         logging.debug("Lidar min/max of y: {} {}".format(
-            lidar_array[:, 1].min(), lidar_array[:, 0].max()))
+            lidar_array[:, 1].min(), lidar_array[:, 1].max()))
         logging.debug("Lidar min/max of z: {} {}".format(
-            lidar_array[:, 2].min(), lidar_array[:, 0].max()))
+            lidar_array[:, 2].min(), lidar_array[:, 2].max()))
         lidar_array.tofile(filename)
 
 
@@ -294,68 +294,34 @@ def save_extrinsic_matrices(config, base_filename, sensor_mapping):
             
         logging.info("Wrote %s extrinsic matrix to %s", sensor_name, filename)
 
-def save_globel_extrinsic_matrices(config, filename, sensor_mapping):
+def save_globel_extrinsic_matrices(filename, sensor_mapping, extrinsic_dict):
     """
     保存所有传感器的外参矩阵到单个文件
     
     参数：
-        config: 配置文件对象
         filename: 输出文件名
         sensor_mapping: 传感器到索引的映射字典
+        extrinsic_dict: 包含各传感器4x4外参矩阵的字典
     """
-    extrinsic_dict = {}
+    processed_dict = {}
     
-    for sensor_name, sensor_id in sensor_mapping.items():
-        transform = config_transform_to_carla_transform(
-            config["SENSOR_CONFIG"][sensor_name]["TRANSFORM"]
-        )
-        
-        # 构建4x4齐次变换矩阵
-        translation = np.array([
-            transform.location.x,
-            transform.location.y, 
-            transform.location.z
-        ])
-        
-        # 计算旋转矩阵
-        roll = math.radians(transform.rotation.roll)
-        pitch = math.radians(transform.rotation.pitch)
-        yaw = math.radians(transform.rotation.yaw)
-        
-        Rz = np.array([
-            [math.cos(yaw), -math.sin(yaw), 0],
-            [math.sin(yaw), math.cos(yaw), 0],
-            [0, 0, 1]
-        ])
-        
-        Ry = np.array([
-            [math.cos(pitch), 0, math.sin(pitch)],
-            [0, 1, 0],
-            [-math.sin(pitch), 0, math.cos(pitch)]
-        ])
-        
-        Rx = np.array([
-            [1, 0, 0],
-            [0, math.cos(roll), -math.sin(roll)],
-            [0, math.sin(roll), math.cos(roll)]
-        ])
-        
-        rotation = Rz @ Ry @ Rx
-        
-        # 构建齐次矩阵
-        extrinsic = np.identity(4)
-        extrinsic[:3, :3] = rotation
-        extrinsic[:3, 3] = translation
-        
-        extrinsic_dict[sensor_name] = extrinsic.tolist()
+    for sensor_name, matrix in extrinsic_dict.items():
+        # 转换numpy矩阵格式
+        if not isinstance(matrix, np.ndarray):
+            matrix = np.array(matrix)
+            
+        # 验证矩阵维度
+        if matrix.shape != (4, 4):
+            raise ValueError(f"{sensor_name} 外参矩阵维度错误，应为4x4，实际为{matrix.shape}")
+            
+        processed_dict[sensor_name] = matrix.astype(np.float32)
+    
+    # 添加传感器映射关系
+    processed_dict["sensor_mapping"] = np.array(sensor_mapping)
     
     # 保存为numpy压缩格式
-    np.savez_compressed(
-        filename,
-        **extrinsic_dict,
-        sensor_mapping=sensor_mapping
-    )
-    logging.info(f"Saved extrinsic matrices to {filename}")
+    np.savez_compressed(filename, **processed_dict)
+    logging.info(f"已保存外参矩阵至 {filename}")
     
 def save_extrinsic_txt(config, filename, sensor_mapping):
     """

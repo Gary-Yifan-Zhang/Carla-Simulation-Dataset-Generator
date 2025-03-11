@@ -164,7 +164,7 @@ class DatasetSave:
         
         # 保存外参文件（每帧一个）
         extrinsic_filename = self.GLOBEL_EXTRINSIC_PATH.format(self.captured_frame_no)
-        save_globel_extrinsic_matrices(self.config, extrinsic_filename, sensor_mapping)
+        # save_globel_extrinsic_matrices(self.config, extrinsic_filename, sensor_mapping)
         # save_extrinsic_txt(self.config,      # 新增标准txt格式
         #     self.EXTRINSIC_TXT_PATH.format(self.captured_frame_no),
         #     sensor_mapping
@@ -172,6 +172,18 @@ class DatasetSave:
 
         for agent, dt in data["agents_data"].items():
             extrinsic = dt["extrinsic"]
+            extrinsic_dict = {
+                "RGB": dt["extrinsic"][0],        # RGB传感器矩阵
+                "SUB_RGB_1": dt["extrinsic"][4],  # 子摄像头1矩阵
+                "SUB_RGB_2": dt["extrinsic"][5],  # 子摄像头2矩阵
+                "LIDAR": dt["extrinsic"][2]       # 激光雷达矩阵
+            }
+            
+            save_globel_extrinsic_matrices(
+                extrinsic_filename,
+                sensor_mapping,
+                extrinsic_dict
+            )
 
             camera_transform = config_transform_to_carla_transform(self.config["SENSOR_CONFIG"]["RGB"]["TRANSFORM"])
             lidar_transform = config_transform_to_carla_transform(self.config["SENSOR_CONFIG"]["LIDAR"]["TRANSFORM"])
