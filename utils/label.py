@@ -96,23 +96,23 @@ def spawn_dataset(data):
                 
         # 新增对第二个摄像头（sensors_data[4]）的处理
         for obj in environment_objects:
-            image_label_kitti_1 = is_visible_in_camera(agent, obj, image_1, depth_data_1, intrinsic, extrinsic[4])  # 使用第四个外参矩阵
+            image_label_kitti_1 = is_visible_in_camera(agent, obj, image_1, depth_data_1, intrinsic, transform[4])  # 使用第四个外参矩阵
             if image_label_kitti_1 is not None:
                 image_labels_kitti_1.append(image_label_kitti_1)
 
         for act in actors:
-            image_label_kitti_1 = is_visible_in_camera(agent, act, image_1, depth_data_1, intrinsic, extrinsic[4])
+            image_label_kitti_1 = is_visible_in_camera(agent, act, image_1, depth_data_1, intrinsic, transform[4])
             if image_label_kitti_1 is not None:
                 image_labels_kitti_1.append(image_label_kitti_1)
 
         # 新增对第三个摄像头（sensors_data[5]）的处理
         for obj in environment_objects:
-            image_label_kitti_2 = is_visible_in_camera(agent, obj, image_2, depth_data_2, intrinsic, extrinsic[5])  # 使用第五个外参矩阵
+            image_label_kitti_2 = is_visible_in_camera(agent, obj, image_2, depth_data_2, intrinsic, transform[5])  # 使用第五个外参矩阵
             if image_label_kitti_2 is not None:
                 image_labels_kitti_2.append(image_label_kitti_2)
 
         for act in actors:
-            image_label_kitti_2 = is_visible_in_camera(agent, act, image_2, depth_data_2, intrinsic, extrinsic[5])
+            image_label_kitti_2 = is_visible_in_camera(agent, act, image_2, depth_data_2, intrinsic, transform[5])
             if image_label_kitti_2 is not None:
                 image_labels_kitti_2.append(image_label_kitti_2)
 
@@ -307,9 +307,6 @@ def create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state):
     
     # 规范化角度到[-π, π]
     rotation_y = np.arctan2(np.sin(rotation_y), np.cos(rotation_y))
-    
-    print(rotation_y)
-    # rotation_y = math.radians(-obj_transform.rotation.yaw) % math.pi
 
     bbox  = get_bounding_box(obj, is_environment_object=isinstance(obj, carla.EnvironmentObject))
     ext = bbox.extent
