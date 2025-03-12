@@ -304,7 +304,7 @@ class SimulationScene:
             transform = self.agent.get_transform()
             velocity = self.agent.get_velocity()
             acceleration = self.agent.get_acceleration()
-            
+            transform_matrix = self.agent.get_transform().get_matrix()
             data["egostate"] = {
                 "location": {
                     "x": transform.location.x,
@@ -330,7 +330,8 @@ class SimulationScene:
                     "x": self.agent.bounding_box.extent.x,
                     "y": self.agent.bounding_box.extent.y,
                     "z": self.agent.bounding_box.extent.z
-                }
+                },
+                "matrix": np.array(transform_matrix)
             }
         data["environment_objects"] = self.world.get_environment_objects(carla.CityObjectLabel.Any)
 
