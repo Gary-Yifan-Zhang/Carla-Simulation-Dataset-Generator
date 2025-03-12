@@ -297,7 +297,42 @@ class SimulationScene:
         """
         data = {"environment_objects": None, "actors": None, "agents_data": {}}
         self.frame = self.world.tick()
-
+        
+        
+        # 新增ego状态记录
+        if self.agent:
+            transform = self.agent.get_transform()
+            velocity = self.agent.get_velocity()
+            acceleration = self.agent.get_acceleration()
+            transform_matrix = self.agent.get_transform().get_matrix()
+            data["egostate"] = {
+                "location": {
+                    "x": transform.location.x,
+                    "y": transform.location.y,
+                    "z": transform.location.z
+                },
+                "rotation": {
+                    "roll": transform.rotation.roll,
+                    "pitch": transform.rotation.pitch,
+                    "yaw": transform.rotation.yaw
+                },
+                "velocity": {
+                    "x": velocity.x,
+                    "y": velocity.y,
+                    "z": velocity.z
+                },
+                "acceleration": {
+                    "x": acceleration.x,
+                    "y": acceleration.y,
+                    "z": acceleration.z
+                },
+                "extent": {  # 车辆包围盒尺寸
+                    "x": self.agent.bounding_box.extent.x,
+                    "y": self.agent.bounding_box.extent.y,
+                    "z": self.agent.bounding_box.extent.z
+                },
+                "matrix": np.array(transform_matrix)
+            }
         data["environment_objects"] = self.world.get_environment_objects(carla.CityObjectLabel.Any)
 
         data["actors"] = self.world.get_actors()
@@ -316,15 +351,23 @@ class SimulationScene:
             # 设置传感器内参（仅相机有内参）
             data["agents_data"][agent]["intrinsic"] = set_camera_intrinsic(image_width, image_height)
             
-            # 设置传感器外参
-            data["agents_data"][agent]["extrinsic"] = [
+            # 设置传感器的carla位姿
+            # data["agents_data"][agent]["transform"] = self.actors["sensors"][agent][0].get_transform()
+            data["agents_data"][agent]["transform"] = [
                 np.mat(sensor.get_transform().get_matrix())
                 for sensor in self.actors["sensors"][agent]
             ]
             
+            # 获取ego车辆的逆变换矩阵
+            ego_transform = self.agent.get_transform()
+            ego_inv_matrix = np.mat(ego_transform.get_inverse_matrix())
             
-            # 设置传感器的carla位姿
-            data["agents_data"][agent]["transform"] = self.actors["sensors"][agent][0].get_transform()
+            # 计算传感器到ego的相对外参
+            data["agents_data"][agent]["extrinsic"] = [
+                np.mat(sensor.get_transform().get_matrix()) * ego_inv_matrix
+                for sensor in self.actors["sensors"][agent]
+            ]
+                     
             
             # 设置传感器的种类
             data["agents_data"][agent]["type"] = agent

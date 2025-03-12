@@ -358,12 +358,350 @@ def view_images(image_dir, image_ext='_camera_0.png', window_name='Image Sequenc
 
     cv2.destroyAllWindows()
 
+def depth_to_pointcloud(depth_path, camera_matrix, show=True):
+    """
+    将深度图转换为点云并可视化
+    参数：
+        depth_path: 深度图路径（16位PNG）
+        camera_matrix: 3x4相机投影矩阵（支持P0-P3）
+        show: 是否显示点云
+    """
+    max_distance = 250
+    # 解析相机参数矩阵
+    K = camera_matrix.reshape(3,4)[:3,:3]  # 提取内参矩阵
+    fx, fy = K[0,0], K[1,1]
+    cx, cy = K[0,2], K[1,2]
+
+    # 读取深度图（16位PNG，单位毫米）
+    depth_image = cv2.imread(depth_path, cv2.IMREAD_UNCHANGED)
+    depth = depth_image.astype(np.float32)    # 转换为米
+    print(depth)
+
+    # 矢量化计算提升性能
+    u = np.arange(depth.shape[1])
+    v = np.arange(depth.shape[0])
+    u, v = np.meshgrid(u, v)
+    
+    # 计算三维坐标
+    z = depth
+    valid_mask = z > 0
+    if max_distance is not None:
+        valid_mask = valid_mask & (depth <= max_distance)
+
+    x = (u[valid_mask] - cx) * z[valid_mask] / fx
+    y = (v[valid_mask] - cy) * z[valid_mask] / fy
+    points = np.column_stack((x, y, z[valid_mask]))
+
+    # 创建Open3D点云
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+
+    if show:
+        # 创建可视化窗口
+        vis = o3d.visualization.Visualizer()
+        vis.create_window(window_name=f'Point Cloud: {os.path.basename(depth_path)}')
+        
+        # 添加坐标系和几何体
+        coord_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1.0)
+        vis.add_geometry(pcd)
+        vis.add_geometry(coord_frame)
+        
+        # 设置视角参数
+        view_ctl = vis.get_view_control()
+        view_ctl.set_front([0, -1, 0])  # 相机朝向正前方
+        view_ctl.set_up([0, 0, 1])      # 上方向为Z轴
+        view_ctl.set_zoom(0.5)          # 初始缩放比例
+        
+        # 运行可视化
+        vis.run()
+        vis.destroy_window()
+
+    return pcd
+
+def read_velodyne_bin(bin_path):
+    """ 读取KITTI格式的雷达bin文件 """
+    point_cloud = np.fromfile(bin_path, dtype=np.float32).reshape(-1, 4)
+    return point_cloud[:, :3]  # 取x,y,z坐标
+
+def project_3d_to_2d(points_3d, fx, fy, cx, cy):
+    points_2d = []
+    for point in points_3d:
+        X, Y, Z = point
+        x = (fx * X / Z) + cx
+        y = (fy * Y / Z) + cy
+        points_2d.append((x, y))
+    return np.array(points_2d)
+
+
+def project_lidar_to_camera(bin_path, img_path, cam_intrinsic, Tr_velo_to_cam, max_depth=100.0):
+    """
+    将雷达点云投影到相机图像并生成mask和深度图
+    
+    参数：
+        bin_path: 雷达点云路径(.bin)
+        img_path: 对应相机图像路径
+        cam_intrinsic: 相机内参矩阵(3x3)
+        Tr_velo_to_cam: 雷达到相机的外参矩阵(3x4)
+        max_depth: 最大有效深度（米）
+        
+    返回：
+        mask: 投影点存在的像素位置（布尔矩阵）
+        depth_map: 对应位置的深度值（单位：米）
+        overlap_img: 投影可视化图像
+    """
+    # 读取数据
+    points_velo = read_velodyne_bin(bin_path)
+    img = cv2.imread(img_path)
+    height, width = img.shape[:2]
+
+    # 转换外参矩阵为齐次坐标形式 (4x4)
+    Tr = np.vstack([Tr_velo_to_cam.reshape(3,4), [0, 0, 0, 1]])
+
+    # 坐标系转换：雷达坐标系 → 相机坐标系
+    ones = np.ones((points_velo.shape[0], 1))
+    points_velo_hom = np.hstack([points_velo, ones])
+    points_cam = (Tr @ points_velo_hom.T).T[:, :3]
+
+    # 过滤有效点（z>0且在最大深度内）
+    valid = (points_cam[:, 2] > 0) & (points_cam[:, 2] <= max_depth)
+    points_cam = points_cam[valid]
+
+    # 使用优化后的投影函数
+    fx, fy = cam_intrinsic[0, 0], cam_intrinsic[1, 1]
+    cx, cy = cam_intrinsic[0, 2], cam_intrinsic[1, 2]
+    uv = project_3d_to_2d(points_cam, fx, fy, cx, cy)
+    uv = np.floor(uv).astype(int)
+
+    # 过滤图像范围内的点
+    in_view = (uv[:, 0] >= 0) & (uv[:, 0] < width) & (uv[:, 1] >= 0) & (uv[:, 1] < height)
+    uv = uv[in_view]
+    depths = points_cam[in_view, 2]
+
+    # 初始化输出矩阵
+    mask = np.zeros((height, width), dtype=bool)
+    depth_map = np.zeros((height, width), dtype=np.float32)
+    
+    # 可视化图像（原始图像叠加投影点）
+    overlap_img = img.copy()
+    
+    # 更新mask和depth（保留最近点的深度）
+    for (u, v), d in zip(uv, depths):
+        if depth_map[v, u] == 0 or d < depth_map[v, u]:
+            depth_map[v, u] = d
+            mask[v, u] = True
+            # 用颜色表示深度（红色越深表示越近）
+            color = (0, 0, 255 * (1 - d/max_depth))
+            cv2.circle(overlap_img, (u, v), 1, color, -1)
+
+    return mask, depth_map, overlap_img
+
+def save_depth_and_mask(depth_map, mask, overlap_img, data_root, frame_id, camera_id):
+    """
+    保存深度图、mask和overlap_img到data_root/lidar_depth目录
+    
+    参数：
+        depth_map: 深度图矩阵
+        mask: 掩码矩阵
+        overlap_img: 投影可视化图像
+        data_root: 数据根目录路径
+        frame_id: 帧ID
+        camera_id: 相机ID
+    """
+    import os
+    import numpy as np
+    import cv2
+    
+    # 创建保存目录
+    save_dir = os.path.join(data_root, 'lidar_depth')
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # 将mask和value保存为字典
+    lidar_data = {
+        'mask': mask,
+        'value': depth_map[mask]  # 只保存有效点的深度值
+    }
+    
+    # 保存为npy文件
+    npy_path = os.path.join(save_dir, f'{frame_id:06}_camera_{camera_id}.npy')
+    np.save(npy_path, lidar_data)
+    
+    # 保存overlap_img
+    overlap_path = os.path.join(save_dir, f'{frame_id:06}_camera_{camera_id}_overlap.png')
+    cv2.imwrite(overlap_path, overlap_img)
+    
+    print(f"数据已保存到: {npy_path} 和 {overlap_path}")
+
+def depth_to_pcd(data_root, frame_id, camera_id):
+    """
+    从保存的npy文件生成点云并可视化
+    
+    参数：
+        data_root: 数据根目录路径
+        frame_id: 帧ID
+        camera_id: 相机ID
+    """
+    import numpy as np
+    import cv2
+    
+    # 加载保存的数据
+    save_dir = os.path.join(data_root, 'lidar_depth')
+    npy_path = os.path.join(save_dir, f'{frame_id:06}_camera_{camera_id}.npy')
+    lidar_data = np.load(npy_path, allow_pickle=True).item()
+    
+    # 解析内参参数（使用默认值，可根据实际情况修改）
+    fx = 960.0
+    fy = 960.0
+    cx = 960.0
+    cy = 540.0
+
+    # 获取有效像素坐标
+    valid_coords = np.argwhere(lidar_data['mask'])
+    u = valid_coords[:, 1]  # 宽度方向 (列索引)
+    v = valid_coords[:, 0]  # 高度方向 (行索引)
+    Z = lidar_data['value'] # 深度值 (单位：米)
+
+    # 核心转换公式
+    X = (u - cx) * Z / fx
+    Y = (v - cy) * Z / fy
+    
+    points = np.column_stack((X, Y, Z))
+
+    # Open3D可视化
+    try:
+        import open3d as o3d
+        # 生成有效点云
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(points) 
+
+        # 创建可视化窗口
+        vis = o3d.visualization.Visualizer()
+        vis.create_window(window_name='LiDAR Depth Projection', width=1280, height=720)
+        
+        # 添加坐标系（缩小尺寸避免遮挡）
+        coord_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=2.0)
+        vis.add_geometry(coord_frame)
+        vis.add_geometry(pcd)
+
+        # 设置优化后的视角参数
+        view_ctl = vis.get_view_control()
+        view_ctl.set_front([-0.5, -0.3, 0.8])  # 最佳观测角度
+        view_ctl.set_up([0, 0, 1])             # 保持Z轴向上
+        view_ctl.set_zoom(0.3)                 # 适合车辆尺寸的缩放
+
+        # 添加点云着色
+        pcd.paint_uniform_color([0.2, 0.7, 0.3])  # 绿色点云
+        
+        # 运行可视化
+        print("\n按Q退出可视化窗口...")
+        vis.run()
+        vis.destroy_window()
+
+        # 输出统计信息
+        print("\n=== 点云统计 ===")
+        print(f"有效点数: {len(points)}")
+        print(f"X范围: [{np.min(X):.2f}, {np.max(X):.2f}] m")
+        print(f"Y范围: [{np.min(Y):.2f}, {np.max(Y):.2f}] m")
+        print(f"Z范围: [{np.min(Z):.2f}, {np.max(Z):.2f}] m")
+
+    except ImportError:
+        print("请安装open3d: pip install open3d")
+    except Exception as e:
+        print(f"可视化错误: {str(e)}")
+
+    return points
 
 if __name__ == "__main__":
-    seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
-    img_path = './data/training_20250305_130741/image/000000_camera_0.png'
-    plot_segmentation_results(seg_path, img_path)
+    # seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
+    # img_path = './data/training_20250305_130741/image/000000_camera_0.png'
+    # plot_segmentation_results(seg_path, img_path)
     
     # # 新增图片查看功能示例
     # image_dir = './data/training_20250226_102047/image'
     # view_images(image_dir)
+    
+    # P0 = np.array([960.0, 0.0, 960.0, 0.0,
+    #                0.0, 960.0, 540.0, 0.0,
+    #                0.0, 0.0, 1.0, 0.0])
+    
+    # # 生成并显示点云（以P0相机为例）
+    # point_cloud = depth_to_pointcloud(
+    #     depth_path="./data/training_20250306_110708/depth/000000_depth_0.png",
+    #     camera_matrix=P0,
+    #     show=True
+    # )
+    
+    # 输入参数
+    frame_id = 1
+    data_root = "./data/training_20250306_110708"
+    
+    # 路径配置
+    bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_0.bin"
+    img_path = f"{data_root}/image/{frame_id:06}_camera_0.png"
+    
+    # 相机参数 (P0矩阵)
+    cam_intrinsic = np.array([
+        [960.0, 0.0, 960.0],
+        [0.0, 960.0, 540.0],
+        [0.0, 0.0, 1.0]
+    ])
+    
+    # 外参矩阵 (Tr_velo_to_cam)
+    # It looks like the code is a comment in Python. Comments in Python start with a hash symbol (#)
+    # and are used to provide explanations or notes within the code. In this case, the comment appears
+    # to be describing a function or variable named "Tr_velo_to_cam".
+    # 绕Z轴顺时针旋转90度的旋转矩阵
+    R_z = np.array([
+        [0, 1, 0],
+        [-1, 0, 0],
+        [0, 0, 1]
+    ])
+
+    # 原始外参矩阵
+    Tr_velo_to_cam = np.array([
+        0.0, -1.0, 0.0, 0.0,
+        0.0, 0.0, -1.0, 2.023560,
+        1.0, 0.0, 0.0, 0.0
+    ]).reshape(3, 4)
+
+    # 应用旋转
+    Tr_velo_to_cam[:, :3] = Tr_velo_to_cam[:, :3] @ R_z
+    print(Tr_velo_to_cam)
+
+    
+#     # # 修改后的外参矩阵（包含绕Z轴逆时针90度旋转）
+#     Tr_velo_to_cam = np.array([
+#     1.0,  0.0,  0.0, 0.0,  # X_velo → -X_cam
+#      0.0,  0.0, -1.0, 0.0,  # Y_velo → -Z_cam
+#      0.0, -1.0,  0.0, 0.0   # Z_velo → -Y_cam
+# ])
+    
+#     Tr_velo_to_cam = np.array([
+#         1.0, 0.0, 0.0, 0.0,
+#         0.0, 1.0, 0.0, 0.0,
+#         0.0, 0.0, 1.0, 0.0
+#     ])
+
+    # 执行投影
+    mask, depth_map, overlap_img = project_lidar_to_camera(
+        bin_path, img_path, cam_intrinsic, Tr_velo_to_cam, max_depth=100.0
+    )
+
+    # # # 保存结果
+    # # cv2.imwrite(f"mask_{frame_id:06}.png", mask.astype(np.uint8)*255)
+    # # np.save(f"depth_{frame_id:06}.npy", depth_map)
+    # # cv2.imwrite(f"projection_{frame_id:06}.jpg", overlap_img)
+
+    # 可视化
+    cv2.imshow('Projection Overlay', overlap_img)
+    key = cv2.waitKey(0)  # 等待按键
+    if key == ord('q'):  # 按下 'q' 键退出
+        cv2.destroyAllWindows()
+    
+    # 保存深度图和mask
+    # 保存深度图、mask和overlap_img
+    # frame_id = 1
+    # camera_id = 0
+    # save_depth_and_mask(depth_map, mask, overlap_img, data_root, frame_id, camera_id)
+
+    # # 读取并可视化
+    # depth_to_pcd(data_root, frame_id, camera_id)

@@ -23,6 +23,9 @@ class DatasetSave:
 
         self.LIDAR_PATH = None
         self.LIDAR_LABEL_PATH = None
+        
+        self.DEPTH_PATH = None 
+        self.SEMANTIC_PATH = None
 
         self.generate_path(self.config["SAVE_CONFIG"]["ROOT_PATH"])
         self.captured_frame_no = self.get_current_files_num()
@@ -40,7 +43,8 @@ class DatasetSave:
         PHASE = f"training_{timestamp}"
         self.OUTPUT_FOLDER = os.path.join(root_path, PHASE)
         folders = ['calib', 'image', 'image_label', 'bbox_img', 
-              'velodyne', 'lidar_label', 'ego_state', 'extrinsic']
+              'velodyne', 'lidar_label', 'ego_state', 'extrinsic', 
+              'depth', 'semantic']
 
         for folder in folders:
             directory = os.path.join(self.OUTPUT_FOLDER, folder)
@@ -57,6 +61,11 @@ class DatasetSave:
         self.LIDAR_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'lidar_label/{0:06}.txt')
         self.EGO_STATE_PATH = os.path.join(self.OUTPUT_FOLDER, 'ego_state/{0:06}.txt')
         self.EXTRINSIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'extrinsic/{{id}}.txt')
+        self.GLOBEL_EXTRINSIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'extrinsic/{0:06}.npz')
+        self.EXTRINSIC_TXT_PATH = os.path.join(self.OUTPUT_FOLDER, 'extrinsic/{0:06}.txt')
+        self.DEPTH_PATH = os.path.join(self.OUTPUT_FOLDER, 'depth/{0:06}_depth_{1}.png')
+        self.SEMANTIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'semantic/{0:06}_semantic_{1}.png')
+
 
 
     def get_current_files_num(self):
@@ -116,6 +125,14 @@ class DatasetSave:
         img_filename_seg_2 = self.IMAGE_PATH.format(self.captured_frame_no, "seg_2")
         # img_label_filename = self.IMAGE_LABEL_PATH.format(self.captured_frame_no)
         # bbox_img_filename = self.BBOX_IMAGE_PATH.format(self.captured_frame_no)
+        
+        depth_filename_0 = self.DEPTH_PATH.format(self.captured_frame_no, 0)
+        depth_filename_1 = self.DEPTH_PATH.format(self.captured_frame_no, 1)
+        depth_filename_2 = self.DEPTH_PATH.format(self.captured_frame_no, 2)
+
+        semantic_filename_0 = self.SEMANTIC_PATH.format(self.captured_frame_no, 0)
+        semantic_filename_1 = self.SEMANTIC_PATH.format(self.captured_frame_no, 1)
+        semantic_filename_2 = self.SEMANTIC_PATH.format(self.captured_frame_no, 2)
 
         lidar_filename = self.LIDAR_PATH.format(self.captured_frame_no, 0)
         lidar_filename_1 = self.LIDAR_PATH.format(self.captured_frame_no, 1)
@@ -137,9 +154,36 @@ class DatasetSave:
         # 保存外参文件
         base_extrinsic_path = self.EXTRINSIC_PATH.format(self.captured_frame_no)
         save_extrinsic_matrices(self.config, base_extrinsic_path, sensor_mapping)
+        
+        sensor_mapping = {
+            "RGB": 0,
+            "SUB_RGB_1": 1,
+            "SUB_RGB_2": 2,
+            "LIDAR": 3
+        }
+        
+        # 保存外参文件（每帧一个）
+        extrinsic_filename = self.GLOBEL_EXTRINSIC_PATH.format(self.captured_frame_no)
+        # save_globel_extrinsic_matrices(self.config, extrinsic_filename, sensor_mapping)
+        # save_extrinsic_txt(self.config,      # 新增标准txt格式
+        #     self.EXTRINSIC_TXT_PATH.format(self.captured_frame_no),
+        #     sensor_mapping
+        # )
 
         for agent, dt in data["agents_data"].items():
             extrinsic = dt["extrinsic"]
+            extrinsic_dict = {
+                "RGB": dt["extrinsic"][0],        # RGB传感器矩阵
+                "SUB_RGB_1": dt["extrinsic"][4],  # 子摄像头1矩阵
+                "SUB_RGB_2": dt["extrinsic"][5],  # 子摄像头2矩阵
+                "LIDAR": dt["extrinsic"][2]       # 激光雷达矩阵
+            }
+            
+            save_globel_extrinsic_matrices(
+                extrinsic_filename,
+                sensor_mapping,
+                extrinsic_dict
+            )
 
             camera_transform = config_transform_to_carla_transform(self.config["SENSOR_CONFIG"]["RGB"]["TRANSFORM"])
             lidar_transform = config_transform_to_carla_transform(self.config["SENSOR_CONFIG"]["LIDAR"]["TRANSFORM"])
@@ -165,7 +209,15 @@ class DatasetSave:
             save_bbox_image_data(bbox_img_filename_0, dt["bbox_img"])
             save_bbox_image_data(bbox_img_filename_1, dt["bbox_img_1"])
             save_bbox_image_data(bbox_img_filename_2, dt["bbox_img_2"])
-
+            
+            save_depth_image_data(depth_filename_0, dt["sensor_data"][1])
+            save_depth_image_data(depth_filename_1, dt["sensor_data"][11])
+            save_depth_image_data(depth_filename_2, dt["sensor_data"][12])
+            
+            save_semantic_image_data(semantic_filename_0, dt["sensor_data"][8])
+            save_semantic_image_data(semantic_filename_1, dt["sensor_data"][9])
+            save_semantic_image_data(semantic_filename_2, dt["sensor_data"][10])
+            
 
             #TODO: 修改为保存多个雷达数据
             save_lidar_data(lidar_filename, dt["sensor_data"][2], extrinsic[2])
@@ -175,6 +227,15 @@ class DatasetSave:
             # save_lidar_data(lidar_filename_4, dt["sensor_data"][9], extrinsic)
             save_kitti_label_data(lidar_label_filename, dt["pc_labels_kitti"])
 
-            save_ego_data(ego_state_filename, dt["transform"], dt["velocity"], dt["acceleration"])
+                    # 修改ego state保存方式
+            print(f"Save ego state to {ego_state_filename}")
+            save_ego_data(
+                ego_state_filename,
+                transform=data["egostate"]["location"],
+                rotation=data["egostate"]["rotation"],
+                velocity=data["egostate"]["velocity"],
+                acceleration=data["egostate"]["acceleration"],
+                extent=data["egostate"]["extent"]
+            )
 
         self.captured_frame_no += 1

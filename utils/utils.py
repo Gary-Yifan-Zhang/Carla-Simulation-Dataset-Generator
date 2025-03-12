@@ -2,7 +2,8 @@ import yaml
 import carla
 import math
 import numpy as np
-
+import logging
+import logging
 
 def yaml_to_config(file):
     """
@@ -116,3 +117,108 @@ def depth_image_to_array(image):
             (256.0 * 256.0 * 256.0) - 1))  # 2.5ms
     gray_depth = 1000 * gray_depth
     return gray_depth
+
+def calculate_extrinsic_matrix(transform):
+    """计算4x4齐次变换矩阵
+    
+    参数：
+        transform: carla.Transform对象
+        
+    返回：
+        4x4 numpy数组，包含旋转和平移信息
+    """
+    # 提取平移分量
+    translation = np.array([
+        transform.location.x,
+        transform.location.y,
+        transform.location.z
+    ])
+    
+    # 将欧拉角转换为弧度
+    roll = math.radians(transform.rotation.roll)
+    pitch = math.radians(transform.rotation.pitch)
+    yaw = math.radians(transform.rotation.yaw)
+    
+    # 计算绕Z轴旋转矩阵（yaw）
+    Rz = np.array([
+        [math.cos(yaw), -math.sin(yaw), 0],
+        [math.sin(yaw), math.cos(yaw), 0],
+        [0, 0, 1]
+    ])
+    
+    # 计算绕Y轴旋转矩阵（pitch）
+    Ry = np.array([
+        [math.cos(pitch), 0, math.sin(pitch)],
+        [0, 1, 0],
+        [-math.sin(pitch), 0, math.cos(pitch)]
+    ])
+    
+    # 计算绕X轴旋转矩阵（roll）
+    Rx = np.array([
+        [1, 0, 0],
+        [0, math.cos(roll), -math.sin(roll)],
+        [0, math.sin(roll), math.cos(roll)]
+    ])
+    
+    # 组合旋转矩阵（ZYX顺序）
+    rotation = Rz @ Ry @ Rx
+    
+    # 构建4x4齐次变换矩阵
+    extrinsic = np.identity(4)
+    extrinsic[:3, :3] = rotation
+    extrinsic[:3, 3] = translation
+    
+    logging.debug(f"Calculated extrinsic matrix for {transform}:\n{extrinsic}")
+    return extrinsic
+
+def load_extrinsic_npz(file_path, sensor_name=None):
+    """
+    加载外参npz文件工具函数
+    
+    参数：
+        file_path: npz文件路径
+        sensor_name: 可选，指定要获取的传感器名称
+    
+    返回：
+        若指定sensor_name: 返回对应4x4矩阵
+        未指定sensor_name: 返回(extrinsics_dict, sensor_mapping)
+        
+    示例：
+        # 获取所有数据
+        extrinsics, mapping = load_extrinsic_npz("path/to/file.npz")
+        
+        # 获取特定传感器数据
+        rgb_matrix = load_extrinsic_npz("path/to/file.npz", "RGB")
+    """
+    try:
+        data = np.load(file_path, allow_pickle=True)
+        
+        # 加载传感器映射关系
+        sensor_mapping = data['sensor_mapping'].item()
+        
+        # 构建外参字典
+        extrinsics = {name: data[name] for name in sensor_mapping.keys()}
+        
+        if sensor_name:
+            if sensor_name not in extrinsics:
+                raise KeyError(f"传感器 {sensor_name} 不存在于文件中，可用传感器: {list(extrinsics.keys())}")
+            logging.info(f"成功加载 {sensor_name} 外参矩阵")
+            return extrinsics[sensor_name]
+        else:
+            logging.info(f"成功加载 {len(extrinsics)} 个外参矩阵")
+            return extrinsics, sensor_mapping
+            
+    except FileNotFoundError:
+        logging.error(f"文件 {file_path} 不存在")
+        raise
+    except Exception as e:
+        logging.error(f"加载外参文件失败: {str(e)}")
+        raise
+    
+if __name__ == "__main__":
+    # 示例1：加载全部数据
+    all_extrinsics, mapping = load_extrinsic_npz("./data/training_20250311_142557/extrinsic/000004.npz")
+    print(f"包含传感器: {list(all_extrinsics.keys())}")
+    print(f"RGB传感器矩阵:\n{all_extrinsics['RGB']}")
+    print(f"LIDAR传感器矩阵:\n{all_extrinsics['LIDAR']}")
+    print(f"SUB RGB1传感器矩阵:\n{all_extrinsics['SUB_RGB_1']}")

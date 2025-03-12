@@ -44,11 +44,14 @@ def spawn_dataset(data):
     NEXT_ID = 1
     GLOBAL_ID_MAP.clear()
     
+    # TODO: 外参还是不对。旋转的问题
     for agent, dataDict in agents_data.items():
         GLOBAL_ID_MAP[agent.id] = 0
         intrinsic = dataDict["intrinsic"]
+        transform = dataDict["transform"]
         extrinsic = dataDict["extrinsic"]
         sensors_data = dataDict["sensor_data"]
+        ego_state = data["egostate"]
 
         image_labels_kitti = []
         image_labels_kitti_1 = []
@@ -75,41 +78,41 @@ def spawn_dataset(data):
                 data["agents_data"][agent]["visible_environment_objects"].append(obj)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[0])
+            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[0], ego_state)
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
 
         # 对actors中的目标物体生成标签
         data["agents_data"][agent]["visible_actors"] = []
         for act in actors:
-            image_label_kitti = is_visible_in_camera(agent, act, image, depth_data, intrinsic, extrinsic[0])
+            image_label_kitti = is_visible_in_camera(agent, act, image, depth_data, intrinsic, transform[0])
             if image_label_kitti is not None:
                 data["agents_data"][agent]["visible_actors"].append(act)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, extrinsic[0])
+            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, transform[0], ego_state)
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
                 
         # 新增对第二个摄像头（sensors_data[4]）的处理
         for obj in environment_objects:
-            image_label_kitti_1 = is_visible_in_camera(agent, obj, image_1, depth_data_1, intrinsic, extrinsic[4])  # 使用第四个外参矩阵
+            image_label_kitti_1 = is_visible_in_camera(agent, obj, image_1, depth_data_1, intrinsic, transform[4])  # 使用第四个外参矩阵
             if image_label_kitti_1 is not None:
                 image_labels_kitti_1.append(image_label_kitti_1)
 
         for act in actors:
-            image_label_kitti_1 = is_visible_in_camera(agent, act, image_1, depth_data_1, intrinsic, extrinsic[4])
+            image_label_kitti_1 = is_visible_in_camera(agent, act, image_1, depth_data_1, intrinsic, transform[4])
             if image_label_kitti_1 is not None:
                 image_labels_kitti_1.append(image_label_kitti_1)
 
         # 新增对第三个摄像头（sensors_data[5]）的处理
         for obj in environment_objects:
-            image_label_kitti_2 = is_visible_in_camera(agent, obj, image_2, depth_data_2, intrinsic, extrinsic[5])  # 使用第五个外参矩阵
+            image_label_kitti_2 = is_visible_in_camera(agent, obj, image_2, depth_data_2, intrinsic, transform[5])  # 使用第五个外参矩阵
             if image_label_kitti_2 is not None:
                 image_labels_kitti_2.append(image_label_kitti_2)
 
         for act in actors:
-            image_label_kitti_2 = is_visible_in_camera(agent, act, image_2, depth_data_2, intrinsic, extrinsic[5])
+            image_label_kitti_2 = is_visible_in_camera(agent, act, image_2, depth_data_2, intrinsic, transform[5])
             if image_label_kitti_2 is not None:
                 image_labels_kitti_2.append(image_label_kitti_2)
 
@@ -235,7 +238,7 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
     return None
 
 
-def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic):
+def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic, ego_state):
     """
         筛选出在激光雷达中可见的目标物并生成标签
 
@@ -267,7 +270,7 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic):
             (obj_transform.location.y - extrinsic[1, 3])**2
         )
         if distance <= MAX_RENDER_DEPTH_IN_METERS:
-            return create_point_cloud_label(obj, obj_transform, extrinsic, agent)
+            return create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state)
         return None
 
     # 对于非环境物体，仍然使用点云数量判断
@@ -276,22 +279,34 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic):
             pc_num += 1
         if pc_num >= MIN_VISIBLE_NUM_FOR_POINT_CLOUDS:
             obj_transform = obj.get_transform()
-            return create_point_cloud_label(obj, obj_transform, extrinsic, agent)
+            return create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state)
     return None
 
-def create_point_cloud_label(obj, obj_transform, extrinsic, agent):
+def create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state):
     """
         创建点云标签的通用函数
     """
     obj_tp = obj_type(obj)
-    midpoint = np.array([
-        [obj_transform.location.x - extrinsic[0, 3]],  # [[X,
-        [obj_transform.location.y - extrinsic[1, 3]],  # Y,
-        [obj_transform.location.z],  # Z,
-        [1.0]  # 1.0]]
-    ])
-   
-    rotation_y = math.radians(-obj_transform.rotation.yaw) % math.pi
+    # 获取ego的变换矩阵
+    ego_matrix = np.array(ego_state["matrix"])
+    
+    # 物体世界坐标系变换矩阵
+    obj_matrix = obj_transform.get_matrix()  # 需要确认Carla是否提供get_matrix方法
+    
+    # 计算相对变换矩阵
+    relative_matrix = np.dot(np.linalg.inv(ego_matrix), obj_matrix)
+    
+    # 提取位置（直接取变换矩阵的平移分量）
+    midpoint = relative_matrix[:3, 3]  # [x, y, z]
+    
+    # 从相对矩阵提取yaw角
+    rotation_y = np.arctan2(relative_matrix[1, 0], relative_matrix[0, 0])
+    
+    # 转换为KITTI右手坐标系（反转yaw角）
+    rotation_y = -rotation_y
+    
+    # 规范化角度到[-π, π]
+    rotation_y = np.arctan2(np.sin(rotation_y), np.cos(rotation_y))
 
     bbox  = get_bounding_box(obj, is_environment_object=isinstance(obj, carla.EnvironmentObject))
     ext = bbox.extent
