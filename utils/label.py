@@ -51,7 +51,7 @@ def spawn_dataset(data):
         transform = dataDict["transform"]
         extrinsic = dataDict["extrinsic"]
         sensors_data = dataDict["sensor_data"]
-        ego_matrix = np.array(data["egostate"]["matrix"])
+        ego_state = data["egostate"]
 
         image_labels_kitti = []
         image_labels_kitti_1 = []
@@ -78,7 +78,7 @@ def spawn_dataset(data):
                 data["agents_data"][agent]["visible_environment_objects"].append(obj)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[0], ego_matrix)
+            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[0], ego_state)
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
 
@@ -90,7 +90,7 @@ def spawn_dataset(data):
                 data["agents_data"][agent]["visible_actors"].append(act)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, transform[0], ego_matrix)
+            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, transform[0], ego_state)
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
                 
@@ -238,7 +238,7 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
     return None
 
 
-def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic, ego_matrix):
+def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic, ego_state):
     """
         筛选出在激光雷达中可见的目标物并生成标签
 
@@ -270,7 +270,7 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic, ego_matrix):
             (obj_transform.location.y - extrinsic[1, 3])**2
         )
         if distance <= MAX_RENDER_DEPTH_IN_METERS:
-            return create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_matrix)
+            return create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state)
         return None
 
     # 对于非环境物体，仍然使用点云数量判断
@@ -279,34 +279,37 @@ def is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic, ego_matrix):
             pc_num += 1
         if pc_num >= MIN_VISIBLE_NUM_FOR_POINT_CLOUDS:
             obj_transform = obj.get_transform()
-            return create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_matrix)
+            return create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state)
     return None
 
-def create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_matrix):
+def create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state):
     """
         创建点云标签的通用函数
     """
     obj_tp = obj_type(obj)
-    # midpoint = np.array([
-    #     [obj_transform.location.x - extrinsic[0, 3]],  # [[X,
-    #     [obj_transform.location.y - extrinsic[1, 3]],  # Y,
-    #     [obj_transform.location.z],  # Z,
-    #     [1.0]  # 1.0]]
-    # ])
-    obj_world = np.array([
-        [obj_transform.location.x],
-        [obj_transform.location.y],
-        [obj_transform.location.z],
-        [1.0]  # 齐次坐标
-    ])
+    # 获取ego的变换矩阵
+    ego_matrix = np.array(ego_state["matrix"])
     
-    # 使用ego车辆的逆矩阵进行转换
-    ego_inv = np.linalg.inv(ego_matrix)  # ego_matrix来自场景记录的ego_state["matrix"]
-    obj_ego = np.dot(ego_inv, obj_world)
+    # 物体世界坐标系变换矩阵
+    obj_matrix = obj_transform.get_matrix()  # 需要确认Carla是否提供get_matrix方法
     
-    midpoint = obj_ego[:3]  # 取前三维坐标
+    # 计算相对变换矩阵
+    relative_matrix = np.dot(np.linalg.inv(ego_matrix), obj_matrix)
     
-    rotation_y = math.radians(-obj_transform.rotation.yaw) % math.pi
+    # 提取位置（直接取变换矩阵的平移分量）
+    midpoint = relative_matrix[:3, 3]  # [x, y, z]
+    
+    # 从相对矩阵提取yaw角
+    rotation_y = np.arctan2(relative_matrix[1, 0], relative_matrix[0, 0])
+    
+    # 转换为KITTI右手坐标系（反转yaw角）
+    rotation_y = -rotation_y
+    
+    # 规范化角度到[-π, π]
+    rotation_y = np.arctan2(np.sin(rotation_y), np.cos(rotation_y))
+    
+    print(rotation_y)
+    # rotation_y = math.radians(-obj_transform.rotation.yaw) % math.pi
 
     bbox  = get_bounding_box(obj, is_environment_object=isinstance(obj, carla.EnvironmentObject))
     ext = bbox.extent
