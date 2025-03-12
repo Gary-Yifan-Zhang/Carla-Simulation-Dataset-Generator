@@ -227,6 +227,15 @@ class DatasetSave:
             # save_lidar_data(lidar_filename_4, dt["sensor_data"][9], extrinsic)
             save_kitti_label_data(lidar_label_filename, dt["pc_labels_kitti"])
 
-            save_ego_data(ego_state_filename, dt["transform"], dt["velocity"], dt["acceleration"])
+                    # 修改ego state保存方式
+            print(f"Save ego state to {ego_state_filename}")
+            save_ego_data(
+                ego_state_filename,
+                transform=data["egostate"]["location"],
+                rotation=data["egostate"]["rotation"],
+                velocity=data["egostate"]["velocity"],
+                acceleration=data["egostate"]["acceleration"],
+                extent=data["egostate"]["extent"]
+            )
 
         self.captured_frame_no += 1

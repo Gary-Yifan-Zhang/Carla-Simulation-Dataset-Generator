@@ -47,6 +47,7 @@ def spawn_dataset(data):
     for agent, dataDict in agents_data.items():
         GLOBAL_ID_MAP[agent.id] = 0
         intrinsic = dataDict["intrinsic"]
+        transform = dataDict["transform"]
         extrinsic = dataDict["extrinsic"]
         sensors_data = dataDict["sensor_data"]
 
@@ -82,12 +83,12 @@ def spawn_dataset(data):
         # 对actors中的目标物体生成标签
         data["agents_data"][agent]["visible_actors"] = []
         for act in actors:
-            image_label_kitti = is_visible_in_camera(agent, act, image, depth_data, intrinsic, extrinsic[0])
+            image_label_kitti = is_visible_in_camera(agent, act, image, depth_data, intrinsic, transform[0])
             if image_label_kitti is not None:
                 data["agents_data"][agent]["visible_actors"].append(act)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, extrinsic[0])
+            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, transform[0])
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
                 

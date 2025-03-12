@@ -204,21 +204,19 @@ def write_flat(file, name, arr):
         map(str, arr.flatten(ravel_mode).squeeze()))))
 
 
-def save_ego_data(filename, transform, velocity, acceleration):
+def save_ego_data(filename, transform, rotation, velocity, acceleration, extent):
     """
-        保存ego状态数据
-
-        参数：
-            filename：保存文件的路径
-            transform：位姿数据
-            velocity：速度数据
-            acceleration：加速度数据
+    增强版ego状态保存，包含完整信息
     """
     with open(filename, 'w') as f:
-        f.write("Transform: {}\n".format(transform))
-        f.write("Velocity: {}\n".format(velocity))
-        f.write("Acceleration: {}\n".format(acceleration))
-    logging.info("Wrote ego state data to %s", filename)
+        f.write("=== Ego State ===\n")
+        f.write(f"Location (x,y,z): {transform['x']:.3f}, {transform['y']:.3f}, {transform['z']:.3f}\n")
+        f.write(f"Rotation (yaw,pitch,roll): {rotation['yaw']:.2f}, {rotation['pitch']:.2f}, {rotation['roll']:.2f}\n")
+        f.write(f"Velocity (m/s): {velocity['x']:.2f}, {velocity['y']:.2f}, {velocity['z']:.2f}\n")
+        f.write(f"Acceleration (m/s²): {acceleration['x']:.2f}, {acceleration['y']:.2f}, {acceleration['z']:.2f}\n")
+        f.write(f"Bounding Box (L,W,H): {extent['x']:.2f}m, {extent['y']:.2f}m, {extent['z']:.2f}m\n")
+    
+    logging.info("Updated ego state saved to %s", filename)
     
 def save_semantic_image(filename, semantic_image):
     """ 保存语义分割图像到指定文件
