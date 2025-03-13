@@ -13,6 +13,7 @@ def main():
     parser.add_argument('--no-save', action='store_true', 
                         help="跳过数据保存步骤")
     args = parser.parse_args()
+    program_start_time = time.time()
 
     # 加载配置文件
     config = yaml_to_config("configs.yaml")
@@ -70,6 +71,9 @@ def main():
                         process_all_masks(dataset_save.OUTPUT_FOLDER)
                         print("mask已生成并保存...")
                         print("*" * 60)
+                        program_end_time = time.time()
+                        total_time = program_end_time - program_start_time
+                        print(f"程序总运行时间：{total_time:.2f}秒")
                         break
                 else:
                     # 更新场景
