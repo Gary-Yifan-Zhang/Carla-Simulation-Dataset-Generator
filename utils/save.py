@@ -104,7 +104,6 @@ def save_lidar_data(filename, point_cloud, extrinsic, format="bin"):
         lidar_array[2, :] = (lidar_array[2, :] - extrinsic[2, 3])
         # 依然是雷达坐标系，转换为右手系，即x轴不变，y轴取反，z轴不变
         lidar_array = lidar_array.transpose().astype(np.float32)
-        print("Lidar saved to binary file: %s" % filename)
 
         logging.debug("Lidar min/max of x: {} {}".format(
             lidar_array[:, 0].min(), lidar_array[:, 0].max()))
@@ -134,70 +133,71 @@ def save_kitti_label_data(filename, datapoints):
     logging.info("Wrote kitti data to %s", filename)
 
 
-def save_calibration_matrices(transform, filename, intrinsic_mat):
+def save_calibration_matrices(extrinsics, filename, intrinsic_mat):
     """
-        保存传感器标定矩阵数据
+        保存传感器标定矩阵数据（支持特定索引的相机和雷达）
 
         参数：
-            transform：相机和激光雷达外参矩阵
+            extrinsics：所有传感器的外参矩阵列表
             filename：保存文件的路径
-            intrinsic_mat：RGB相机内参矩阵
+            intrinsic_mat：相机的内参矩阵
 
-        AVOD (and KITTI) refers to P as P=K*[R;t], so we will just store P.
         保存的文件中包含:
         3x4    p0-p3      Camera P matrix. Contains extrinsic
                           and intrinsic parameters. (P=K*[R;t])
         3x3    r0_rect              相机畸变矩阵
-        3x4    tr_velodyne_to_cam   激光雷达坐标系到相机坐标系的变换矩阵
-                                    Point_Camera = P_cam * R0_rect * Tr_velo_to_cam * Point_Velodyne.
-
-        3x4    tr_imu_to_velo       IMU坐标系到激光雷达坐标系的变换矩阵（此处无IMU，故不输出）
+        3x4    tr_velo_to_cam       激光雷达坐标系到相机坐标系的变换矩阵
+        3x4    TR_imu_to_velo       IMU到激光雷达的变换矩阵
     """
     # KITTI format demands that we flatten in row-major order
     ravel_mode = 'C'
-    P0 = intrinsic_mat
-    P0 = np.column_stack((P0, np.array([0, 0, 0])))
-    P0 = np.ravel(P0, order=ravel_mode)
+    R0 = np.identity(3)  # 相机畸变矩阵
 
-    camera_transform = transform[0]
-    lidar_transform = transform[1]
+    # 定义相机和雷达的索引
+    camera_indices = [0, 4, 5]  # 相机索引
+    lidar_index = 1  # 雷达索引
 
-    # 提取平移信息
-    camera_translation = np.array([camera_transform.location.x, camera_transform.location.y, camera_transform.location.z])
-    lidar_translation = np.array([lidar_transform.location.x, lidar_transform.location.y, lidar_transform.location.z])
-
-    # 计算旋转角度
-    b = math.radians(lidar_transform.rotation.pitch - camera_transform.rotation.pitch)
-    x = math.radians(lidar_transform.rotation.yaw - camera_transform.rotation.yaw)
-    a = math.radians(lidar_transform.rotation.roll - camera_transform.rotation.roll)
-    R0 = np.identity(3)
-
-    # 计算旋转矩阵
-    TR = np.array([[math.cos(b) * math.cos(x), math.cos(b) * math.sin(x), -math.sin(b)],
-                   [-math.cos(a) * math.sin(x) + math.sin(a) * math.sin(b) * math.cos(x),
-                    math.cos(a) * math.cos(x) + math.sin(a) * math.sin(b) * math.sin(x), math.sin(a) * math.cos(b)],
-                   [math.sin(a) * math.sin(x) + math.cos(a) * math.sin(b) * math.cos(x),
-                    -math.sin(a) * math.cos(x) + math.cos(a) * math.sin(b) * math.sin(x), math.cos(a) * math.cos(b)]])
-
-    # 计算激光雷达到相机的变换矩阵
-    TR_velodyne = np.dot(TR, np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]]))
-    TR_velodyne = np.dot(np.array([[0, 1, 0], [0, 0, -1], [1, 0, 0]]), TR_velodyne)
-
-    # 添加平移向量
-    translation = lidar_translation - camera_translation  # 计算平移向量
-    TR_velodyne = np.column_stack((TR_velodyne, translation))  # 将平移向量添加到变换矩阵中
-
-    # 处理IMU到激光雷达的变换矩阵
-    TR_imu_to_velo = np.identity(3)
-    TR_imu_to_velo = np.column_stack((TR_imu_to_velo, np.array([0, 0, 0])))
+    # 获取雷达外参矩阵
+    lidar_extrinsic = extrinsics[lidar_index]
 
     # 保存矩阵到文件
     with open(filename, 'w') as f:
-        for i in range(4):  # Avod expects all 4 P-matrices even though we only use the first
-            write_flat(f, "P" + str(i), P0)
-        write_flat(f, "R0_rect", R0)
-        write_flat(f, "Tr_velo_to_cam", TR_velodyne)
-        write_flat(f, "TR_imu_to_velo", TR_imu_to_velo)
+        # 计算P矩阵（所有P矩阵相同）
+        P0 = intrinsic_mat
+        P0 = np.column_stack((P0, np.array([0, 0, 0])))
+        P0 = np.ravel(P0, order=ravel_mode)
+
+        # 写入P0-P3
+        for i in range(4):
+            f.write(f"P{i}: {' '.join(map(str, P0))}\n")
+
+        # 写入R0_rect
+        f.write(f"R0_rect: {' '.join(map(str, R0.ravel(order=ravel_mode)))}\n")
+
+        # 计算并写入Tr_velo_to_cam
+        for i, cam_idx in enumerate(camera_indices):
+            camera_extrinsic = extrinsics[cam_idx]
+            TR_velodyne = np.dot(np.linalg.inv(camera_extrinsic), lidar_extrinsic)[:3, :4]
+            # 额外的变换矩阵
+            velo_to_cam = np.array([
+                [0.0, -1.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [1.0, 0.0, 0.0]
+            ])
+            # 应用额外的变换
+            TR_velodyne = np.dot(velo_to_cam, TR_velodyne)
+            # 将矩阵元素四舍五入到小数点后三位
+            TR_velodyne_rounded = np.round(TR_velodyne, 3)
+            # 将矩阵展平并转换为字符串
+            tr_values = ' '.join([f"{float(x):.3f}" for x in TR_velodyne_rounded.ravel(order=ravel_mode)])
+            f.write(f"Tr_velo_to_cam_{i}: {tr_values}\n")
+
+
+        # 写入TR_imu_to_velo（单位矩阵）
+        TR_imu_to_velo = np.identity(3)
+        TR_imu_to_velo = np.column_stack((TR_imu_to_velo, np.array([0, 0, 0])))
+        f.write(f"TR_imu_to_velo: {' '.join(map(str, TR_imu_to_velo.ravel(order=ravel_mode)))}\n")
+
     logging.info("Wrote all calibration matrices to %s", filename)
 
 
