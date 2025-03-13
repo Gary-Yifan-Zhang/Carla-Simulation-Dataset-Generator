@@ -73,12 +73,12 @@ def spawn_dataset(data):
         # 对环境中的目标物体生成标签
         data["agents_data"][agent]["visible_environment_objects"] = []
         for obj in environment_objects:
-            image_label_kitti = is_visible_in_camera(agent, obj, image, depth_data, intrinsic, extrinsic[0])
+            image_label_kitti = is_visible_in_camera(agent, obj, image, depth_data, intrinsic, transform[0])
             if image_label_kitti is not None:
                 data["agents_data"][agent]["visible_environment_objects"].append(obj)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, transform[0], ego_state)
+            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[0], ego_state)
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
 
@@ -90,7 +90,7 @@ def spawn_dataset(data):
                 data["agents_data"][agent]["visible_actors"].append(act)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, transform[0], ego_state)
+            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, extrinsic[0], ego_state)
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
                 
@@ -293,17 +293,25 @@ def create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state):
     # 物体世界坐标系变换矩阵
     obj_matrix = obj_transform.get_matrix()  # 需要确认Carla是否提供get_matrix方法
     
+    # print(extrinsic)
     # 计算相对变换矩阵
     relative_matrix = np.dot(np.linalg.inv(ego_matrix), obj_matrix)
     
+     # 增加一步：将相对坐标从ego坐标系转换到雷达坐标系
+    lidar_matrix = np.array(extrinsic)  # 雷达外参矩阵
+    relative_matrix = np.dot(np.linalg.inv(lidar_matrix), relative_matrix)
+    
+    
     # 提取位置（直接取变换矩阵的平移分量）
     midpoint = relative_matrix[:3, 3]  # [x, y, z]
+
     
     # 从相对矩阵提取yaw角
     rotation_y = np.arctan2(relative_matrix[1, 0], relative_matrix[0, 0])
     
     # 转换为KITTI右手坐标系（反转yaw角）
     rotation_y = -rotation_y
+    
     
     # 规范化角度到[-π, π]
     rotation_y = np.arctan2(np.sin(rotation_y), np.cos(rotation_y))
