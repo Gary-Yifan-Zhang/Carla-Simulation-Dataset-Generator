@@ -258,8 +258,9 @@ This project is developed based on the following open-source projects:
 - [KITTI Vision Benchmark Suite](https://www.cvlibs.net/datasets/kitti/)  
 
 ## 📅 TODO List
-- [ ] Further modify data types
-- [ ] Add bounding boxes to multi-view images
+- [x] Further modify data types
+- [x] Add bounding boxes to multi-view images
+- [ ] Create Waymo dataset preprocessing interface
 - [ ] Multi-radar fusion
 - [ ] Create more complex scenarios using OpenScenario
 - [ ] Migrate to CARLA with UE5
