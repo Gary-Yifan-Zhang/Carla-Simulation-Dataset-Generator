@@ -78,7 +78,7 @@ def spawn_dataset(data):
                 data["agents_data"][agent]["visible_environment_objects"].append(obj)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[0], ego_state)
+            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, transform[0], ego_state)
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
 

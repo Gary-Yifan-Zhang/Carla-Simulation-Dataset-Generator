@@ -101,7 +101,9 @@ def save_lidar_data(filename, point_cloud, extrinsic, format="bin"):
         # 减掉因将激光雷达为原点而导致的偏移量
         lidar_array[0, :] = lidar_array[0, :] - extrinsic[0, 3]
         lidar_array[1, :] = -(lidar_array[1, :] - extrinsic[1, 3])
+        # 依然是雷达坐标系，转换为右手系，即x轴不变，y轴取反，z轴不变
         lidar_array = lidar_array.transpose().astype(np.float32)
+        print("Lidar saved to binary file: %s" % filename)
 
         logging.debug("Lidar min/max of x: {} {}".format(
             lidar_array[:, 0].min(), lidar_array[:, 0].max()))
