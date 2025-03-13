@@ -123,19 +123,19 @@ def create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, t
     
     # 设置边界框的中心和尺寸
     if object_type == "Pedestrian":  # 行人
-        bbox.center = np.array([x, y, h / 2])  # 使用原始中心
+        bbox.center = np.array([x, y, z + h / 2])  # 使用原始中心
         bbox.extent = [h, w, l]
         bbox.color = (1, 0, 0)  # 红色
     elif object_type == "Car":  # 车辆
-        bbox.center = np.array([x, y, h / 2])  # 底部中心，z=0
+        bbox.center = np.array([x, y, z + h / 2])  # 底部中心，z=0
         bbox.extent = [h, w, l]
         bbox.color = (0, 1, 0)  # 绿色
     elif object_type == "Bicycle":  # 自行车
-        bbox.center = np.array([x, y, h / 2])
+        bbox.center = np.array([x, y, z + h / 2])
         bbox.extent = [h, w, l]
         bbox.color =  (1, 1, 0)  # 黄色
     elif object_type == "TrafficLight" or object_type == "TrafficSigns":  # 自行车
-        bbox.center = np.array([x, y, h / 2])
+        bbox.center = np.array([x, y, z + h / 2])
         bbox.extent = [h, w, l]
         bbox.color =  (0, 0, 1)  # 黄色
     else:  # 其他类型
@@ -234,7 +234,7 @@ def check_bbox_size(bboxes, metadata, threshold=1.0):
 
 if __name__ == "__main__":
     # 定义数据文件夹和文件ID
-    data_folder = "data/training_20250313_101843"
+    data_folder = "data/training_20250313_105846"
     file_id = "000001"
     lidar_index = 0  # 假设这是第一个雷达数据
     
