@@ -232,6 +232,51 @@ training_YYYYMMDD_HHMMSS/
   
 ## 🎨 Visualization Samples
 
+### Coordinate System Conversion
+![KITTI-CARLA Coordinate Conversion](samples/KITTI_car.png)  
+*Coordinate System Conversion between KITTI and CARLA*
+
+The dataset involves coordinate system conversions between different reference frames:
+
+#### Coordinate System Definitions
+1. **LiDAR Coordinate System**:
+   ```
+       z
+       ▲   ▲ x
+       |  /
+       | /
+       |/____> y
+   ```
+   - All LiDAR data and bounding boxes are based on this coordinate system
+   - Bounding box center point is at the bottom center of the object
+
+2. **Camera Coordinate System**:
+   ```
+       ▲ z
+      /
+     /
+    /____> x
+    |
+    |
+    |
+    ▼
+    y
+   ```
+   - KITTI uses right-handed coordinate system
+   - CARLA uses left-handed coordinate system
+
+#### Coordinate Transformations
+- **Camera-LiDAR Relationship**:
+  - Camera coordinate system is defined relative to LiDAR
+  - Transformation matrices are provided in calibration files
+  - X: Right, Y: Down, Z: Forward (camera)
+  - X: Forward, Y: Left, Z: Up (LiDAR)
+
+- **KITTI-CARLA Conversion**:
+  - CARLA coordinates (x, y, z) → KITTI coordinates (y, -z, x)
+  - Rotation angles need to be adjusted for coordinate system handedness
+
+
 ### RGB Image with 3D Annotations
 ![RGB Image with 2D Bounding Boxes](samples/front_bbox_img.gif)  
 *RGB Image with 2D Bounding Boxes*
