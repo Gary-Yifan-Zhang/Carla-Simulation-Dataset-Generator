@@ -118,6 +118,8 @@ class DatasetSave:
         img_filename_0 = self.IMAGE_PATH.format(self.captured_frame_no, 0)
         img_filename_1 = self.IMAGE_PATH.format(self.captured_frame_no, 1)
         img_filename_2 = self.IMAGE_PATH.format(self.captured_frame_no, 2)
+        img_filename_3 = self.IMAGE_PATH.format(self.captured_frame_no, 3)
+        img_filename_4 = self.IMAGE_PATH.format(self.captured_frame_no, 4)
         img_filename_view = self.IMAGE_PATH.format(self.captured_frame_no, "view")
         img_filename_bev = self.IMAGE_PATH.format(self.captured_frame_no, "bev")
         img_filename_seg = self.IMAGE_PATH.format(self.captured_frame_no, "seg_0")
@@ -185,9 +187,6 @@ class DatasetSave:
                 extrinsic_dict
             )
 
-            camera_transform = config_transform_to_carla_transform(self.config["SENSOR_CONFIG"]["RGB"]["TRANSFORM"])
-            lidar_transform = config_transform_to_carla_transform(self.config["SENSOR_CONFIG"]["LIDAR"]["TRANSFORM"])
-
             save_ref_files(self.OUTPUT_FOLDER, self.captured_frame_no)
 
             save_calibration_matrices(extrinsic, calib_filename, dt["intrinsic"])
@@ -199,6 +198,9 @@ class DatasetSave:
             save_image_data(img_filename_seg_2, dt["sensor_data"][10])
             # save_image_data(img_filename_view,dt["sensor_data"][10])
             # save_image_data(img_filename_bev,dt["sensor_data"][11])
+            
+            save_image_data(img_filename_3, dt["sensor_data"][13])
+            save_image_data(img_filename_4, dt["sensor_data"][14])
 
             
             # 保存三个摄像头的标签和标注图像
