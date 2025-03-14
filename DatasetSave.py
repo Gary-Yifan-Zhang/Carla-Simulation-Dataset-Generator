@@ -108,6 +108,8 @@ class DatasetSave:
         img_label_filename_0 = self.IMAGE_LABEL_PATH.format(self.captured_frame_no, 0)
         img_label_filename_1 = self.IMAGE_LABEL_PATH.format(self.captured_frame_no, 1)
         img_label_filename_2 = self.IMAGE_LABEL_PATH.format(self.captured_frame_no, 2)
+        img_label_filename_3 = self.IMAGE_LABEL_PATH.format(self.captured_frame_no, 3)
+        img_label_filename_4 = self.IMAGE_LABEL_PATH.format(self.captured_frame_no, 4)
         
         bbox_img_filename_0 = self.BBOX_IMAGE_PATH.format(self.captured_frame_no, 0)
         bbox_img_filename_1 = self.BBOX_IMAGE_PATH.format(self.captured_frame_no, 1)
@@ -127,6 +129,8 @@ class DatasetSave:
         img_filename_seg = self.IMAGE_PATH.format(self.captured_frame_no, "seg_0")
         img_filename_seg_1 = self.IMAGE_PATH.format(self.captured_frame_no, "seg_1")
         img_filename_seg_2 = self.IMAGE_PATH.format(self.captured_frame_no, "seg_2")
+        img_filename_seg_3 = self.IMAGE_PATH.format(self.captured_frame_no, "seg_3")
+        img_filename_seg_4 = self.IMAGE_PATH.format(self.captured_frame_no, "seg_4")
         # img_label_filename = self.IMAGE_LABEL_PATH.format(self.captured_frame_no)
         # bbox_img_filename = self.BBOX_IMAGE_PATH.format(self.captured_frame_no)
         
@@ -203,12 +207,16 @@ class DatasetSave:
             
             save_image_data(img_filename_3, dt["sensor_data"][13])
             save_image_data(img_filename_4, dt["sensor_data"][14])
+            save_image_data(img_filename_seg_3, dt["sensor_data"][15])
+            save_image_data(img_filename_seg_4, dt["sensor_data"][16])
 
             
             # 保存三个摄像头的标签和标注图像
             save_kitti_label_data(img_label_filename_0, dt["image_labels_kitti"])
             save_kitti_label_data(img_label_filename_1, dt["image_labels_kitti_1"])
             save_kitti_label_data(img_label_filename_2, dt["image_labels_kitti_2"])
+            save_kitti_label_data(img_label_filename_3, dt["image_labels_kitti_3"])
+            save_kitti_label_data(img_label_filename_4, dt["image_labels_kitti_4"])
             
             save_bbox_image_data(bbox_img_filename_0, dt["bbox_img"])
             save_bbox_image_data(bbox_img_filename_1, dt["bbox_img_1"])

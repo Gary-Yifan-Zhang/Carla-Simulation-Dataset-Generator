@@ -33,6 +33,11 @@ sky_ids = [11]
 rigid_ids = [14, 15, 16, 17]  # 汽车、卡车、公交车等
 nonrigid_ids = [12, 13, 18, 19]  # 行人、骑行者
 
+def get_segmentation_files(input_dir, camera_count=5):
+    """获取所有相机的分割图像文件"""
+    return [f for f in os.listdir(input_dir) 
+           if any(f.endswith(f'_camera_seg_{i}.png') for i in range(camera_count))]
+
 
 def create_masks(input_dir, output_dir):
     """
@@ -50,13 +55,12 @@ def create_masks(input_dir, output_dir):
     # 新增：记录已保存的相机ego mask
     processed_cameras = set()
 
-    seg_files = [f for f in os.listdir(input_dir) if f.endswith('_camera_seg_0.png') or
-                 f.endswith('_camera_seg_1.png') or
-                 f.endswith('_camera_seg_2.png')]
-    print(f"开始处理 {len(seg_files)} 张分割图像...")
+    seg_files = get_segmentation_files(input_dir, camera_count=5)  # 假设现在有5个相机
+    print(f"开始处理 {len(seg_files)} 张分割图像（共{5}个相机）...")
+
 
     for filename in tqdm(seg_files, desc="处理进度"):
-        if filename.endswith('_camera_seg_0.png') or filename.endswith('_camera_seg_1.png') or filename.endswith('_camera_seg_2.png'):
+        if '_camera_seg_' in filename:
             file_path = os.path.join(input_dir, filename)
             # 提取基础文件名和后缀编号
             parts = filename.split('_camera_seg')
