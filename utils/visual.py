@@ -631,8 +631,8 @@ if __name__ == "__main__":
     # )
     
     # 输入参数
-    frame_id = 1
-    data_root = "./data/training_20250306_110708"
+    frame_id = 20
+    data_root = "./data/training_20250313_103515"
     
     # 路径配置
     bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_0.bin"
@@ -646,41 +646,12 @@ if __name__ == "__main__":
     ])
     
     # 外参矩阵 (Tr_velo_to_cam)
-    # It looks like the code is a comment in Python. Comments in Python start with a hash symbol (#)
-    # and are used to provide explanations or notes within the code. In this case, the comment appears
-    # to be describing a function or variable named "Tr_velo_to_cam".
-    # 绕Z轴顺时针旋转90度的旋转矩阵
-    R_z = np.array([
-        [0, 1, 0],
-        [-1, 0, 0],
-        [0, 0, 1]
-    ])
-
-    # 原始外参矩阵
     Tr_velo_to_cam = np.array([
         0.0, -1.0, 0.0, 0.0,
-        0.0, 0.0, -1.0, 2.023560,
+        0.0, 0.0, -1.0, 0.0,
         1.0, 0.0, 0.0, 0.0
     ]).reshape(3, 4)
-
-    # 应用旋转
-    Tr_velo_to_cam[:, :3] = Tr_velo_to_cam[:, :3] @ R_z
-    print(Tr_velo_to_cam)
-
     
-#     # # 修改后的外参矩阵（包含绕Z轴逆时针90度旋转）
-#     Tr_velo_to_cam = np.array([
-#     1.0,  0.0,  0.0, 0.0,  # X_velo → -X_cam
-#      0.0,  0.0, -1.0, 0.0,  # Y_velo → -Z_cam
-#      0.0, -1.0,  0.0, 0.0   # Z_velo → -Y_cam
-# ])
-    
-#     Tr_velo_to_cam = np.array([
-#         1.0, 0.0, 0.0, 0.0,
-#         0.0, 1.0, 0.0, 0.0,
-#         0.0, 0.0, 1.0, 0.0
-#     ])
-
     # 执行投影
     mask, depth_map, overlap_img = project_lidar_to_camera(
         bin_path, img_path, cam_intrinsic, Tr_velo_to_cam, max_depth=100.0

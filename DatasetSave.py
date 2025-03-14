@@ -99,136 +99,119 @@ class DatasetSave:
             返回：
                 data：CARLA传感器相关数据（原始数据，内参，外参等）
         """
-        
-        # 修改图像标签和标注图像路径格式
+        # 路径格式定义保持不变
         self.IMAGE_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'image_label/{0:06}_camera_{1}.txt')
         self.BBOX_IMAGE_PATH = os.path.join(self.OUTPUT_FOLDER, 'bbox_img/{0:06}_camera_{1}.png')
 
-        # 生成三个摄像头的文件名
-        img_label_filename_0 = self.IMAGE_LABEL_PATH.format(self.captured_frame_no, 0)
-        img_label_filename_1 = self.IMAGE_LABEL_PATH.format(self.captured_frame_no, 1)
-        img_label_filename_2 = self.IMAGE_LABEL_PATH.format(self.captured_frame_no, 2)
-        
-        bbox_img_filename_0 = self.BBOX_IMAGE_PATH.format(self.captured_frame_no, 0)
-        bbox_img_filename_1 = self.BBOX_IMAGE_PATH.format(self.captured_frame_no, 1)
-        bbox_img_filename_2 = self.BBOX_IMAGE_PATH.format(self.captured_frame_no, 2)
+        # 使用列表推导式生成多相机文件名
+        camera_count = 5
+        img_label_filenames = [
+            self.IMAGE_LABEL_PATH.format(self.captured_frame_no, i)
+            for i in range(camera_count)
+        ]
+        bbox_img_filenames = [
+            self.BBOX_IMAGE_PATH.format(self.captured_frame_no, i)
+            for i in range(camera_count)
+        ]
 
+        # 生成带特殊后缀的图像路径
+        special_images = {
+            'view': self.IMAGE_PATH.format(self.captured_frame_no, "view"),
+            'bev': self.IMAGE_PATH.format(self.captured_frame_no, "bev"),
+            **{
+                f'seg_{i}': self.IMAGE_PATH.format(self.captured_frame_no, f"seg_{i}")
+                for i in range(5)
+            }
+        }
+
+        # 传感器数据索引映射（保持原始索引对应关系）
+        sensor_mapping = [
+            (0, 0),    # camera 0 -> sensor_data[0]
+            (1, 4),    # camera 1 -> sensor_data[4]
+            (2, 5),    # camera 2 -> sensor_data[5]
+            (3, 13),   # camera 3 -> sensor_data[13]
+            (4, 14)    # camera 4 -> sensor_data[14]
+        ]
+
+        # 生成基础图像路径
+        base_images = [
+            (self.IMAGE_PATH.format(self.captured_frame_no, cam_idx), data_idx)
+            for cam_idx, data_idx in sensor_mapping
+        ]
+
+        # 生成深度和语义路径（保持原始索引）
+        depth_files = [
+            self.DEPTH_PATH.format(self.captured_frame_no, i)
+            for i, idx in enumerate([0, 1, 2])
+        ]
+        semantic_files = [
+            self.SEMANTIC_PATH.format(self.captured_frame_no, i)
+            for i, idx in enumerate([0, 1, 2])
+        ]
+
+        # 激光雷达路径生成（保持原始格式）
+        lidar_files = [
+            self.LIDAR_PATH.format(self.captured_frame_no, i)
+            for i in range(5)
+        ]
+
+        # 其他路径保持不变
         calib_filename = self.CALIBRATION_PATH.format(self.captured_frame_no)
-
-        img_filename_0 = self.IMAGE_PATH.format(self.captured_frame_no, 0)
-        img_filename_1 = self.IMAGE_PATH.format(self.captured_frame_no, 1)
-        img_filename_2 = self.IMAGE_PATH.format(self.captured_frame_no, 2)
-        img_filename_view = self.IMAGE_PATH.format(self.captured_frame_no, "view")
-        img_filename_bev = self.IMAGE_PATH.format(self.captured_frame_no, "bev")
-        img_filename_seg = self.IMAGE_PATH.format(self.captured_frame_no, "seg_0")
-        img_filename_seg_1 = self.IMAGE_PATH.format(self.captured_frame_no, "seg_1")
-        img_filename_seg_2 = self.IMAGE_PATH.format(self.captured_frame_no, "seg_2")
-        # img_label_filename = self.IMAGE_LABEL_PATH.format(self.captured_frame_no)
-        # bbox_img_filename = self.BBOX_IMAGE_PATH.format(self.captured_frame_no)
-        
-        depth_filename_0 = self.DEPTH_PATH.format(self.captured_frame_no, 0)
-        depth_filename_1 = self.DEPTH_PATH.format(self.captured_frame_no, 1)
-        depth_filename_2 = self.DEPTH_PATH.format(self.captured_frame_no, 2)
-
-        semantic_filename_0 = self.SEMANTIC_PATH.format(self.captured_frame_no, 0)
-        semantic_filename_1 = self.SEMANTIC_PATH.format(self.captured_frame_no, 1)
-        semantic_filename_2 = self.SEMANTIC_PATH.format(self.captured_frame_no, 2)
-
-        lidar_filename = self.LIDAR_PATH.format(self.captured_frame_no, 0)
-        lidar_filename_1 = self.LIDAR_PATH.format(self.captured_frame_no, 1)
-        lidar_filename_2 = self.LIDAR_PATH.format(self.captured_frame_no, 2)
-        lidar_filename_3 = self.LIDAR_PATH.format(self.captured_frame_no, 3)
-        lidar_filename_4 = self.LIDAR_PATH.format(self.captured_frame_no, 4)
-
         lidar_label_filename = self.LIDAR_LABEL_PATH.format(self.captured_frame_no)
-
-        ego_state_filename = os.path.join(self.EGO_STATE_PATH.format(self.captured_frame_no))
-        
-        # 定义传感器到文件编号的映射
-        sensor_mapping = {
-            "RGB": "000",
-            "SUB_RGB_1": "001", 
-            "SUB_RGB_2": "002"
-        }
-        
-        # 保存外参文件
-        base_extrinsic_path = self.EXTRINSIC_PATH.format(self.captured_frame_no)
-        save_extrinsic_matrices(self.config, base_extrinsic_path, sensor_mapping)
-        
-        sensor_mapping = {
-            "RGB": 0,
-            "SUB_RGB_1": 1,
-            "SUB_RGB_2": 2,
-            "LIDAR": 3
-        }
-        
-        # 保存外参文件（每帧一个）
-        extrinsic_filename = self.GLOBEL_EXTRINSIC_PATH.format(self.captured_frame_no)
-        # save_globel_extrinsic_matrices(self.config, extrinsic_filename, sensor_mapping)
-        # save_extrinsic_txt(self.config,      # 新增标准txt格式
-        #     self.EXTRINSIC_TXT_PATH.format(self.captured_frame_no),
-        #     sensor_mapping
-        # )
+        ego_state_filename = self.EGO_STATE_PATH.format(self.captured_frame_no)
 
         for agent, dt in data["agents_data"].items():
             extrinsic = dt["extrinsic"]
+            # 外参处理保持不变
             extrinsic_dict = {
-                "RGB": dt["extrinsic"][0],        # RGB传感器矩阵
-                "SUB_RGB_1": dt["extrinsic"][4],  # 子摄像头1矩阵
-                "SUB_RGB_2": dt["extrinsic"][5],  # 子摄像头2矩阵
-                "LIDAR": dt["extrinsic"][2]       # 激光雷达矩阵
+                "RGB": extrinsic[0],
+                "SUB_RGB_1": extrinsic[4],
+                "SUB_RGB_2": extrinsic[5],
+                "LIDAR": extrinsic[2]
             }
-            
             save_globel_extrinsic_matrices(
-                extrinsic_filename,
+                self.GLOBEL_EXTRINSIC_PATH.format(self.captured_frame_no),
                 sensor_mapping,
                 extrinsic_dict
             )
 
-            camera_transform = config_transform_to_carla_transform(self.config["SENSOR_CONFIG"]["RGB"]["TRANSFORM"])
-            lidar_transform = config_transform_to_carla_transform(self.config["SENSOR_CONFIG"]["LIDAR"]["TRANSFORM"])
-
             save_ref_files(self.OUTPUT_FOLDER, self.captured_frame_no)
+            save_calibration_matrices(extrinsic, calib_filename, dt["intrinsic"])
 
-            save_calibration_matrices([camera_transform, lidar_transform], calib_filename, dt["intrinsic"])
-            save_image_data(img_filename_0, dt["sensor_data"][0])
-            save_image_data(img_filename_1, dt["sensor_data"][4])
-            save_image_data(img_filename_2, dt["sensor_data"][5])
-            save_image_data(img_filename_seg, dt["sensor_data"][8])
-            save_image_data(img_filename_seg_1, dt["sensor_data"][9])
-            save_image_data(img_filename_seg_2, dt["sensor_data"][10])
-            # save_image_data(img_filename_view,dt["sensor_data"][10])
-            # save_image_data(img_filename_bev,dt["sensor_data"][11])
+            # 保存基础摄像头图像
+            for img_path, data_idx in base_images:
+                save_image_data(img_path, dt["sensor_data"][data_idx])
 
-            
-            # 保存三个摄像头的标签和标注图像
-            save_kitti_label_data(img_label_filename_0, dt["image_labels_kitti"])
-            save_kitti_label_data(img_label_filename_1, dt["image_labels_kitti_1"])
-            save_kitti_label_data(img_label_filename_2, dt["image_labels_kitti_2"])
-            
-            save_bbox_image_data(bbox_img_filename_0, dt["bbox_img"])
-            save_bbox_image_data(bbox_img_filename_1, dt["bbox_img_1"])
-            save_bbox_image_data(bbox_img_filename_2, dt["bbox_img_2"])
-            
-            save_depth_image_data(depth_filename_0, dt["sensor_data"][1])
-            save_depth_image_data(depth_filename_1, dt["sensor_data"][11])
-            save_depth_image_data(depth_filename_2, dt["sensor_data"][12])
-            
-            save_semantic_image_data(semantic_filename_0, dt["sensor_data"][8])
-            save_semantic_image_data(semantic_filename_1, dt["sensor_data"][9])
-            save_semantic_image_data(semantic_filename_2, dt["sensor_data"][10])
-            
+            # 保存分割图像
+            for seg_cam in [0, 1, 2, 3, 4]:
+                save_image_data(
+                    special_images[f'seg_{seg_cam}'],
+                    dt["sensor_data"][[8, 9, 10, 15, 16][seg_cam]]
+                )
 
-            #TODO: 修改为保存多个雷达数据
-            save_lidar_data(lidar_filename, dt["sensor_data"][2], extrinsic[2])
-            # save_lidar_data(lidar_filename_1, dt["sensor_data"][6], extrinsic[6])
-            # save_lidar_data(lidar_filename_2, dt["sensor_data"][7], extrinsic)
-            # save_lidar_data(lidar_filename_3, dt["sensor_data"][8], extrinsic)
-            # save_lidar_data(lidar_filename_4, dt["sensor_data"][9], extrinsic)
+            # 保存标签和标注数据
+            for cam_idx in range(camera_count):
+                save_kitti_label_data(
+                    img_label_filenames[cam_idx],
+                    dt[f"image_labels_kitti{'_'+str(cam_idx) if cam_idx>0 else ''}"]
+                )
+                save_bbox_image_data(
+                    bbox_img_filenames[cam_idx],
+                    dt[f"bbox_img{'_'+str(cam_idx) if cam_idx>0 else ''}"]
+                )
+
+            # 保存深度和语义数据
+            for i, depth_idx in enumerate([1, 11, 12]):
+                save_depth_image_data(depth_files[i], dt["sensor_data"][depth_idx])
+            for i, seg_idx in enumerate([8, 9, 10]):
+                save_semantic_image_data(semantic_files[i], dt["sensor_data"][seg_idx])
+
+            # 激光雷达数据保存（保持原始TODO注释）
+            save_lidar_data(lidar_files[0], dt["sensor_data"][2], extrinsic[2])
+            # save_lidar_data(lidar_files[1], dt["sensor_data"][6], extrinsic[6])  # 保持注释状态
             save_kitti_label_data(lidar_label_filename, dt["pc_labels_kitti"])
 
-                    # 修改ego state保存方式
-            print(f"Save ego state to {ego_state_filename}")
+            # EGO状态保存保持不变
             save_ego_data(
                 ego_state_filename,
                 transform=data["egostate"]["location"],

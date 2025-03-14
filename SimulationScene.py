@@ -364,7 +364,7 @@ class SimulationScene:
             
             # 计算传感器到ego的相对外参
             data["agents_data"][agent]["extrinsic"] = [
-                np.mat(sensor.get_transform().get_matrix()) * ego_inv_matrix
+                np.mat(np.where(np.abs(sensor.get_transform().get_matrix()) < 0.01, 0, sensor.get_transform().get_matrix())) * ego_inv_matrix
                 for sensor in self.actors["sensors"][agent]
             ]
                      
