@@ -112,6 +112,8 @@ class DatasetSave:
         bbox_img_filename_0 = self.BBOX_IMAGE_PATH.format(self.captured_frame_no, 0)
         bbox_img_filename_1 = self.BBOX_IMAGE_PATH.format(self.captured_frame_no, 1)
         bbox_img_filename_2 = self.BBOX_IMAGE_PATH.format(self.captured_frame_no, 2)
+        bbox_img_filename_3 = self.BBOX_IMAGE_PATH.format(self.captured_frame_no, 3)
+        bbox_img_filename_4 = self.BBOX_IMAGE_PATH.format(self.captured_frame_no, 4)
 
         calib_filename = self.CALIBRATION_PATH.format(self.captured_frame_no)
 
@@ -211,6 +213,8 @@ class DatasetSave:
             save_bbox_image_data(bbox_img_filename_0, dt["bbox_img"])
             save_bbox_image_data(bbox_img_filename_1, dt["bbox_img_1"])
             save_bbox_image_data(bbox_img_filename_2, dt["bbox_img_2"])
+            save_bbox_image_data(bbox_img_filename_3, dt["bbox_img_3"])
+            save_bbox_image_data(bbox_img_filename_4, dt["bbox_img_4"])
             
             save_depth_image_data(depth_filename_0, dt["sensor_data"][1])
             save_depth_image_data(depth_filename_1, dt["sensor_data"][11])

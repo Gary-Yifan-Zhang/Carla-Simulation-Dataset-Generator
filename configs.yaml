@@ -142,6 +142,26 @@ SENSOR_CONFIG:
       location: [-0.5, -0.5, 1.6]
       rotation: [0, -90, 0]
 
+  SEMANTIC_3:
+    TRANSFORM: {location: [-0.5, 0.5, 1.6], rotation: [0, 90, 0]}
+    BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
+
+  SEMANTIC_4:
+    TRANSFORM: {location: [-0.5, -0.5, 1.6], rotation: [0, -90, 0]}
+    BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
+
+  DEPTH_RGB_3:
+    TRANSFORM: {location: [-0.5, 0.5, 1.6], rotation: [0, 90, 0]}
+    BLUEPRINT: sensor.camera.depth
+    ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
+
+  DEPTH_RGB_4:
+    TRANSFORM: {location: [-0.5, -0.5, 1.6], rotation: [0, -90, 0]}
+    BLUEPRINT: sensor.camera.depth
+    ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
+
 FILTER_CONFIG:
   PRELIMINARY_FILTER_DISTANCE: 50
   MAX_RENDER_DEPTH_IN_METERS: 50

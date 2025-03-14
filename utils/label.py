@@ -61,13 +61,20 @@ def spawn_dataset(data):
         rgb_image = raw_image_to_rgb_array(sensors_data[0])
         rgb_image_1 = raw_image_to_rgb_array(sensors_data[4])
         rgb_image_2 = raw_image_to_rgb_array(sensors_data[5])
+        rgb_image_3 = raw_image_to_rgb_array(sensors_data[13])
+        rgb_image_4 = raw_image_to_rgb_array(sensors_data[14])
         image = rgb_image.copy()
         image_1 = rgb_image_1.copy()
         image_2 = rgb_image_2.copy()
+        image_3 = rgb_image_3.copy()
+        image_4 = rgb_image_4.copy()
+
 
         depth_data = depth_image_to_array(sensors_data[1])
         depth_data_1 = depth_image_to_array(sensors_data[11])
         depth_data_2 = depth_image_to_array(sensors_data[12])
+        depth_data_3 = depth_image_to_array(sensors_data[17])
+        depth_data_4 = depth_image_to_array(sensors_data[18])
         semantic_lidar = np.frombuffer(sensors_data[3].raw_data, dtype=np.dtype('f4,f4, f4, f4, i4, i4'))
 
         # 对环境中的目标物体生成标签
@@ -95,38 +102,67 @@ def spawn_dataset(data):
                 pc_labels_kitti.append(pc_label_kitti)
                 
         # 新增对第二个摄像头（sensors_data[4]）的处理
-        for obj in environment_objects:
-            image_label_kitti_1 = is_visible_in_camera(agent, obj, image_1, depth_data_1, intrinsic, transform[4])  # 使用第四个外参矩阵
-            if image_label_kitti_1 is not None:
-                image_labels_kitti_1.append(image_label_kitti_1)
+        image_labels_kitti_1 = process_camera_view(
+            agent, 
+            environment_objects + actors,  # 合并环境和演员对象
+            image_1, 
+            depth_data_1,
+            intrinsic,
+            transform[4]
+        )
 
-        for act in actors:
-            image_label_kitti_1 = is_visible_in_camera(agent, act, image_1, depth_data_1, intrinsic, transform[4])
-            if image_label_kitti_1 is not None:
-                image_labels_kitti_1.append(image_label_kitti_1)
+        # 处理第二个摄像头（transform[5]）
+        image_labels_kitti_2 = process_camera_view(
+            agent,
+            environment_objects + actors,
+            image_2,
+            depth_data_2,
+            intrinsic,
+            transform[5]
+        )
+        
+        image_labels_kitti_3 = process_camera_view(
+            agent, 
+            environment_objects + actors,  # 合并环境和演员对象
+            image_3, 
+            depth_data_3,
+            intrinsic,
+            transform[13]
+        )
 
-        # 新增对第三个摄像头（sensors_data[5]）的处理
-        for obj in environment_objects:
-            image_label_kitti_2 = is_visible_in_camera(agent, obj, image_2, depth_data_2, intrinsic, transform[5])  # 使用第五个外参矩阵
-            if image_label_kitti_2 is not None:
-                image_labels_kitti_2.append(image_label_kitti_2)
-
-        for act in actors:
-            image_label_kitti_2 = is_visible_in_camera(agent, act, image_2, depth_data_2, intrinsic, transform[5])
-            if image_label_kitti_2 is not None:
-                image_labels_kitti_2.append(image_label_kitti_2)
+        # 处理第二个摄像头（transform[5]）
+        image_labels_kitti_4 = process_camera_view(
+            agent,
+            environment_objects + actors,
+            image_4,
+            depth_data_4,
+            intrinsic,
+            transform[14]
+        )
 
 
         data["agents_data"][agent]["rgb_image"] = rgb_image
         data["agents_data"][agent]["bbox_img"] = image
         data["agents_data"][agent]["bbox_img_1"] = image_1   # 新增第二个摄像头标注图
         data["agents_data"][agent]["bbox_img_2"] = image_2   # 新增第三个摄像头标注图
+        data["agents_data"][agent]["bbox_img_3"] = image_3   
+        data["agents_data"][agent]["bbox_img_4"] = image_4
         data["agents_data"][agent]["image_labels_kitti"] = image_labels_kitti
         data["agents_data"][agent]["image_labels_kitti_1"] = image_labels_kitti_1
         data["agents_data"][agent]["image_labels_kitti_2"] = image_labels_kitti_2
+        data["agents_data"][agent]["image_labels_kitti_3"] = image_labels_kitti_3
+        data["agents_data"][agent]["image_labels_kitti_4"] = image_labels_kitti_4
         data["agents_data"][agent]["pc_labels_kitti"] = pc_labels_kitti
     return data
 
+def process_camera_view(agent, objects, image, depth_data, intrinsic, transform):
+    """处理单个摄像头视角的物体可见性检测"""
+    labels = []
+    for obj in objects:
+        label = is_visible_in_camera(agent, obj, image, depth_data, intrinsic, transform)
+        if label is not None:
+            labels.append(label)
+    return labels
 
 def get_bounding_box(actor, min_extent=0.5, is_environment_object=False):
     """
