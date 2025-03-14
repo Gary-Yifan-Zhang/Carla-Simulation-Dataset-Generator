@@ -152,12 +152,8 @@ def create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, t
     
     # 使用标定矩阵进行旋转
     R = R @ calibration_matrix[:3, :3]  # 只取旋转部分
-    translation_vector =  calibration_matrix @ -translation_vector
     # 应用旋转
     bbox.rotate(R, center=bbox.center)
-
-    # 应用平移
-    bbox.translate(translation_vector)  # 将平移向量添加到边界框中心
 
     return bbox
 
