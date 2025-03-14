@@ -106,54 +106,49 @@ def read_calibration(file_path):
 
 def create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, translation_vector):
     """
-    创建边界框并应用旋转和平移变换。
+    创建边界框并应用旋转和平移变换
 
-    参数：
-        x, y, z: 边界框中心的坐标。
-        h, w, l: 边界框的高度、宽度和长度。
-        rotation_y: 边界框的旋转角度。
-        object_type: 对象类型（如行人、车辆等）。
-        calibration_matrix: 从激光雷达到相机的旋转矩阵。
-        translation_vector: 从激光雷达到相机的平移向量。
-
-    返回：
-        bbox: 创建的边界框对象。
+    参数优化说明：
+    1. 使用类型颜色映射字典统一管理颜色配置
+    2. 合并同类条件判断
+    3. 显式处理z轴偏移量
+    4. 添加类型校验和默认处理
     """
+    # 类型到颜色的映射配置
+    TYPE_COLORS = {
+        "Pedestrian": (1, 0, 0),    # 红色-行人
+        "Car": (0, 1, 0),          # 绿色-车辆
+        "Bicycle": (1, 1, 0),       # 黄色-自行车
+        "TrafficLight": (0, 0, 1),  # 蓝色-交通灯
+        "TrafficSigns": (0, 0, 1)   # 蓝色-交通标志
+    }
+
+    # 初始化边界框
     bbox = o3d.geometry.OrientedBoundingBox()
     
-    # 设置边界框的中心和尺寸
-    if object_type == "Pedestrian":  # 行人
-        bbox.center = np.array([x, y, z + h / 2])  # 使用原始中心
-        bbox.extent = [h, w, l]
-        bbox.color = (1, 0, 0)  # 红色
-    elif object_type == "Car":  # 车辆
-        bbox.center = np.array([x, y, z + h / 2])  # 底部中心，z=0
-        bbox.extent = [h, w, l]
-        bbox.color = (0, 1, 0)  # 绿色
-    elif object_type == "Bicycle":  # 自行车
-        bbox.center = np.array([x, y, z + h / 2])
-        bbox.extent = [h, w, l]
-        bbox.color =  (1, 1, 0)  # 黄色
-    elif object_type == "TrafficLight" or object_type == "TrafficSigns":  # 自行车
-        bbox.center = np.array([x, y, z + h / 2])
-        bbox.extent = [h, w, l]
-        bbox.color =  (0, 0, 1)  # 黄色
-    else:  # 其他类型
-        bbox.center = np.array([x, y, z])
-        bbox.extent = [h, w, l]
-        bbox.color = (0, 0, 1)  # 黄色
+    # 统一设置尺寸（所有类型使用相同尺寸逻辑）
+    bbox.extent = [h, w, l]
+    
+    # 设置中心点高度偏移（大部分类型需要提升h/2）
+    z_offset = h / 2 if object_type in ["Pedestrian", "Car", "Bicycle", "TrafficLight", "TrafficSigns"] else 0
+    bbox.center = np.array([x, y, z + z_offset])
 
-    # 设置旋转
-    R = np.array([
-        [np.cos(rotation_y), -np.sin(rotation_y), 0],
-        [np.sin(rotation_y), np.cos(rotation_y), 0],
-        [0, 0, 1]
+    # 设置颜色（默认使用蓝色）
+    bbox.color = TYPE_COLORS.get(object_type, (0, 0, 1))
+
+    # 构造旋转矩阵
+    theta = rotation_y
+    R_obj = np.array([
+        [np.cos(theta), -np.sin(theta), 0],
+        [np.sin(theta),  np.cos(theta), 0],
+        [0,             0,              1]
     ])
     
-    # 使用标定矩阵进行旋转
-    R = R @ calibration_matrix[:3, :3]  # 只取旋转部分
-    # 应用旋转
-    bbox.rotate(R, center=bbox.center)
+    # 应用标定矩阵的旋转（仅使用前3x3部分）
+    R_total = R_obj @ calibration_matrix[:3, :3]
+    
+    # 执行旋转变换（保持中心点不变）
+    bbox.rotate(R_total, center=bbox.center)
 
     return bbox
 
