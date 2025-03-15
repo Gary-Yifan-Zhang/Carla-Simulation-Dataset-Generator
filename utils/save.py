@@ -212,12 +212,13 @@ def save_ego_data(filename, transform, rotation, velocity, acceleration, extent)
     增强版ego状态保存，包含完整信息
     """
     with open(filename, 'w') as f:
-        f.write("=== Ego State ===\n")
-        f.write(f"Location (x,y,z): {transform['x']:.3f}, {transform['y']:.3f}, {transform['z']:.3f}\n")
-        f.write(f"Rotation (yaw,pitch,roll): {rotation['yaw']:.2f}, {rotation['pitch']:.2f}, {rotation['roll']:.2f}\n")
-        f.write(f"Velocity (m/s): {velocity['x']:.2f}, {velocity['y']:.2f}, {velocity['z']:.2f}\n")
-        f.write(f"Acceleration (m/s²): {acceleration['x']:.2f}, {acceleration['y']:.2f}, {acceleration['z']:.2f}\n")
-        f.write(f"Bounding Box (L,W,H): {extent['x']:.2f}m, {extent['y']:.2f}m, {extent['z']:.2f}m\n")
+         # 写入Transform
+        f.write(f"Transform: Transform(Location(x={transform['x']:.6f}, y={transform['y']:.6f}, z={transform['z']:.6f}), "
+                f"Rotation(pitch={rotation['pitch']:.6f}, yaw={rotation['yaw']:.6f}, roll={rotation['roll']:.6f}))\n")
+        # 写入Velocity
+        f.write(f"Velocity: {{'x': {velocity['x']:.1f}, 'y': {velocity['y']:.1f}, 'z': {velocity['z']:.6f}}}\n")
+        # 写入Acceleration
+        f.write(f"Acceleration: {{'x': {acceleration['x']:.1f}, 'y': {acceleration['y']:.1f}, 'z': {acceleration['z']:.6f}}}\n")
     
     logging.info("Updated ego state saved to %s", filename)
     
