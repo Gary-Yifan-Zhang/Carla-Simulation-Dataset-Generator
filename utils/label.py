@@ -208,6 +208,8 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
     num_visible_vertices, num_vertices_outside_camera = get_occlusion_stats(vertices_pixel, depth_data)
     if num_visible_vertices >= MIN_VISIBLE_VERTICES_FOR_RENDER and \
             num_vertices_outside_camera < MAX_OUT_VERTICES_FOR_RENDER:
+        if obj.id == agent.id:
+            return None
         obj_tp = obj_type(obj)
         rotation_y = get_relative_rotation_yaw(agent.get_transform().rotation, obj_transform.rotation) % math.pi
         midpoint = midpoint_from_world_to_camera(obj_transform.location, extrinsic)
@@ -286,6 +288,9 @@ def create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state):
     """
         创建点云标签的通用函数
     """
+    
+    if obj.id == agent.id:
+        return None
     obj_tp = obj_type(obj)
     # 获取ego的变换矩阵
     ego_matrix = np.array(ego_state["matrix"])
