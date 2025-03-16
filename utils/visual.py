@@ -531,6 +531,33 @@ def save_depth_and_mask(depth_map, mask, overlap_img, data_root, frame_id, camer
     
     print(f"数据已保存到: {npy_path} 和 {overlap_path}")
 
+def parse_calib_file(file_path):
+    """解析多相机标定文件"""
+    calib_dict = {}
+    with open(file_path, 'r') as f:
+        for line in f.readlines():
+            if not line: continue
+            key, value = line.split(':', 1)
+            key = key.strip()
+            values = list(map(float, value.strip().split()))
+            
+            # 按参数类型处理
+            if key.startswith('P'):
+                # 投影矩阵 (3x4)
+                cam_id = int(key[1:]) if len(key) > 1 else 0
+                calib_dict.setdefault(f'cam{cam_id}', {})['P'] = np.array(values).reshape(3,4)
+            elif key == 'R0_rect':
+                # 校正矩阵 (3x3)
+                calib_dict['R0_rect'] = np.array(values).reshape(3,3)
+            elif key.startswith('Tr_velo_to_cam'):
+                # 雷达到相机的变换矩阵 (3x4)，补全为4x4齐次矩阵
+                cam_id = int(key.split('_')[-1])
+                matrix = np.eye(4)
+                matrix[:3,:4] = np.array(values).reshape(3,4)
+                calib_dict.setdefault(f'cam{cam_id}', {})['Tr_velo_to_cam'] = matrix
+                
+    return calib_dict
+
 def depth_to_pcd(data_root, frame_id, camera_id):
     """
     从保存的npy文件生成点云并可视化
@@ -631,12 +658,48 @@ if __name__ == "__main__":
     # )
     
     # 输入参数
-    frame_id = 20
-    data_root = "./data/training_20250313_103515"
+    frame_id = 1
+    data_root = "./data/training_20250316_141126"
     
     # 路径配置
     bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_0.bin"
     img_path = f"{data_root}/image/{frame_id:06}_camera_0.png"
+    calib_path = f"{data_root}/calib/{frame_id:06}.txt"
+    
+    calib_dict = parse_calib_file(calib_path)
+    
+    # 遍历所有相机 (0,1,2)
+    cam_id = 2
+    # 获取当前相机参数
+    cam_key = f'cam{cam_id}'
+        
+    # 路径配置
+    bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_0.bin"
+    img_path = f"{data_root}/image/{frame_id:06}_camera_{cam_id}.png"  # 修改相机ID
+    
+    # 从标定数据获取参数
+    cam_intrinsic = calib_dict[cam_key]['P'][:3, :3]  # 提取3x3内参矩阵
+    Tr_velo_to_cam = calib_dict[cam_key]['Tr_velo_to_cam']
+    print(Tr_velo_to_cam)
+    
+    # 执行投影
+    mask, depth_map, overlap_img = project_lidar_to_camera(
+        bin_path, img_path, cam_intrinsic, 
+        Tr_velo_to_cam[:3],  # 传入3x4矩阵
+        max_depth=100.0
+    )
+    
+    # 保存结果（添加相机ID后缀）
+    # save_depth_and_mask(depth_map, mask, overlap_img, 
+    #                     data_root, frame_id, cam_id)
+    
+    # 可视化
+    cv2.imshow(f'Camera {cam_id} Projection', overlap_img)
+    key = cv2.waitKey()  # 每帧显示200ms
+    if key == ord('q'):
+        cv2.destroyAllWindows()
+            
+    
     
     # 相机参数 (P0矩阵)
     cam_intrinsic = np.array([
@@ -644,6 +707,7 @@ if __name__ == "__main__":
         [0.0, 960.0, 540.0],
         [0.0, 0.0, 1.0]
     ])
+    
     
     # 外参矩阵 (Tr_velo_to_cam)
     Tr_velo_to_cam = np.array([
