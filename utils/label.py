@@ -15,7 +15,7 @@ WINDOW_HEIGHT = config["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_y"
 
 
 GLOBAL_ID_MAP = {}
-NEXT_ID = 1
+NEXT_ID = 0
 
 
 def spawn_dataset(data):
@@ -40,9 +40,9 @@ def spawn_dataset(data):
     agents_data = data["agents_data"]
     
     # 在每个agent处理前重置ID计数器
-    global NEXT_ID
-    NEXT_ID = 1
-    GLOBAL_ID_MAP.clear()
+    # global NEXT_ID
+    # NEXT_ID = 0
+    # GLOBAL_ID_MAP.clear()
     
     # TODO: 外参还是不对。旋转的问题
     for agent, dataDict in agents_data.items():
@@ -439,8 +439,8 @@ def get_custom_id(obj, agent):
         return -1
     
     # 如果是ego车辆
-    if obj.id == agent.id:
-        return 0
+    # if obj.id == agent.id:
+    #     return 0
     
     # 如果物体已有映射ID则返回
     if obj.id in GLOBAL_ID_MAP:
