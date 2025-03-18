@@ -462,9 +462,20 @@ def project_lidar_to_camera(bin_path, img_path, cam_intrinsic, Tr_velo_to_cam, m
     points_velo_hom = np.hstack([points_velo, ones])
     points_cam = (Tr @ points_velo_hom.T).T[:, :3]
 
-    # 过滤有效点（z>0且在最大深度内）
-    valid = (points_cam[:, 2] > 0) & (points_cam[:, 2] <= max_depth)
-    points_cam = points_cam[valid]
+    # 新增有效性检查（包含图像尺寸参数）
+    img = cv2.imread(img_path)
+    height, width = img.shape[:2]  # 确保获取实际图像尺寸
+    
+    # 组合有效性条件（优化后的版本）
+    valid_mask = (
+        (points_cam[:, 2] > 0) &                  # 深度正值检查
+        (points_cam[:, 2] <= max_depth) &         # 最大深度限制
+        (points_cam[:, 0] >= -width/2) &          # X坐标左边界（考虑相机视野）
+        (points_cam[:, 0] < width/2) &            # X坐标右边界
+        (points_cam[:, 1] >= -height/2) &         # Y坐标下边界
+        (points_cam[:, 1] < height/2)             # Y坐标上边界
+    )
+    points_cam = points_cam[valid_mask]
 
     # 使用优化后的投影函数
     fx, fy = cam_intrinsic[0, 0], cam_intrinsic[1, 1]
@@ -715,6 +726,8 @@ if __name__ == "__main__":
         0.0, 0.0, -1.0, 0.0,
         1.0, 0.0, 0.0, 0.0
     ]).reshape(3, 4)
+    
+    
     
     # Tr_velo_to_cam = np.array([
     #     1.0, 0.0, 0.0, 0.0,
