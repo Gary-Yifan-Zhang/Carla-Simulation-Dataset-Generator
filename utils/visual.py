@@ -666,38 +666,38 @@ if __name__ == "__main__":
     img_path = f"{data_root}/image/{frame_id:06}_camera_0.png"
     calib_path = f"{data_root}/calib/{frame_id:06}.txt"
     
-    calib_dict = parse_calib_file(calib_path)
+    # calib_dict = parse_calib_file(calib_path)
     
-    # 遍历所有相机 (0,1,2)
-    cam_id = 2
-    # 获取当前相机参数
-    cam_key = f'cam{cam_id}'
+    # # 遍历所有相机 (0,1,2)
+    # cam_id = 2
+    # # 获取当前相机参数
+    # cam_key = f'cam{cam_id}'
         
-    # 路径配置
-    bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_0.bin"
-    img_path = f"{data_root}/image/{frame_id:06}_camera_{cam_id}.png"  # 修改相机ID
+    # # 路径配置
+    # bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_0.bin"
+    # img_path = f"{data_root}/image/{frame_id:06}_camera_{cam_id}.png"  # 修改相机ID
     
-    # 从标定数据获取参数
-    cam_intrinsic = calib_dict[cam_key]['P'][:3, :3]  # 提取3x3内参矩阵
-    Tr_velo_to_cam = calib_dict[cam_key]['Tr_velo_to_cam']
-    print(Tr_velo_to_cam)
+    # # 从标定数据获取参数
+    # cam_intrinsic = calib_dict[cam_key]['P'][:3, :3]  # 提取3x3内参矩阵
+    # Tr_velo_to_cam = calib_dict[cam_key]['Tr_velo_to_cam']
+    # print(Tr_velo_to_cam)
     
-    # 执行投影
-    mask, depth_map, overlap_img = project_lidar_to_camera(
-        bin_path, img_path, cam_intrinsic, 
-        Tr_velo_to_cam[:3],  # 传入3x4矩阵
-        max_depth=100.0
-    )
+    # # 执行投影
+    # mask, depth_map, overlap_img = project_lidar_to_camera(
+    #     bin_path, img_path, cam_intrinsic, 
+    #     Tr_velo_to_cam[:3],  # 传入3x4矩阵
+    #     max_depth=100.0
+    # )
     
-    # 保存结果（添加相机ID后缀）
-    # save_depth_and_mask(depth_map, mask, overlap_img, 
-    #                     data_root, frame_id, cam_id)
+    # # 保存结果（添加相机ID后缀）
+    # # save_depth_and_mask(depth_map, mask, overlap_img, 
+    # #                     data_root, frame_id, cam_id)
     
-    # 可视化
-    cv2.imshow(f'Camera {cam_id} Projection', overlap_img)
-    key = cv2.waitKey()  # 每帧显示200ms
-    if key == ord('q'):
-        cv2.destroyAllWindows()
+    # # 可视化
+    # cv2.imshow(f'Camera {cam_id} Projection', overlap_img)
+    # key = cv2.waitKey()  # 每帧显示200ms
+    # if key == ord('q'):
+    #     cv2.destroyAllWindows()
             
     
     
@@ -715,6 +715,12 @@ if __name__ == "__main__":
         0.0, 0.0, -1.0, 0.0,
         1.0, 0.0, 0.0, 0.0
     ]).reshape(3, 4)
+    
+    # Tr_velo_to_cam = np.array([
+    #     1.0, 0.0, 0.0, 0.0,
+    #     0.0, 1.0, 0.0, 0.0,
+    #     0.0, 0.0, 1.0, 0.0
+    # ]).reshape(3, 4)
     
     # 执行投影
     mask, depth_map, overlap_img = project_lidar_to_camera(
