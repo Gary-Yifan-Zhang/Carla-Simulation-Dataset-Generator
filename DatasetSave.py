@@ -124,6 +124,17 @@ class DatasetSave:
             }
         }
 
+        # 定义传感器到文件编号的映射
+        sensor_mapping = {
+            "RGB": "000",
+            "SUB_RGB_1": "001", 
+            "SUB_RGB_2": "002"
+        }
+        
+        # 保存外参文件
+        base_extrinsic_path = self.EXTRINSIC_PATH.format(self.captured_frame_no)
+        save_extrinsic_matrices(self.config, base_extrinsic_path, sensor_mapping)
+
         # 传感器数据索引映射（保持原始索引对应关系）
         sensor_mapping = [
             (0, 0),    # camera 0 -> sensor_data[0]
