@@ -6,13 +6,6 @@ AGENT_CONFIG:
   TRANSFORM: { location: [ 124, 226, 0.65 ], rotation: [ 0, 0, 0 ] }
   BLUEPRINT: vehicle.tesla.model3
 
-CAMERA_CONFIG:
-  TOTAL: 5  # 使用全大写保持配置项命名一致性
-  SEG_PREFIX: "_camera_seg_"  # 分割图前缀
-  IMG_EXTENSION: ".png"  # 图像扩展名
-  OUTPUT_RESOLUTION: [1920, 1080]  # 可添加其他相关参数
-
-
 SENSOR_CONFIG:
   RGB:
     TRANSFORM: {location: [0, 0.0, 1.6], rotation: [0, 0, 0]}
@@ -43,8 +36,8 @@ SENSOR_CONFIG:
       image_size_y: 1080
       fov: 90
     TRANSFORM:
-      location: [0, 0.5, 1.6]
-      rotation: [0, 30, 0]
+      location: [0, 0.1, 1.6]
+      rotation: [0, 0, 0]
 
   SUB_RGB_2:
     BLUEPRINT: sensor.camera.rgb
@@ -53,8 +46,8 @@ SENSOR_CONFIG:
       image_size_y: 1080
       fov: 90
     TRANSFORM:
-      location: [0, -0.5, 1.6]
-      rotation: [0, -30, 0]
+      location: [0, -0.1, 1.6]
+      rotation: [0, 0, 0]
 
   # IMU:
   #   BLUEPRINT: sensor.other.imu
@@ -110,22 +103,22 @@ SENSOR_CONFIG:
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
   SEMANTIC_1:
-    TRANSFORM: {location: [0, 0.5, 1.6], rotation: [0, 30, 0]}
+    TRANSFORM: {location: [0, 0.1, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.semantic_segmentation
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
   SEMANTIC_2:
-    TRANSFORM: {location: [0, -0.5, 1.6], rotation: [0, -30, 0]}
+    TRANSFORM: {location: [0, -0.1, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.semantic_segmentation
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
   DEPTH_RGB_1:
-    TRANSFORM: {location: [0, 0.5, 1.6], rotation: [0, 30, 0]}
+    TRANSFORM: {location: [0, 0.1, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.depth
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
   DEPTH_RGB_2:
-    TRANSFORM: {location: [0, -0.5, 1.6], rotation: [0, -30, 0]}
+    TRANSFORM: {location: [0, -0.1, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.camera.depth
     ATTRIBUTE: {image_size_x: 1920, image_size_y: 1080, fov: 90}
 
@@ -178,5 +171,5 @@ FILTER_CONFIG:
 
 SAVE_CONFIG:
   ROOT_PATH: data
-  STEP: 20
-  MAX_RECORD_COUNT: 20
+  STEP: 5
+  MAX_RECORD_COUNT: 150
