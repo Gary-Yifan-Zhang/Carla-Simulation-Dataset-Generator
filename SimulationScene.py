@@ -5,7 +5,7 @@ import queue
 import numpy as np
 from utils.utils import config_transform_to_carla_transform, set_camera_intrinsic, object_filter_by_distance
 from utils.label import spawn_dataset
-from scenario_runner import ScenarioRunner
+# from scenario_runner import ScenarioRunner
 
 class SimulationScene:
     def __init__(self, config):

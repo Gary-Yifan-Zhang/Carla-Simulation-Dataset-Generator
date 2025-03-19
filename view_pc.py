@@ -51,7 +51,8 @@ def read_bounding_boxes(file_path, calibration_matrix, translation_vector):
         for line in f:
             data = line.strip().split()
             object_type = data[0]
-            h, w, l = float(data[9]), float(data[10]), float(data[11])
+            h, l, w = float(data[9]), float(data[10]), float(data[11])
+            print(f"\n检测到 {object_type} 边界框 - 原始尺寸（高/宽/长）: {h:.2f}m/{w:.2f}m/{l:.2f}m")
             # 将hwl膨胀5%
             h *= 1.05
             w *= 1.05
@@ -127,7 +128,7 @@ def create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, t
     bbox = o3d.geometry.OrientedBoundingBox()
     
     # 统一设置尺寸（所有类型使用相同尺寸逻辑）
-    bbox.extent = [h, w, l]
+    bbox.extent = [l,w,h]
     
     # 设置中心点高度偏移（大部分类型需要提升h/2）
     z_offset = h / 2 if object_type in ["Pedestrian", "Car", "Bicycle", "TrafficLight", "TrafficSigns"] else 0
@@ -144,11 +145,9 @@ def create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, t
         [0,             0,              1]
     ])
     
-    # 应用标定矩阵的旋转（仅使用前3x3部分）
-    R_total = R_obj @ calibration_matrix[:3, :3]
     
     # 执行旋转变换（保持中心点不变）
-    bbox.rotate(R_total, center=bbox.center)
+    bbox.rotate(R_obj, center=bbox.center)
 
     return bbox
 
@@ -225,7 +224,7 @@ def check_bbox_size(bboxes, metadata, threshold=1.0):
 
 if __name__ == "__main__":
     # 定义数据文件夹和文件ID
-    data_folder = "data/training_20250313_105846"
+    data_folder = "data/training_20250319_111551"
     file_id = "000001"
     lidar_index = 0  # 假设这是第一个雷达数据
     
