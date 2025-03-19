@@ -15,7 +15,7 @@ WINDOW_HEIGHT = config["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_y"
 
 
 GLOBAL_ID_MAP = {}
-NEXT_ID = 1
+NEXT_ID = 0
 
 
 def spawn_dataset(data):
@@ -38,11 +38,7 @@ def spawn_dataset(data):
     actors = [x for x in actors if x.type_id.find("vehicle") != -1 or x.type_id.find("walker") != -1]
 
     agents_data = data["agents_data"]
-    
-    # 在每个agent处理前重置ID计数器
-    global NEXT_ID
-    NEXT_ID = 1
-    GLOBAL_ID_MAP.clear()
+
     
     # TODO: 外参还是不对。旋转的问题
     for agent, dataDict in agents_data.items():
