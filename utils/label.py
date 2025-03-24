@@ -40,7 +40,6 @@ def spawn_dataset(data):
     agents_data = data["agents_data"]
 
     
-    # TODO: 外参还是不对。旋转的问题
     for agent, dataDict in agents_data.items():
         GLOBAL_ID_MAP[agent.id] = 0
         intrinsic = dataDict["intrinsic"]
@@ -340,6 +339,7 @@ def create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state):
     
     # 提取位置（直接取变换矩阵的平移分量）
     midpoint = relative_matrix[:3, 3]  # [x, y, z]
+    midpoint[1] -= 0.3  # 新增Y轴偏移调整
 
     
     # 从相对矩阵提取yaw角
