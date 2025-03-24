@@ -610,6 +610,50 @@ def depth_to_pcd(data_root, frame_id, camera_id):
 
     return points
 
+import cv2
+import os
+
+def images_to_video(data_root, start_frame, end_frame, frame_rate=30):
+    """
+    将图片序列转换为视频
+
+    参数:
+        data_root (str): 数据根目录路径
+        start_frame (int): 起始帧ID
+        end_frame (int): 结束帧ID
+        frame_rate (int): 视频帧率，默认为30
+    """
+    # 创建视频保存目录
+    video_dir = os.path.join(data_root, 'video')
+    os.makedirs(video_dir, exist_ok=True)
+    
+    # 视频输出路径
+    video_path = os.path.join(video_dir, 'output_video.mp4')
+    
+    # 获取图片路径列表
+    img_paths = [f"{data_root}/image/{frame_id:06}_camera_0.png" for frame_id in range(start_frame, end_frame + 1)]
+    
+    # 读取第一张图片以获取视频尺寸
+    first_img = cv2.imread(img_paths[0])
+    print(f"图片尺寸: {first_img.shape}")
+    height, width, layers = first_img.shape
+    
+    # 初始化视频写入对象
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    video_writer = cv2.VideoWriter(video_path, fourcc, frame_rate, (width, height))
+    
+    # 遍历图片路径并写入视频
+    for img_path in img_paths:
+        img = cv2.imread(img_path)
+        if img is None:
+            print(f"无法读取图片: {img_path}")
+            continue
+        video_writer.write(img)
+    
+    # 释放视频写入对象
+    video_writer.release()
+    print(f"视频已保存到: {video_path}")
+
 if __name__ == "__main__":
     # seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
     # img_path = './data/training_20250305_130741/image/000000_camera_0.png'
@@ -637,6 +681,12 @@ if __name__ == "__main__":
     # 路径配置
     bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_0.bin"
     img_path = f"{data_root}/image/{frame_id:06}_camera_0.png"
+
+    start_frame = 0
+    end_frame = 100
+    frame_rate = 30
+
+    images_to_video(data_root, start_frame, end_frame, frame_rate)
     
     # 相机参数 (P0矩阵)
     cam_intrinsic = np.array([
