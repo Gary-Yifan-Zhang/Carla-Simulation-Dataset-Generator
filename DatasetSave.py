@@ -200,6 +200,11 @@ class DatasetSave:
                     dt["sensor_data"][[8, 9, 10, 15, 16][seg_cam]]
                 )
 
+            # 激光雷达数据保存（保持原始TODO注释）
+            save_lidar_data(lidar_files[0], dt["sensor_data"][2], extrinsic[2])
+            # save_lidar_data(lidar_files[1], dt["sensor_data"][6], extrinsic[6])  # 保持注释状态
+            save_kitti_label_data(lidar_label_filename, dt["pc_labels_kitti"])
+
             # 保存标签和标注数据
             for cam_idx in range(camera_count):
                 save_kitti_label_data(
@@ -210,18 +215,6 @@ class DatasetSave:
                     bbox_img_filenames[cam_idx],
                     dt[f"bbox_img{'_'+str(cam_idx) if cam_idx>0 else ''}"]
                 )
-
-            # 保存深度和语义数据
-            for i, depth_idx in enumerate([1, 11, 12]):
-                save_depth_image_data(depth_files[i], dt["sensor_data"][depth_idx])
-            for i, seg_idx in enumerate([8, 9, 10]):
-                save_semantic_image_data(semantic_files[i], dt["sensor_data"][seg_idx])
-
-            # 激光雷达数据保存（保持原始TODO注释）
-            save_lidar_data(lidar_files[0], dt["sensor_data"][2], extrinsic[2])
-            # save_lidar_data(lidar_files[1], dt["sensor_data"][6], extrinsic[6])  # 保持注释状态
-            save_kitti_label_data(lidar_label_filename, dt["pc_labels_kitti"])
-
             # EGO状态保存保持不变
             save_ego_data(
                 ego_state_filename,
@@ -231,5 +224,11 @@ class DatasetSave:
                 acceleration=data["egostate"]["acceleration"],
                 extent=data["egostate"]["extent"]
             )
+                        
+            # 保存深度和语义数据
+            for i, depth_idx in enumerate([1, 11, 12]):
+                save_depth_image_data(depth_files[i], dt["sensor_data"][depth_idx])
+            for i, seg_idx in enumerate([8, 9, 10]):
+                save_semantic_image_data(semantic_files[i], dt["sensor_data"][seg_idx])
 
         self.captured_frame_no += 1
