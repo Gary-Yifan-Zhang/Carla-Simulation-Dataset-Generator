@@ -138,26 +138,26 @@ class SimulationScene:
             self.jaywalker = self.world.spawn_actor(walker_bp, jaywalker_transform)
             self.actors["walkers"].append(self.jaywalker)
 
-            # 可视化生成点（红色球体）
-            self.world.debug.draw_point(
-                jaywalker_transform.location, 
-                size=0.3, 
-                color=carla.Color(255, 0, 0),
-                life_time=600.0
-            )
-            # 绘制朝向箭头
-            self.world.debug.draw_arrow(
-                jaywalker_transform.location,
-                jaywalker_transform.location + carla.Location(
-                    x=2 * np.cos(np.deg2rad(jaywalker_transform.rotation.yaw)),
-                    y=2 * np.sin(np.deg2rad(jaywalker_transform.rotation.yaw)),
-                    z=0
-                ),
-                thickness=0.1,
-                arrow_size=0.3,
-                color=carla.Color(0, 255, 0),
-                life_time=600.0
-            )
+            # # 可视化生成点（红色球体）
+            # self.world.debug.draw_point(
+            #     jaywalker_transform.location, 
+            #     size=0.3, 
+            #     color=carla.Color(255, 0, 0),
+            #     life_time=600.0
+            # )
+            # # 绘制朝向箭头
+            # self.world.debug.draw_arrow(
+            #     jaywalker_transform.location,
+            #     jaywalker_transform.location + carla.Location(
+            #         x=2 * np.cos(np.deg2rad(jaywalker_transform.rotation.yaw)),
+            #         y=2 * np.sin(np.deg2rad(jaywalker_transform.rotation.yaw)),
+            #         z=0
+            #     ),
+            #     thickness=0.1,
+            #     arrow_size=0.3,
+            #     color=carla.Color(0, 255, 0),
+            #     life_time=600.0
+            # )
 
         except Exception as e:
             logging.error(f"危险行人生成失败: {str(e)}")
@@ -244,15 +244,15 @@ class SimulationScene:
                 # 直接应用控制（避免使用AI控制器）
                 self.jaywalker.apply_control(walker_control)
 
-                # 可视化路径
-                self.world.debug.draw_arrow(
-                    self.jaywalker.get_location(), 
-                    target_location,
-                    thickness=0.2,
-                    arrow_size=0.5,
-                    color=carla.Color(255, 0, 0),
-                    life_time=300.0
-                )
+                # # 可视化路径
+                # self.world.debug.draw_arrow(
+                #     self.jaywalker.get_location(), 
+                #     target_location,
+                #     thickness=0.2,
+                #     arrow_size=0.5,
+                #     color=carla.Color(255, 0, 0),
+                #     life_time=300.0
+                # )
 
             except Exception as e:
                 logging.error(f"危险行人控制失败: {str(e)}")
@@ -307,7 +307,7 @@ class SimulationScene:
             sensor_actor = self.world.spawn_actor(sensor_bp, carla_transform, attach_to=agent)
             
             # 打印传感器的名字
-            print(f"Spawned sensor: {sensor_name}")
+            # print(f"Spawned sensor: {sensor_name}")
             
             self.actors["sensors"][agent].append(sensor_actor)
         self.world.tick()
