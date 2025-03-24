@@ -37,7 +37,9 @@ class SimulationScene:
         """
             设置场景地图
         """
-        self.world = self.client.load_world('Town02')
+        self.world = self.client.load_world('Town10HD_Opt', carla.MapLayer.Buildings | carla.MapLayer.ParkedVehicles)
+        self.world.unload_map_layer(carla.MapLayer.Foliage)  # 移除植被层优化性能
+
 
     def set_weather(self):
         """
@@ -117,6 +119,48 @@ class SimulationScene:
                 self.actors["walkers"].append(response.actor_id)
         print("spawn {} vehicles and {} walkers".format(len(self.actors["non_agents"]),
                                                         len(self.actors["walkers"])))
+        
+        # 生成危险行人（精确坐标）
+        try:
+            jaywalker_transform = carla.Transform(
+                location=carla.Location(
+                    x=-3.97,   # 精确X坐标
+                    y=36.10,   # 精确Y坐标
+                    z=0.80     # 精确Z高度
+                ),
+                rotation=carla.Rotation(
+                    yaw=-89.84  # 精确偏航角
+                )
+            )
+
+            # 生成行人
+            walker_bp = random.choice(self.world.get_blueprint_library().filter('walker.pedestrian.*'))
+            self.jaywalker = self.world.spawn_actor(walker_bp, jaywalker_transform)
+            self.actors["walkers"].append(self.jaywalker)
+
+            # 可视化生成点（红色球体）
+            self.world.debug.draw_point(
+                jaywalker_transform.location, 
+                size=0.3, 
+                color=carla.Color(255, 0, 0),
+                life_time=600.0
+            )
+            # 绘制朝向箭头
+            self.world.debug.draw_arrow(
+                jaywalker_transform.location,
+                jaywalker_transform.location + carla.Location(
+                    x=2 * np.cos(np.deg2rad(jaywalker_transform.rotation.yaw)),
+                    y=2 * np.sin(np.deg2rad(jaywalker_transform.rotation.yaw)),
+                    z=0
+                ),
+                thickness=0.1,
+                arrow_size=0.3,
+                color=carla.Color(0, 255, 0),
+                life_time=600.0
+            )
+
+        except Exception as e:
+            logging.error(f"危险行人生成失败: {str(e)}")
         self.world.tick()
 
     def set_actors_route(self):
@@ -126,85 +170,131 @@ class SimulationScene:
         # 设置车辆Autopilot
         self.traffic_manager.set_global_distance_to_leading_vehicle(1.0)
         self.traffic_manager.set_synchronous_mode(True)
-        vehicle_actors = self.world.get_actors(self.actors["non_agents"])
-        for vehicle in vehicle_actors:
-            vehicle.set_autopilot(True, self.traffic_manager.get_port())
+        # vehicle_actors = self.world.get_actors(self.actors["non_agents"])
+        # for vehicle in vehicle_actors:
+        #     vehicle.set_autopilot(True, self.traffic_manager.get_port())
 
-        # 设置行人固定路线运动
-        walker_controller_bp = self.world.get_blueprint_library().find('controller.ai.walker')
-        batch = []
-        for i in range(len(self.actors["walkers"])):
-            batch.append(carla.command.SpawnActor(walker_controller_bp, carla.Transform(),
-                                                  self.actors["walkers"][i]))
-        controllers_id = []
-        for response in self.client.apply_batch_sync(batch, True):
-            if response.error:
-                logging.warning(f"Failed to spawn walker controller: {response.error}")
-                continue
-            else:
-                controllers_id.append(response.actor_id)
+        # # 设置行人固定路线运动
+        # walker_controller_bp = self.world.get_blueprint_library().find('controller.ai.walker')
+        # batch = []
+        # for i in range(len(self.actors["walkers"])):
+        #     batch.append(carla.command.SpawnActor(walker_controller_bp, carla.Transform(),
+        #                                           self.actors["walkers"][i]))
+        # controllers_id = []
+        # for response in self.client.apply_batch_sync(batch, True):
+        #     if response.error:
+        #         logging.warning(f"Failed to spawn walker controller: {response.error}")
+        #         continue
+        #     else:
+        #         controllers_id.append(response.actor_id)
         
-        # 获取所有导航点
-        all_spawn_points = self.world.get_map().get_spawn_points()
+        # # 获取所有导航点
+        # all_spawn_points = self.world.get_map().get_spawn_points()
         
-        # 确保有足够的导航点
-        if len(all_spawn_points) < len(controllers_id):
-            raise ValueError(f"Not enough spawn points. Need {len(controllers_id)}, have {len(all_spawn_points)}")
+        # # 确保有足够的导航点
+        # if len(all_spawn_points) < len(controllers_id):
+        #     raise ValueError(f"Not enough spawn points. Need {len(controllers_id)}, have {len(all_spawn_points)}")
         
-        for i, walker_id in enumerate(controllers_id):
+        # for i, walker_id in enumerate(controllers_id):
+        #     try:
+        #         controller = self.world.get_actor(walker_id)
+        #         # 启动控制器
+        #         controller.start()
+                
+        #         # 使用固定索引获取导航点
+        #         destination = all_spawn_points[i % len(all_spawn_points)].location
+                
+        #         # 设置目标位置
+        #         controller.go_to_location(destination)
+                
+        #         # 设置合理速度 (1.0 - 2.0 m/s)
+        #         speed = 1.5  # 固定速度
+        #         controller.set_max_speed(max(1.0, min(speed, 2.0)))
+                
+        #     except Exception as e:
+        #         logging.warning(f"Failed to configure walker {walker_id}: {str(e)}")
+        #         continue
+        
+         # 新增危险行人控制（与data_collection一致）
+        if hasattr(self, 'jaywalker') and self.jaywalker.is_alive:
             try:
-                controller = self.world.get_actor(walker_id)
+                # 创建AI控制器
+                current_location = self.jaywalker.get_location()
+                initial_location = carla.Location(
+                    x=-3.97,  # 初始X坐标
+                    y=36.10,  # 初始Y坐标
+                    z=0.80    # 初始Z坐标
+                )
+
+                # 计算目标位置（固定偏移）
+                target_location = carla.Location(
+                    x=initial_location.x,
+                    y=initial_location.y - 15,  # 横向移动15米
+                    z=initial_location.z
+                )
+
                 # 启动控制器
-                controller.start()
+                 # 创建WalkerControl（与data_collection一致）
+                walker_control = carla.WalkerControl()
+                direction = target_location - initial_location
+                walker_control.direction = direction.make_unit_vector()  # 标准化方向向量
+                walker_control.speed = 1.8  # 固定速度1.8m/s
+                walker_control.jump = False
                 
-                # 使用固定索引获取导航点
-                destination = all_spawn_points[i % len(all_spawn_points)].location
-                
-                # 设置目标位置
-                controller.go_to_location(destination)
-                
-                # 设置合理速度 (1.0 - 2.0 m/s)
-                speed = 1.5  # 固定速度
-                controller.set_max_speed(max(1.0, min(speed, 2.0)))
-                
+                # 直接应用控制（避免使用AI控制器）
+                self.jaywalker.apply_control(walker_control)
+
+                # 可视化路径
+                self.world.debug.draw_arrow(
+                    self.jaywalker.get_location(), 
+                    target_location,
+                    thickness=0.2,
+                    arrow_size=0.5,
+                    color=carla.Color(255, 0, 0),
+                    life_time=300.0
+                )
+
             except Exception as e:
-                logging.warning(f"Failed to configure walker {walker_id}: {str(e)}")
-                continue
+                logging.error(f"危险行人控制失败: {str(e)}")
+
+        if self.agent:
+            # traffic_manager = self.client.get_trafficmanager()
+            self.traffic_manager.ignore_lights_percentage(self.agent, 100)  # 忽略所有交通灯
+            self.traffic_manager.auto_lane_change(self.agent, False)  # 禁止自动变道
+            self.traffic_manager.vehicle_percentage_speed_difference(self.agent, 30)  # 限速30%
+
+                
 
     def spawn_agent(self):
         """
             生成agent（用于放置传感器的车辆与传感器）
         """
-        spawn_points = sorted(self.world.get_map().get_spawn_points(), key=lambda x: str(x.location))  # 固定生成点顺序
+        # 创建精确的生成点
+        ego_transform = carla.Transform(
+            location=carla.Location(
+                x=-33.97,  # 精确X坐标
+                y=28.10,   # 精确Y坐标
+                z=0.80     # 精确Z高度
+            ),
+            rotation=carla.Rotation(
+                yaw=0.16   # 精确偏航角
+            )
+        )
+
+        # 保持原有生成逻辑
         vehicle_bp = sorted(self.world.get_blueprint_library().filter(
-            self.config["AGENT_CONFIG"]["BLUEPRINT"]), key=lambda bp: bp.id)[0]  # 固定选择第一个蓝图
-        config_transform = self.config["AGENT_CONFIG"]["TRANSFORM"]
-        carla_transform = config_transform_to_carla_transform(config_transform)
+            self.config["AGENT_CONFIG"]["BLUEPRINT"]), key=lambda bp: bp.id)[0]
         
-        # 检查生成位置是否空闲
-        for transform in spawn_points:
-            # 检查是否有车辆在该位置附近
-            is_location_free = True
-            for actor in self.world.get_actors().filter('vehicle.*'):
-                if actor.get_location().distance(transform.location) < 2.0:
-                    is_location_free = False
-                    break
-            
-            if is_location_free:
-                try:
-                    agent = self.world.spawn_actor(vehicle_bp, transform)
-                    print("spawn agent success, transform: ", transform)
-                    self.agent = agent
-                    
-                    # 保存代理的位姿
-                    self.agent_transform = agent.get_transform()
-                    
-                    agent.set_autopilot(True, self.traffic_manager.get_port())
-                    self.actors["agents"].append(agent)
-                    break
-                except RuntimeError as e:
-                    logging.warning(f"Spawn failed at {transform.location}: {e}")
-                    continue
+        # 尝试生成
+        try:
+            agent = self.world.spawn_actor(vehicle_bp, ego_transform)
+            print(f"主车生成成功 坐标: {ego_transform.location}")
+            self.agent = agent
+            agent.set_autopilot(True, self.traffic_manager.get_port())
+            self.actors["agents"].append(agent)
+        except RuntimeError as e:
+            logging.error(f"主车生成失败: {str(e)}")
+            raise
 
         # 生成config中预设的传感器
         self.actors["sensors"][agent] = []
@@ -227,21 +317,10 @@ class SimulationScene:
             设置观察视角(与RGB相机一致)
         """
         spectator = self.world.get_spectator()
-
-        # agent(放置传感器的车辆)位姿「相对世界坐标系」
-        agent_transform_config = self.config["AGENT_CONFIG"]["TRANSFORM"]
-        agent_transform = config_transform_to_carla_transform(agent_transform_config)
-
-        # RGB相机位姿「相对agent坐标系」
-        rgb_transform_config = self.config["SENSOR_CONFIG"]["RGB"]["TRANSFORM"]
-        rgb_transform = config_transform_to_carla_transform(rgb_transform_config)
-
-        # spectator位姿「相对世界坐标系」
-        spectator_location = agent_transform.location + rgb_transform.location
-        spectator_rotation = carla.Rotation(yaw=agent_transform.rotation.yaw + rgb_transform.rotation.yaw,
-                                            pitch=agent_transform.rotation.pitch + rgb_transform.rotation.pitch,
-                                            roll=agent_transform.rotation.roll + rgb_transform.rotation.roll)
-        spectator.set_transform(carla.Transform(spectator_location, spectator_rotation))
+        transform = self.get_agent_transform()
+        bv_transform = carla.Transform(transform.location + carla.Location(z=40, x=0, y=0),
+                                        carla.Rotation(roll=0, yaw=0, pitch=-90))
+        spectator.set_transform(bv_transform)
         
         
     def set_recover(self):
@@ -416,8 +495,8 @@ class SimulationScene:
         try:
             spectator = self.world.get_spectator()
             transform = self.get_agent_transform()
-            bv_transform = carla.Transform(transform.location + carla.Location(z=10, x=-10, y=10),
-                                           carla.Rotation(roll=0, yaw=-70, pitch=-30))
+            bv_transform = carla.Transform(transform.location + carla.Location(z=40, x=0, y=0),
+                                        carla.Rotation(roll=0, yaw=0, pitch=-90))
             spectator.set_transform(bv_transform)
             return spectator
         except Exception as e:

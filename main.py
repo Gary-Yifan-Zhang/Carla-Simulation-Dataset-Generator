@@ -81,7 +81,7 @@ def main():
                     scene.world.tick()
             else:
                 # --no-save模式下只更新场景
-                scene.update_spectator()
+                # scene.update_spectator()
                 scene.world.tick()
 
             frame += 1
