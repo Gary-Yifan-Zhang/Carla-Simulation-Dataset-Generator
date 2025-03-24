@@ -24,6 +24,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage.segmentation import flood_fill
+from tqdm import tqdm
 
 # 定义类别和颜色映射
 ID_TO_COLOR = {
@@ -642,13 +643,20 @@ def images_to_video(data_root, start_frame, end_frame, frame_rate=30):
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     video_writer = cv2.VideoWriter(video_path, fourcc, frame_rate, (width, height))
     
-    # 遍历图片路径并写入视频
+    total_frames = len(img_paths)
+    progress_bar = tqdm(total=total_frames, desc="生成视频进度", unit="帧")
+
     for img_path in img_paths:
         img = cv2.imread(img_path)
         if img is None:
             print(f"无法读取图片: {img_path}")
+            progress_bar.update(1)  # 即使读取失败也更新进度
             continue
         video_writer.write(img)
+        progress_bar.update(1)  # 更新进度条
+        progress_bar.set_postfix({"当前帧": os.path.basename(img_path)})  # 显示正在处理的文件名
+
+    progress_bar.close()  # 关闭进度条
     
     # 释放视频写入对象
     video_writer.release()
@@ -676,15 +684,15 @@ if __name__ == "__main__":
     
     # 输入参数
     frame_id = 20
-    data_root = "./data/training_20250313_103515"
+    data_root = "./data/training_20250324_125447"
     
     # 路径配置
     bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_0.bin"
     img_path = f"{data_root}/image/{frame_id:06}_camera_0.png"
 
     start_frame = 0
-    end_frame = 100
-    frame_rate = 30
+    end_frame = 150
+    frame_rate = 20
 
     images_to_video(data_root, start_frame, end_frame, frame_rate)
     
