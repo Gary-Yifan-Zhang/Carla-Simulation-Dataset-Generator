@@ -185,8 +185,8 @@ def generate_bbox_masks(label_dir, output_dir, **kwargs):
     :param kwargs: 可选参数 width/height/show/save
     """
     # 从kwargs获取参数或使用默认值
-    width = kwargs.get('width', 1920)
-    height = kwargs.get('height', 1080)
+    width = kwargs.get('width', 640)
+    height = kwargs.get('height', 480)
     show = kwargs.get('show', False)
     save = kwargs.get('save', True)
     # 创建输出目录（如果不存在）
@@ -297,7 +297,7 @@ def combine_masks(base_dir, **kwargs):
         frame_num, camera_id = base_name.split('_camera_')
 
         # 生成bbox掩码（复用原有安全机制）
-        bbox_mask = np.zeros((1080, 1920), dtype=np.uint8)
+        bbox_mask = np.zeros((480, 640), dtype=np.uint8)
         with open(os.path.join(label_dir, filename), 'r') as f:
             for line in f:
                 if line.strip():
@@ -305,7 +305,7 @@ def combine_masks(base_dir, **kwargs):
                     left, top = map(lambda x: max(
                         0, int(float(x))), (parts[5], parts[6]))
                     right, bottom = map(lambda x: min(
-                        1920, int(float(x))), (parts[7], parts[8]))
+                        640, int(float(x))), (parts[7], parts[8]))
                     bbox_mask[top:bottom, left:right] = 255
 
         # 分别处理两类掩码
@@ -357,8 +357,8 @@ def process_all_masks(base_dir):
     generate_bbox_masks(
         label_dir=label_dir,
         output_dir=bbox_dir,
-        width=1920,  # 从配置读取或保持默认
-        height=1080
+        width=640,  # 从配置读取或保持默认
+        height=480
     )
     
     print("\n" + "="*40)
