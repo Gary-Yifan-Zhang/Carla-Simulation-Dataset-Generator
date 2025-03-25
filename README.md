@@ -22,7 +22,7 @@
 
 ## 🌟 Project Background
 This project is a high-quality roadside dataset auto-generator developed based on the CARLA simulation environment. It supports the following data outputs:
-- **Multi-view RGB images** (resolution 640×480)
+- **Multi-view RGB images** (resolution 960×640)
 - **3D LiDAR point cloud data**
 - **Annotation files** (including 2D/3D bounding boxes)
 - **Sensor calibration parameters**
@@ -172,12 +172,12 @@ training_YYYYMMDD_HHMMSS/
 
 ### 🚗 Main Sensors
 - **RGB Camera**:
-  - Resolution: 640x480
+  - Resolution: 960x640
   - FOV: 90°
   - Position: Front center (0, 0.0, 1.6)
   
 - **Depth Camera**:
-  - Resolution: 640x480
+  - Resolution: 960x640
   - FOV: 90°
   - Position: Front center (0, 0, 1.6)
 
@@ -195,14 +195,14 @@ training_YYYYMMDD_HHMMSS/
 
 ### 🎥 Auxiliary Cameras
 - **Sub RGB Cameras** (2 units):
-  - Resolution: 640x480
+  - Resolution: 960x640
   - FOV: 90°
   - Positions: 
     - Left: (0, 0.1, 1.6)
     - Right: (0, -0.1, 1.6)
 
 - **View RGB Camera**:
-  - Resolution: 640x480
+  - Resolution: 960x640
   - FOV: 90°
   - Position: (1.0, -3.2, 1.6)
   - Rotation: 30° yaw
@@ -217,7 +217,7 @@ training_YYYYMMDD_HHMMSS/
   - Range: 70m
   - Rotation Frequency: 20Hz
   - Vertical FOV: -10° to +20°
-  - Points per Second: 640K
+  - Points per Second: 960K
   - Channels: 128
   - Positions:
     - Front Left: (0, -0.8, 1.6)
@@ -226,7 +226,7 @@ training_YYYYMMDD_HHMMSS/
     - Rear Right: (-1, 0.8, 1.6)
 
 ### 🎨 Semantic Camera:
-  - Resolution: 640x480
+  - Resolution: 960x640
   - FOV: 90°
   - Position: Front center (0, 0.0, 1.6)
   
@@ -292,7 +292,7 @@ The dataset involves coordinate system conversions between different reference f
 
 ## 📝 Notes
 1. **The CARLA server must remain running** during data generation.
-2. **A high-performance GPU is recommended** (e.g., 480Ti or higher) for optimal performance.
+2. **A high-performance GPU is recommended** (e.g., 640Ti or higher) for optimal performance.
 3. **Data generation rate** is approximately **8-12 FPS**, depending on hardware configuration.
 4. **Custom sensor layouts are supported**. Modify `config/sensors.json` to configure sensor placement.
 
