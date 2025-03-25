@@ -121,46 +121,74 @@ class SimulationScene:
                                                         len(self.actors["walkers"])))
         
         # 生成危险行人（精确坐标）
-        try:
-            jaywalker_transform = carla.Transform(
-                location=carla.Location(
-                    x=-3.97,   # 精确X坐标
-                    y=36.10,   # 精确Y坐标
-                    z=0.80     # 精确Z高度
-                ),
-                rotation=carla.Rotation(
-                    yaw=-89.84  # 精确偏航角
+        # 生成多个危险行人
+        self.jaywalkers = []  # 存储所有危险行人
+        jaywalker_configs = [
+            # 原始危险行人（从右到左）
+            {
+                "location": carla.Location(x=-3.97, y=36.10, z=0.80),
+                "yaw": -89.84,
+                "target_offset": -15  # Y轴偏移-15米
+            },
+            {
+                "location": carla.Location(x=-2.17, y=36.10, z=0.80),
+                "yaw": -89.84,
+                "target_offset": -15  # Y轴偏移-15米
+            },
+            # 新增危险行人1（从左到右）
+            {
+                "location": carla.Location(x=-3.07, y=22.70, z=0.80),  # 马路对面
+                "yaw": 90.16,
+                "target_offset": 15   # Y轴偏移+15米
+            },
+            # 新增危险行人2（斜穿马路）
+            {
+                "location": carla.Location(x=3.97, y=36.10, z=0.80),
+                "yaw": -45.0,
+                "target_offset": -15
+            }
+        ]
+
+        for cfg in jaywalker_configs:
+            try:
+                # 生成行人
+                transform = carla.Transform(
+                    location=cfg["location"],
+                    rotation=carla.Rotation(yaw=cfg["yaw"])
                 )
-            )
+                
+                walker_bp = random.choice(self.world.get_blueprint_library().filter('walker.pedestrian.*'))
+                jaywalker = self.world.spawn_actor(walker_bp, transform)
+                self.actors["walkers"].append(jaywalker)
+                self.jaywalkers.append({
+                    "actor": jaywalker,
+                    "start_pos": cfg["location"],
+                    "target_offset": cfg["target_offset"]
+                })
 
-            # 生成行人
-            walker_bp = random.choice(self.world.get_blueprint_library().filter('walker.pedestrian.*'))
-            self.jaywalker = self.world.spawn_actor(walker_bp, jaywalker_transform)
-            self.actors["walkers"].append(self.jaywalker)
+                # 可视化设置
+                self.world.debug.draw_point(
+                    transform.location, 
+                    size=0.3, 
+                    color=carla.Color(255, 0, 0),
+                    life_time=600.0
+                )
+                self.world.debug.draw_arrow(
+                    transform.location,
+                    transform.location + carla.Location(
+                        x=2 * np.cos(np.deg2rad(transform.rotation.yaw)),
+                        y=2 * np.sin(np.deg2rad(transform.rotation.yaw)),
+                        z=0
+                    ),
+                    thickness=0.1,
+                    arrow_size=0.3,
+                    color=carla.Color(0, 255, 0),
+                    life_time=600.0
+                )
 
-            # # 可视化生成点（红色球体）
-            # self.world.debug.draw_point(
-            #     jaywalker_transform.location, 
-            #     size=0.3, 
-            #     color=carla.Color(255, 0, 0),
-            #     life_time=600.0
-            # )
-            # # 绘制朝向箭头
-            # self.world.debug.draw_arrow(
-            #     jaywalker_transform.location,
-            #     jaywalker_transform.location + carla.Location(
-            #         x=2 * np.cos(np.deg2rad(jaywalker_transform.rotation.yaw)),
-            #         y=2 * np.sin(np.deg2rad(jaywalker_transform.rotation.yaw)),
-            #         z=0
-            #     ),
-            #     thickness=0.1,
-            #     arrow_size=0.3,
-            #     color=carla.Color(0, 255, 0),
-            #     life_time=600.0
-            # )
+            except Exception as e:
+                logging.error(f"危险行人生成失败: {str(e)}")
 
-        except Exception as e:
-            logging.error(f"危险行人生成失败: {str(e)}")
         self.world.tick()
 
     def set_actors_route(self):
@@ -216,46 +244,44 @@ class SimulationScene:
         #         continue
         
          # 新增危险行人控制（与data_collection一致）
-        if hasattr(self, 'jaywalker') and self.jaywalker.is_alive:
+        # 控制所有危险行人
+        for jaywalker_info in self.jaywalkers:
+            jaywalker = jaywalker_info["actor"]
+            if not jaywalker.is_alive:
+                continue
+
             try:
-                # 创建AI控制器
-                current_location = self.jaywalker.get_location()
-                initial_location = carla.Location(
-                    x=-3.97,  # 初始X坐标
-                    y=36.10,  # 初始Y坐标
-                    z=0.80    # 初始Z坐标
-                )
-
-                # 计算目标位置（固定偏移）
+                # 计算目标位置
                 target_location = carla.Location(
-                    x=initial_location.x,
-                    y=initial_location.y - 15,  # 横向移动15米
-                    z=initial_location.z
+                    x=jaywalker_info["start_pos"].x,
+                    y=jaywalker_info["start_pos"].y + jaywalker_info["target_offset"],
+                    z=jaywalker_info["start_pos"].z
                 )
 
-                # 启动控制器
-                 # 创建WalkerControl（与data_collection一致）
+                # 创建控制指令
                 walker_control = carla.WalkerControl()
-                direction = target_location - initial_location
-                walker_control.direction = direction.make_unit_vector()  # 标准化方向向量
-                walker_control.speed = 1.8  # 固定速度1.8m/s
+                direction = target_location - jaywalker.get_location()
+                print(direction)
+                walker_control.direction = direction.make_unit_vector()
+                walker_control.speed = 1.8 + random.uniform(-0.2, 0.2)  # 添加速度变化
                 walker_control.jump = False
                 
-                # 直接应用控制（避免使用AI控制器）
-                self.jaywalker.apply_control(walker_control)
+                # 应用控制
+                jaywalker.apply_control(walker_control)
 
-                # # 可视化路径
-                # self.world.debug.draw_arrow(
-                #     self.jaywalker.get_location(), 
-                #     target_location,
-                #     thickness=0.2,
-                #     arrow_size=0.5,
-                #     color=carla.Color(255, 0, 0),
-                #     life_time=300.0
-                # )
+                # 动态可视化路径
+                self.world.debug.draw_arrow(
+                    jaywalker.get_location(),
+                    target_location,
+                    thickness=0.1,
+                    arrow_size=0.2,
+                    color=carla.Color(random.randint(0,255), random.randint(0,255), 0),
+                    life_time=1.0/self.config.get("FPS", 20)
+                )
 
             except Exception as e:
-                logging.error(f"危险行人控制失败: {str(e)}")
+                logging.error(f"行人控制失败: {str(e)}")
+
 
         if self.agent:
             # traffic_manager = self.client.get_trafficmanager()
@@ -443,7 +469,7 @@ class SimulationScene:
             
             # 计算传感器到ego的相对外参
             data["agents_data"][agent]["extrinsic"] = [
-                np.mat(np.where(np.abs(sensor.get_transform().get_matrix()) < 0.01, 0, sensor.get_transform().get_matrix())) * ego_inv_matrix
+                np.mat(np.where(np.abs(sensor.get_transform().get_matrix()) < 0.0001, 0, sensor.get_transform().get_matrix())) * ego_inv_matrix
                 for sensor in self.actors["sensors"][agent]
             ]
                      
