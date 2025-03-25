@@ -57,6 +57,12 @@ def read_bounding_boxes(file_path, calibration_matrix, translation_vector):
             h *= 1.05
             w *= 1.05
             l *= 1.05
+
+             # 如果是行人，长宽加倍
+            if object_type == "Pedestrian":
+                l *= 2
+                w *= 2
+                
             x, y, z = float(data[12]), float(data[13]), float(data[14])
             print(object_type,x,y,z)
             rotation_y = float(data[15])

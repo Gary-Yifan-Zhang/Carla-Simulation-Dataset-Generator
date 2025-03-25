@@ -8,7 +8,7 @@
 
 import yaml
 import numpy as np
-from view_pc import read_point_cloud, visualize
+from view_pc import read_point_cloud, visualize, read_bounding_boxes, read_calibration
 
 def load_config(config_path):
     """从yaml文件加载雷达配置（适配新文件名格式）"""
@@ -111,13 +111,22 @@ if __name__ == "__main__":
     # 配置参数
     config_path = "configs.yaml"
     data_folder = "data/training_20250325_142657"
-    file_id = "000010"
+    file_id = "000110"
     
     # 加载配置
     lidar_configs = load_config(config_path)
+
+    # 新增：读取主雷达的标定数据
+    calibration_file_path = f"{data_folder}/calib/{file_id}.txt"
+    rotation_matrix, translation_vector = read_calibration(calibration_file_path)
+    
+    # 新增：读取边界框数据
+    bboxes, _ = read_bounding_boxes(f"{data_folder}/lidar_label/{file_id}.txt", 
+                                  rotation_matrix, translation_vector)
+    
     
     # 融合点云
     merged_pc = merge_point_clouds(data_folder, file_id, lidar_configs)
     
     # 可视化（使用view_pc中的函数）
-    visualize(merged_pc, [])
+    visualize(merged_pc, bboxes)
