@@ -124,28 +124,29 @@ class SimulationScene:
         # 生成多个危险行人
         self.jaywalkers = []  # 存储所有危险行人
         jaywalker_configs = [
-            # 原始危险行人（从右到左）
             {
                 "location": carla.Location(x=-3.97, y=36.10, z=0.80),
                 "yaw": -89.84,
-                "target_offset": -15  # Y轴偏移-15米
+                "target_offset": {"x": 0, "y": -15},
+                "speed": 1.8 
             },
             {
                 "location": carla.Location(x=-2.17, y=36.10, z=0.80),
                 "yaw": -89.84,
-                "target_offset": -15  # Y轴偏移-15米
+                "target_offset": {"x": 0, "y": -15},
+                "speed": 2.0
             },
-            # 新增危险行人1（从左到右）
             {
-                "location": carla.Location(x=-3.07, y=22.70, z=0.80),  # 马路对面
+                "location": carla.Location(x=-3.07, y=22.70, z=0.80),
                 "yaw": 90.16,
-                "target_offset": 15   # Y轴偏移+15米
+                "target_offset": {"x": 0, "y": 15},
+                "speed": 1.5 
             },
-            # 新增危险行人2（斜穿马路）
             {
                 "location": carla.Location(x=3.97, y=36.10, z=0.80),
                 "yaw": -45.0,
-                "target_offset": -15
+                "target_offset": {"x": -5, "y": -10},  # 斜向移动
+                "speed": 2.2 
             }
         ]
 
@@ -166,25 +167,25 @@ class SimulationScene:
                     "target_offset": cfg["target_offset"]
                 })
 
-                # 可视化设置
-                self.world.debug.draw_point(
-                    transform.location, 
-                    size=0.3, 
-                    color=carla.Color(255, 0, 0),
-                    life_time=600.0
-                )
-                self.world.debug.draw_arrow(
-                    transform.location,
-                    transform.location + carla.Location(
-                        x=2 * np.cos(np.deg2rad(transform.rotation.yaw)),
-                        y=2 * np.sin(np.deg2rad(transform.rotation.yaw)),
-                        z=0
-                    ),
-                    thickness=0.1,
-                    arrow_size=0.3,
-                    color=carla.Color(0, 255, 0),
-                    life_time=600.0
-                )
+                # # 可视化设置
+                # self.world.debug.draw_point(
+                #     transform.location, 
+                #     size=0.3, 
+                #     color=carla.Color(255, 0, 0),
+                #     life_time=600.0
+                # )
+                # self.world.debug.draw_arrow(
+                #     transform.location,
+                #     transform.location + carla.Location(
+                #         x=2 * np.cos(np.deg2rad(transform.rotation.yaw)),
+                #         y=2 * np.sin(np.deg2rad(transform.rotation.yaw)),
+                #         z=0
+                #     ),
+                #     thickness=0.1,
+                #     arrow_size=0.3,
+                #     color=carla.Color(0, 255, 0),
+                #     life_time=600.0
+                # )
 
             except Exception as e:
                 logging.error(f"危险行人生成失败: {str(e)}")
@@ -253,31 +254,30 @@ class SimulationScene:
             try:
                 # 计算目标位置
                 target_location = carla.Location(
-                    x=jaywalker_info["start_pos"].x,
-                    y=jaywalker_info["start_pos"].y + jaywalker_info["target_offset"],
-                    z=jaywalker_info["start_pos"].z
-                )
+                x=jaywalker_info["start_pos"].x + jaywalker_info["target_offset"].get("x", 0),
+                y=jaywalker_info["start_pos"].y + jaywalker_info["target_offset"].get("y", 0),
+                z=jaywalker_info["start_pos"].z
+            )
 
                 # 创建控制指令
                 walker_control = carla.WalkerControl()
                 direction = target_location - jaywalker.get_location()
-                print(direction)
                 walker_control.direction = direction.make_unit_vector()
-                walker_control.speed = 1.8 + random.uniform(-0.2, 0.2)  # 添加速度变化
+                walker_control.speed = jaywalker_info.get("speed", 1.8) # 如果没有speed使用默认值1.8
                 walker_control.jump = False
                 
                 # 应用控制
                 jaywalker.apply_control(walker_control)
 
-                # 动态可视化路径
-                self.world.debug.draw_arrow(
-                    jaywalker.get_location(),
-                    target_location,
-                    thickness=0.1,
-                    arrow_size=0.2,
-                    color=carla.Color(random.randint(0,255), random.randint(0,255), 0),
-                    life_time=1.0/self.config.get("FPS", 20)
-                )
+                # # 动态可视化路径
+                # self.world.debug.draw_arrow(
+                #     jaywalker.get_location(),
+                #     target_location,
+                #     thickness=0.1,
+                #     arrow_size=0.2,
+                #     color=carla.Color(random.randint(0,255), random.randint(0,255), 0),
+                #     life_time=1.0/self.config.get("FPS", 20)
+                # )
 
             except Exception as e:
                 logging.error(f"行人控制失败: {str(e)}")
