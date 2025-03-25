@@ -197,7 +197,7 @@ class SimulationScene:
             设置actors自动运动
         """
         # 设置车辆Autopilot
-        self.traffic_manager.set_global_distance_to_leading_vehicle(1.0)
+        self.traffic_manager.set_global_distance_to_leading_vehicle(0.5)
         self.traffic_manager.set_synchronous_mode(True)
         # vehicle_actors = self.world.get_actors(self.actors["non_agents"])
         # for vehicle in vehicle_actors:
@@ -288,6 +288,7 @@ class SimulationScene:
             self.traffic_manager.ignore_lights_percentage(self.agent, 100)  # 忽略所有交通灯
             self.traffic_manager.auto_lane_change(self.agent, False)  # 禁止自动变道
             self.traffic_manager.vehicle_percentage_speed_difference(self.agent, 30)  # 限速30%
+
 
                 
 

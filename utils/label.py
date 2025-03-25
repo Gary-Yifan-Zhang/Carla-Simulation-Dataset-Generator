@@ -339,8 +339,6 @@ def create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state):
     
     # 提取位置（直接取变换矩阵的平移分量）
     midpoint = relative_matrix[:3, 3]  # [x, y, z]
-    midpoint[1] -= 0.3  # 新增Y轴偏移调整
-
     
     # 从相对矩阵提取yaw角
     rotation_y = np.arctan2(relative_matrix[1, 0], relative_matrix[0, 0])
