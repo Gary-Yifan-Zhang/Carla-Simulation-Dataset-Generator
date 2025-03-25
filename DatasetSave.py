@@ -192,7 +192,6 @@ class DatasetSave:
             # 保存基础摄像头图像
             for img_path, data_idx in base_images:
                 save_image_data(img_path, dt["sensor_data"][data_idx])
-
             # 保存分割图像
             for seg_cam in [0, 1, 2, 3, 4]:
                 save_image_data(
@@ -202,6 +201,10 @@ class DatasetSave:
 
             # 激光雷达数据保存（保持原始TODO注释）
             save_lidar_data(lidar_files[0], dt["sensor_data"][2], extrinsic[2])
+            save_lidar_data(lidar_files[1], dt["sensor_data"][19], extrinsic[19])
+            save_lidar_data(lidar_files[2], dt["sensor_data"][20], extrinsic[20])
+            save_lidar_data(lidar_files[3], dt["sensor_data"][21], extrinsic[21])
+            save_lidar_data(lidar_files[4], dt["sensor_data"][22], extrinsic[22])
             # save_lidar_data(lidar_files[1], dt["sensor_data"][6], extrinsic[6])  # 保持注释状态
             save_kitti_label_data(lidar_label_filename, dt["pc_labels_kitti"])
 
@@ -225,10 +228,10 @@ class DatasetSave:
                 extent=data["egostate"]["extent"]
             )
                         
-            # 保存深度和语义数据
-            for i, depth_idx in enumerate([1, 11, 12]):
-                save_depth_image_data(depth_files[i], dt["sensor_data"][depth_idx])
-            for i, seg_idx in enumerate([8, 9, 10]):
-                save_semantic_image_data(semantic_files[i], dt["sensor_data"][seg_idx])
+            # # 保存深度和语义数据
+            # for i, depth_idx in enumerate([1, 11, 12]):
+            #     save_depth_image_data(depth_files[i], dt["sensor_data"][depth_idx])
+            # for i, seg_idx in enumerate([8, 9, 10]):
+            #     save_semantic_image_data(semantic_files[i], dt["sensor_data"][seg_idx])
 
         self.captured_frame_no += 1

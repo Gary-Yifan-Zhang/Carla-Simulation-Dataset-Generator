@@ -131,7 +131,7 @@ def create_bbox(x, y, z, h, w, l, rotation_y, object_type, calibration_matrix, t
     bbox.extent = [l,w,h]
     
     # 设置中心点高度偏移（大部分类型需要提升h/2）
-    z_offset = h / 2 if object_type in ["Pedestrian", "Car", "Bicycle", "TrafficLight", "TrafficSigns"] else 0
+    z_offset = h / 2 if object_type in ["Pedestrian", "Car", "Bicycle"] else 0
     bbox.center = np.array([x, y, z + z_offset])
 
     # 设置颜色（默认使用蓝色）
@@ -224,9 +224,9 @@ def check_bbox_size(bboxes, metadata, threshold=1.0):
 
 if __name__ == "__main__":
     # 定义数据文件夹和文件ID
-    data_folder = "data/training_20250324_142316"
-    file_id = "000002"
-    file_id_1 = "000010"
+    data_folder = "data/training_20250325_140844"
+    file_id = "000010"
+    file_id_1 = "000055"
     lidar_index = 0  # 假设这是第一个雷达数据
     
     # 定义标定文件路径

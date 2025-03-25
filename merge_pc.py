@@ -1,186 +1,123 @@
+"""
+多雷达点云融合程序
+功能：
+1. 从config读取所有雷达外参
+2. 将子雷达点云转换到主雷达坐标系
+3. 融合显示所有点云
+"""
+
+import yaml
 import numpy as np
-from view_pc import read_point_cloud
-import re
+from view_pc import read_point_cloud, visualize
 
-# 雷达位姿信息
-LIDAR_POSES = {
-    'LIDAR': {
-        'location': np.array([0, 0, 1.6]),
-        'rotation': np.eye(3)  # 无旋转
-    },
-    'SUB_LIDAR_1': {
-        'location': np.array([0.0, 0.8, 1.6]), # 0.8
-        'rotation': np.eye(3)  
-    },
-    'SUB_LIDAR_2': {
-        'location': np.array([0.0, -0.8, 1.6]), # -0.8
-        'rotation': np.eye(3) 
-    },
-    'SUB_LIDAR_3': {
-        'location': np.array([-1.0, 0.8, 1.6]), # 0.8
-        'rotation': np.eye(3)  
-    },
-    'SUB_LIDAR_4': {
-        'location': np.array([-1.0, -0.8, 1.6]), # -0.8
-        'rotation': np.eye(3) 
+def load_config(config_path):
+    """从yaml文件加载雷达配置（适配新文件名格式）"""
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+    
+    # 定义雷达顺序映射
+    lidar_order = {
+        'LIDAR': 0,        # 主雷达
+        'SUB_LIDAR_1': 1,  # 子雷达1
+        'SUB_LIDAR_2': 2,   # 子雷达2
+        'SUB_LIDAR_3': 3,  # 子雷达1
+        'SUB_LIDAR_4': 4   # 子雷达2
     }
-}
 
-# # 雷达位姿信息
-# LIDAR_POSES = {
-#     'LIDAR': {
-#         'location': np.array([0, 0, 1.6]),
-#         'rotation': np.eye(3)  # 无旋转
-#     },
-#     'SUB_LIDAR_1': {
-#         'location': np.array([-0.8, 0.0, 1.6]),
-#         'rotation': np.eye(3)  # 无旋转
-#     },
-#     'SUB_LIDAR_2': {
-#         'location': np.array([0.8, 0.0, 1.6]),
-#         'rotation': np.eye(3)  # 无旋转
-#     },
-#     'SUB_LIDAR_3': {
-#         'location': np.array([-0.8, -1.0, 1.6]),
-#         'rotation': np.eye(3)  # 无旋转
-#     },
-#     'SUB_LIDAR_4': {
-#         'location': np.array([0.8, -1.0, 1.6]),
-#         'rotation': np.eye(3)  # 无旋转
-#     }
-# }
+    lidar_configs = {}
+    for key in config['SENSOR_CONFIG']:
+        if key in lidar_order:
+            lidar_configs[key] = {
+                'transform': config['SENSOR_CONFIG'][key]['TRANSFORM'],
+                'index': lidar_order[key]  # 新增索引字段
+            }
+    return lidar_configs
 
-def transform_point_cloud(points, rotation_matrix, translation_vector):
-    """
-    将点云转换到目标坐标系
-    :param points: 原始点云 (N, 3)
-    :param rotation_matrix: 旋转矩阵 (3, 3)
-    :param translation_vector: 平移向量 (3,)
-    :return: 转换后的点云 (N, 3)
-    """
-    return np.dot(points, rotation_matrix.T) + translation_vector
-
-def euler_to_rotation_matrix(pitch, yaw, roll):
-    """
-    将欧拉角转换为旋转矩阵（ZYX顺序，单位：弧度）
-    """
-    cy = np.cos(yaw)
-    sy = np.sin(yaw)
-    cp = np.cos(pitch)
-    sp = np.sin(pitch)
-    cr = np.cos(roll)
-    sr = np.sin(roll)
+def euler_to_rotation_matrix(roll, pitch, yaw):
+    """将欧拉角转换为旋转矩阵"""
+    # 转换为弧度
+    roll = np.radians(roll)
+    pitch = np.radians(pitch)
+    yaw = np.radians(yaw)
     
-    R = np.array([
-        [cy*cr + sy*sp*sr, -cy*sr + sy*sp*cr, sy*cp],
-        [cp*sr, cp*cr, -sp],
-        [-sy*cr + cy*sp*sr, sy*sr + cy*sp*cr, cy*cp]
-    ])
-    return R
+    # 计算各轴旋转矩阵
+    R_x = np.array([[1, 0, 0],
+                    [0, np.cos(roll), -np.sin(roll)],
+                    [0, np.sin(roll), np.cos(roll)]])
+    
+    R_y = np.array([[np.cos(pitch), 0, np.sin(pitch)],
+                    [0, 1, 0],
+                    [-np.sin(pitch), 0, np.cos(pitch)]])
+    
+    R_z = np.array([[np.cos(yaw), -np.sin(yaw), 0],
+                    [np.sin(yaw), np.cos(yaw), 0],
+                    [0, 0, 1]])
+    
+    return R_z @ R_y @ R_x
 
-def read_ego_motion(file_path):
-    """
-    读取ego_state文件获取车辆位姿信息
-    :return: (rotation_matrix, translation_vector)
-    """
-    with open(file_path, 'r') as f:
-        content = f.read()
+def transform_point_cloud(points, transform_config):
+    """应用坐标变换到点云（增加Y轴取反）"""
+    # 解析变换参数并镜像Y轴
+    location = np.array(transform_config['location'])
+    location[1] *= -1  # Y轴位置取反
+    location[2] -= 1.6  # 新增Z轴下移
+    
+    rotation = np.array(transform_config['rotation'])
+    rotation[0] *= -1  # 滚转角取反（根据右手定则调整）
+
+    # 构建变换矩阵（增加Y轴镜像）
+    R = euler_to_rotation_matrix(*rotation)
+    # # 创建Y轴镜像矩阵
+    # mirror_y = np.array([
+    #     [1,  0, 0],
+    #     [0, -1, 0],  # Y轴取反
+    #     [0,  0, 1]
+    # ])
+    # R = R @ mirror_y  # 组合旋转和镜像
+    
+    T = np.eye(4)
+    T[:3, :3] = R
+    T[:3, 3] = location
+    
+    # 齐次坐标转换
+    homogeneous_points = np.hstack([points, np.ones((points.shape[0], 1))])
+    transformed_points = (T @ homogeneous_points.T).T[:, :3]
+    
+    return transformed_points
+
+def merge_point_clouds(data_folder, file_id, lidar_configs):
+    """融合多雷达点云（适配新文件名格式）"""
+    merged_points = []
+    
+    for lidar_name, config in lidar_configs.items():
+        # 生成新格式文件路径
+        file_path = f"{data_folder}/velodyne/{file_id}_lidar_{config['index']}.bin"
         
-    # 解析位置和旋转
-    loc_match = re.search(r'Location\(x=([\d.-]+),\s*y=([\d.-]+),\s*z=([\d.-]+)\)', content)
-    rot_match = re.search(r'Rotation\(pitch=([\d.-]+),\s*yaw=([\d.-]+),\s*roll=([\d.-]+)\)', content)
-    
-    translation = np.array([float(loc_match.group(1)), 
-                           float(loc_match.group(2)), 
-                           float(loc_match.group(3))])
-    
-    # 将角度转换为弧度
-    pitch = np.deg2rad(float(rot_match.group(1)))
-    yaw = np.deg2rad(float(rot_match.group(2)))
-    roll = np.deg2rad(float(rot_match.group(3)))
-    
-    rotation = euler_to_rotation_matrix(pitch, yaw, roll)
-    return rotation, translation
-
-def merge_point_clouds(data_folder, file_id):
-    """
-    合并指定ID的所有点云到全局坐标系
-    :param data_folder: 数据文件夹路径
-    :param file_id: 文件ID
-    :return: 合并后的点云
-    """
-    
-    # 读取车辆全局位姿
-    ego_file = f"{data_folder}/ego_state/{file_id}.txt"
-    vehicle_rotation, vehicle_translation = read_ego_motion(ego_file)
-    
-    # 读取主雷达的点云
-    merged_pc = read_point_cloud(f"{data_folder}/velodyne/{file_id}_lidar_0.bin")
-    
-    # 合并所有雷达的点云
-    for i, lidar_key in enumerate(LIDAR_POSES.keys(), start=0):
-        if lidar_key == 'LIDAR' and i != 0:
-            continue
-            
-        # 读取当前雷达的点云
-        curr_pc = read_point_cloud(f"{data_folder}/velodyne/{file_id}_lidar_{i}.bin")
+        # 读取原始点云（添加调试信息）
+        print(f"正在读取雷达 {config['index']}: {file_path}")
+        points = read_point_cloud(file_path)
         
-        # 获取雷达相对于车辆的变换
-        lidar_rot = LIDAR_POSES[lidar_key]['rotation']
-        lidar_trans = LIDAR_POSES[lidar_key]['location']
-        lidar_trans[2] = 0
+        # 应用坐标变换（主雷达不需要变换）
+        if config['index'] == 0:
+            transformed_points = points  # 主雷达保持原坐标
+        else:
+            transformed_points = transform_point_cloud(points, config['transform'])
         
-        # 组合变换：车辆全局位姿 * 雷达相对位姿
-        combined_rotation = np.dot(vehicle_rotation, lidar_rot)
-        # combined_translation = np.dot(vehicle_rotation, lidar_trans) + vehicle_translation
-        combined_translation = np.dot(vehicle_rotation, lidar_trans) 
-        
-        # 转换点云到全局坐标系
-        transformed_pc = transform_point_cloud(curr_pc, combined_rotation, combined_translation)
-        
-        # 合并点云
-        merged_pc = np.vstack((merged_pc, transformed_pc))
+        merged_points.append(transformed_points)
     
-    return merged_pc
-
-def visualize_point_cloud(points):
-    """
-    可视化点云
-    :param points: 点云数据 (N, 3)
-    """
-    # 这里使用open3d进行点云可视化
-    import open3d as o3d
-    
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(points)
-    o3d.visualization.draw_geometries([pcd])
-
-def save_point_cloud(points, file_path):
-    """
-    保存点云数据到文件
-    :param points: 点云数据 (N, 3)
-    :param file_path: 保存路径
-    """
-    # 添加强度值（默认为0），将点云扩展为 (N, 4)
-    points_with_intensity = np.hstack((points, np.zeros((points.shape[0], 1))))
-    
-    # 将点云展平为一维数组并保存
-    flattened_points = points_with_intensity.astype(np.float32).flatten()
-    flattened_points.tofile(file_path)
-    print(f"Point cloud shape: ({flattened_points.shape[0]},)")
-
+    return np.vstack(merged_points)
 
 if __name__ == "__main__":
-    data_folder = "data/training"
-    file_id = "000009"
+    # 配置参数
+    config_path = "configs.yaml"
+    data_folder = "data/training_20250325_142657"
+    file_id = "000010"
     
-    # 合并点云
-    merged_pc = merge_point_clouds(data_folder, file_id)
+    # 加载配置
+    lidar_configs = load_config(config_path)
     
-    # 可视化合并后的点云
-    visualize_point_cloud(merged_pc)
+    # 融合点云
+    merged_pc = merge_point_clouds(data_folder, file_id, lidar_configs)
     
-    # 保存合并后的点云为index999
-    output_path = f"{data_folder}/velodyne/{file_id}_lidar_999.bin"
-    save_point_cloud(merged_pc, output_path)
-    print(f"合并后的点云已保存至: {output_path}")
+    # 可视化（使用view_pc中的函数）
+    visualize(merged_pc, [])
