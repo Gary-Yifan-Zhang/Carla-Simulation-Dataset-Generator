@@ -694,6 +694,7 @@ def read_calibration(file_path):
 
     return calibration_data
 
+
 if __name__ == "__main__":
     # seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
     # img_path = './data/training_20250305_130741/image/000000_camera_0.png'
@@ -716,7 +717,7 @@ if __name__ == "__main__":
     
     # 输入参数
     frame_id = 1
-    data_root = "./data/training_20250326_111957"
+    data_root = "./data/training_20250326_142719"
     camera_id = 4
     
     # 路径配置
@@ -728,22 +729,6 @@ if __name__ == "__main__":
     end_frame = 150
     frame_rate = 20
 
-    # images_to_video(data_root, start_frame, end_frame, frame_rate)
-    
-    # 相机参数 (P0矩阵)
-    # cam_intrinsic = np.array([
-    #     [480.0, 0.0, 480.0],
-    #     [0.0, 480.0, 320.0],
-    #     [0.0, 0.0, 1.0]
-    # ])
-    
-    # # 外参矩阵 (Tr_velo_to_cam)
-    # Tr_velo_to_cam = np.array([
-    #     0.0, -1.0, 0.0, 0.0,
-    #     0.0, 0.0, -1.0, 0.0,
-    #     1.0, 0.0, 0.0, 0.0
-    # ]).reshape(3, 4)
-
     calib_data = read_calibration(calib_path)
 
     # 获取相机内参矩阵 (P矩阵去掉最后一列)
@@ -752,6 +737,39 @@ if __name__ == "__main__":
     # 获取雷达到相机的变换矩阵
     Tr_velo_to_cam = calib_data['Tr_velo_to_cam'][camera_id]
     
+    #相机外参矩阵（包含30度旋转和平移）
+    camera_extrinsic_path = f"{data_root}/extrinsic/{camera_id:03}.txt"
+    camera_extrinsic = np.loadtxt(camera_extrinsic_path)
+
+    # 从extrinsic文件夹读取雷达外参矩阵
+    lidar_extrinsic_path = f"{data_root}/extrinsic/005.txt"
+    lidar_extrinsic = np.loadtxt(lidar_extrinsic_path)
+
+    # 计算雷达外参矩阵的逆
+    lidar_extrinsic_inv = np.linalg.inv(lidar_extrinsic)
+
+    # 计算雷达到相机的CARLA坐标系转换矩阵
+    lidar_to_camera_carla = np.dot(camera_extrinsic, lidar_extrinsic_inv)
+    print(lidar_to_camera_carla)
+
+
+    # CARLA 到 KITTI 坐标系转换矩阵
+    # CARLA (x,y,z) -> KITTI (z,x,-y)
+    velo_to_cam = np.array([
+                [0.0, -1.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0]
+            ])
+
+    # 最终的雷达到相机（KITTI坐标系）的转换矩阵
+    Tr_velo_to_cam_full = np.dot(velo_to_cam, lidar_to_camera_carla)
+
+    # 提取所需的3x4矩阵
+    Tr_velo_to_cam = Tr_velo_to_cam_full[:3, :]
+
+    print("雷达到相机的转换矩阵 (3x4):")
+    print(Tr_velo_to_cam)
     
     # 执行投影
     mask, depth_map, overlap_img = project_lidar_to_camera(

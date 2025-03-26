@@ -154,7 +154,7 @@ def save_calibration_matrices(extrinsics, filename, intrinsic_mat):
     R0 = np.identity(3)  # 相机畸变矩阵
 
     # 定义相机和雷达的索引
-    camera_indices = [0, 4, 5]  # 相机索引
+    camera_indices = [0, 4, 5, 13, 14]  # 相机索引
     lidar_index = 1  # 雷达索引
 
     # 获取雷达外参矩阵

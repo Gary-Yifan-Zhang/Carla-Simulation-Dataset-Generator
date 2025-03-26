@@ -128,7 +128,10 @@ class DatasetSave:
         sensor_mapping = {
             "RGB": "000",
             "SUB_RGB_1": "001", 
-            "SUB_RGB_2": "002"
+            "SUB_RGB_2": "002",
+            "SUB_RGB_3": "003",
+            "SUB_RGB_4": "004",
+            "LIDAR": "005"
         }
         
         # 保存外参文件
