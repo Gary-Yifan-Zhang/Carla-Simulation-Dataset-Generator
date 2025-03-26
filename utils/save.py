@@ -133,7 +133,7 @@ def save_kitti_label_data(filename, datapoints):
     logging.info("Wrote kitti data to %s", filename)
 
 
-def save_calibration_matrices(extrinsics, filename, intrinsic_mat):
+def save_calibration_matrices(config, filename, sensor_mapping, intrinsic_mat):
     """
         保存传感器标定矩阵数据（支持特定索引的相机和雷达）
 
@@ -150,55 +150,62 @@ def save_calibration_matrices(extrinsics, filename, intrinsic_mat):
         3x4    TR_imu_to_velo       IMU到激光雷达的变换矩阵
     """
     # KITTI format demands that we flatten in row-major order
-    ravel_mode = 'C'
-    R0 = np.identity(3)  # 相机畸变矩阵
+     # 自动识别雷达和摄像头
+    lidar_sensor = [k for k in sensor_mapping if "LIDAR" in k.upper()][0]
+    camera_sensors = [k for k in sensor_mapping if k != lidar_sensor]
 
-    # 定义相机和雷达的索引
-    camera_indices = [0, 4, 5, 13, 14]  # 相机索引
-    lidar_index = 1  # 雷达索引
+    # 获取雷达外参
+    lidar_transform = config_transform_to_carla_transform(
+        config["SENSOR_CONFIG"][lidar_sensor]["TRANSFORM"]
+    )
+    lidar_extrinsic = calculate_extrinsic_matrix(lidar_transform)
 
-    # 获取雷达外参矩阵
-    lidar_extrinsic = extrinsics[lidar_index]
-
-    # 保存矩阵到文件
     with open(filename, 'w') as f:
-        # 计算P矩阵（所有P矩阵相同）
-        P0 = intrinsic_mat
-        P0 = np.column_stack((P0, np.array([0, 0, 0])))
-        P0 = np.ravel(P0, order=ravel_mode)
-
-        # 写入P0-P3
+        # 写入P矩阵（所有P矩阵相同）
+        P0 = np.column_stack((intrinsic_mat, np.zeros(3)))
+        P0_flat = P0.ravel(order='C')
         for i in range(4):
-            f.write(f"P{i}: {' '.join(map(str, P0))}\n")
+            f.write(f"P{i}: {' '.join(f'{x:.6f}' for x in P0_flat)}\n")
 
-        # 写入R0_rect
-        f.write(f"R0_rect: {' '.join(map(str, R0.ravel(order=ravel_mode)))}\n")
+        # 写入R0_rect（单位矩阵）
+        f.write(f"R0_rect: {' '.join('1.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 1.000000')}\n")
 
-        # 计算并写入Tr_velo_to_cam
-        for i, cam_idx in enumerate(camera_indices):
-            camera_extrinsic = extrinsics[cam_idx]
-            TR_velodyne = np.dot(np.linalg.inv(camera_extrinsic), lidar_extrinsic)[:3, :4]
-            # 额外的变换矩阵
+        # 为每个摄像头生成变换矩阵
+        for idx, cam_sensor in enumerate(camera_sensors):
+            # 获取相机外参
+            cam_transform = config_transform_to_carla_transform(
+                config["SENSOR_CONFIG"][cam_sensor]["TRANSFORM"]
+            )
+            # 获取完整的4x4外参矩阵
+            cam_extrinsic = calculate_extrinsic_matrix(cam_transform)
+            lidar_extrinsic = calculate_extrinsic_matrix(lidar_transform)
+
+            # 计算雷达外参的逆矩阵
+            lidar_extrinsic_inv = np.linalg.inv(lidar_extrinsic)
+
+            # 计算雷达到相机的变换矩阵（CARLA坐标系）
+            lidar_to_camera = cam_extrinsic @ lidar_extrinsic_inv
+
+            # 应用坐标系转换矩阵（CARLA到KITTI）
             velo_to_cam = np.array([
-                [0.0, -1.0, 0.0],
-                [0.0, 0.0, -1.0],
-                [1.0, 0.0, 0.0]
+                [0.0, -1.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0]
             ])
-            # 应用额外的变换
-            TR_velodyne = np.dot(velo_to_cam, TR_velodyne)
-            # 将矩阵元素四舍五入到小数点后三位
-            TR_velodyne_rounded = np.round(TR_velodyne, 3)
-            # 将矩阵展平并转换为字符串
-            tr_values = ' '.join([f"{float(x):.3f}" for x in TR_velodyne_rounded.ravel(order=ravel_mode)])
-            f.write(f"Tr_velo_to_cam_{i}: {tr_values}\n")
+            TR_adjusted = velo_to_cam @ lidar_to_camera
 
+            # 提取前3行（3x4矩阵）
+            TR = TR_adjusted[:3, :]
+            
+            # 写入调整后的矩阵
+            tr_values = ' '.join(f"{x:.6f}" for x in TR.ravel(order='C'))
+            f.write(f"Tr_velo_to_cam_{idx}: {tr_values}\n")
 
-        # 写入TR_imu_to_velo（单位矩阵）
-        TR_imu_to_velo = np.identity(3)
-        TR_imu_to_velo = np.column_stack((TR_imu_to_velo, np.array([0, 0, 0])))
-        f.write(f"TR_imu_to_velo: {' '.join(map(str, TR_imu_to_velo.ravel(order=ravel_mode)))}\n")
+        # IMU到雷达的变换（单位矩阵）
+        f.write("TR_imu_to_velo: 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000\n")
 
-    logging.info("Wrote all calibration matrices to %s", filename)
+    logging.info(f"Calibration matrices saved to {filename}")
 
 
 def write_flat(file, name, arr):

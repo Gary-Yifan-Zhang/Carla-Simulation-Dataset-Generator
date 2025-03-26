@@ -139,7 +139,7 @@ class DatasetSave:
         save_extrinsic_matrices(self.config, base_extrinsic_path, sensor_mapping)
 
         # 传感器数据索引映射（保持原始索引对应关系）
-        sensor_mapping = [
+        cam_mapping = [
             (0, 0),    # camera 0 -> sensor_data[0]
             (1, 4),    # camera 1 -> sensor_data[4]
             (2, 5),    # camera 2 -> sensor_data[5]
@@ -150,7 +150,7 @@ class DatasetSave:
         # 生成基础图像路径
         base_images = [
             (self.IMAGE_PATH.format(self.captured_frame_no, cam_idx), data_idx)
-            for cam_idx, data_idx in sensor_mapping
+            for cam_idx, data_idx in cam_mapping
         ]
 
         # 生成深度和语义路径（保持原始索引）
@@ -185,12 +185,12 @@ class DatasetSave:
             }
             save_globel_extrinsic_matrices(
                 self.GLOBEL_EXTRINSIC_PATH.format(self.captured_frame_no),
-                sensor_mapping,
+                cam_mapping,
                 extrinsic_dict
             )
 
             save_ref_files(self.OUTPUT_FOLDER, self.captured_frame_no)
-            save_calibration_matrices(extrinsic, calib_filename, dt["intrinsic"])
+            save_calibration_matrices(self.config, calib_filename, sensor_mapping, dt["intrinsic"])
 
             # 保存基础摄像头图像
             for img_path, data_idx in base_images:
