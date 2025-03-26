@@ -6,6 +6,7 @@
 3. 融合显示所有点云
 """
 
+import os  
 import yaml
 import numpy as np
 from view_pc import read_point_cloud, visualize, read_bounding_boxes, read_calibration
@@ -67,13 +68,6 @@ def transform_point_cloud(points, transform_config):
 
     # 构建变换矩阵（增加Y轴镜像）
     R = euler_to_rotation_matrix(*rotation)
-    # # 创建Y轴镜像矩阵
-    # mirror_y = np.array([
-    #     [1,  0, 0],
-    #     [0, -1, 0],  # Y轴取反
-    #     [0,  0, 1]
-    # ])
-    # R = R @ mirror_y  # 组合旋转和镜像
     
     T = np.eye(4)
     T[:3, :3] = R
@@ -107,6 +101,36 @@ def merge_point_clouds(data_folder, file_id, lidar_configs):
     
     return np.vstack(merged_points)
 
+def batch_merge(data_folder, config_path):
+    """批量合成目标文件夹内所有帧的雷达数据"""
+    # 加载配置
+    lidar_configs = load_config(config_path)
+    
+    # 获取所有帧ID
+    velodyne_dir = os.path.join(data_folder, "velodyne")
+    file_ids = set(f.split("_")[0] for f in os.listdir(velodyne_dir) if f.endswith(".bin"))
+    
+    # 处理每一帧
+    for file_id in sorted(file_ids):
+        print(f"\n正在处理帧：{file_id}")
+        
+        # 读取标定数据
+        calibration_file_path = f"{data_folder}/calib/{file_id}.txt"
+        rotation_matrix, translation_vector = read_calibration(calibration_file_path)
+        
+        # 读取边界框数据
+        bboxes, _ = read_bounding_boxes(f"{data_folder}/lidar_label/{file_id}.txt", 
+                                      rotation_matrix, translation_vector)
+        
+        # 融合点云
+        merged_pc = merge_point_clouds(data_folder, file_id, lidar_configs)
+        
+        # 保存结果
+        output_path = f"{data_folder}/velodyne/{file_id}_lidar_999.bin"
+        merged_pc_with_intensity = np.hstack([merged_pc[:, :3], np.zeros((merged_pc.shape[0], 1))])
+        merged_pc_with_intensity.astype(np.float32).tofile(output_path)
+        print(f"融合点云已保存至：{output_path}")
+
 if __name__ == "__main__":
     # 配置参数
     config_path = "configs.yaml"
@@ -130,3 +154,11 @@ if __name__ == "__main__":
     
     # 可视化（使用view_pc中的函数）
     visualize(merged_pc, bboxes)
+
+    # # 新增保存功能
+    # output_path = f"{data_folder}/velodyne/{file_id}_lidar_999.bin"
+    # merged_pc_with_intensity = np.hstack([merged_pc, np.zeros((merged_pc.shape[0], 1))])  # 添加空反射强度
+    # merged_pc_with_intensity.astype(np.float32).tofile(output_path)
+    # print(f"融合点云已保存至：{output_path}")
+
+    batch_merge(data_folder, config_path)
