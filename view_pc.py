@@ -59,9 +59,9 @@ def read_bounding_boxes(file_path, calibration_matrix, translation_vector):
             l *= 1.05
 
              # 如果是行人，长宽加倍
-            if object_type == "Pedestrian":
-                l *= 2
-                w *= 2
+            # if object_type == "Pedestrian":
+            #     l *= 2
+            #     w *= 2
                 
             x, y, z = float(data[12]), float(data[13]), float(data[14])
             print(object_type,x,y,z)
@@ -230,8 +230,8 @@ def check_bbox_size(bboxes, metadata, threshold=1.0):
 
 if __name__ == "__main__":
     # 定义数据文件夹和文件ID
-    data_folder = "data/training_20250325_140844"
-    file_id = "000010"
+    data_folder = "data/training_20250326_111957"
+    file_id = "000001"
     file_id_1 = "000055"
     lidar_index = 0  # 假设这是第一个雷达数据
     
