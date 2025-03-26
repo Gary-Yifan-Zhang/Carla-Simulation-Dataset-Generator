@@ -306,7 +306,7 @@ This project is developed based on the following open-source projects:
 - [x] Further modify data types
 - [x] Add bounding boxes to multi-view images
 - [ ] Create Waymo dataset preprocessing interface
-- [ ] Multi-radar fusion
+- [x] Multi-radar fusion
 - [ ] Create more complex scenarios using OpenScenario
 - [ ] Migrate to CARLA with UE5
 - [ ] Bugs in 3D bounding boxes of traffic lights
