@@ -662,6 +662,38 @@ def images_to_video(data_root, start_frame, end_frame, frame_rate=30):
     video_writer.release()
     print(f"视频已保存到: {video_path}")
 
+def read_calibration(file_path):
+    """读取标定文件中的所有相机和雷达数据"""
+    calibration_data = {
+        'P0': None,
+        'P1': None,
+        'P2': None,
+        'P3': None,
+        'R0_rect': None,
+        'Tr_velo_to_cam': {}
+    }
+
+    with open(file_path, 'r') as f:
+        for line in f:
+            if line.startswith('P0:'):
+                calibration_data['P0'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
+            elif line.startswith('P1:'):
+                calibration_data['P1'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
+            elif line.startswith('P2:'):
+                calibration_data['P2'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
+            elif line.startswith('P3:'):
+                calibration_data['P3'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
+            elif line.startswith('R0_rect:'):
+                calibration_data['R0_rect'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 3)
+            elif line.startswith('Tr_velo_to_cam_'):
+                # 提取相机编号
+                cam_id = int(line.split(':')[0].split('_')[-1])
+                calibration_data['Tr_velo_to_cam'][cam_id] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
+            elif line.startswith('TR_imu_to_velo:'):
+                calibration_data['TR_imu_to_velo'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
+
+    return calibration_data
+
 if __name__ == "__main__":
     # seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
     # img_path = './data/training_20250305_130741/image/000000_camera_0.png'
@@ -683,32 +715,43 @@ if __name__ == "__main__":
     # )
     
     # 输入参数
-    frame_id = 20
-    data_root = "./data/training_20250324_125447"
+    frame_id = 1
+    data_root = "./data/training_20250326_111957"
+    camera_id = 4
     
     # 路径配置
     bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_0.bin"
-    img_path = f"{data_root}/image/{frame_id:06}_camera_0.png"
+    img_path = f"{data_root}/image/{frame_id:06}_camera_{camera_id}.png"
+    calib_path = f"{data_root}/calib/{frame_id:06}.txt"
 
     start_frame = 0
     end_frame = 150
     frame_rate = 20
 
-    images_to_video(data_root, start_frame, end_frame, frame_rate)
+    # images_to_video(data_root, start_frame, end_frame, frame_rate)
     
     # 相机参数 (P0矩阵)
-    cam_intrinsic = np.array([
-        [960.0, 0.0, 960.0],
-        [0.0, 960.0, 540.0],
-        [0.0, 0.0, 1.0]
-    ])
+    # cam_intrinsic = np.array([
+    #     [480.0, 0.0, 480.0],
+    #     [0.0, 480.0, 320.0],
+    #     [0.0, 0.0, 1.0]
+    # ])
     
-    # 外参矩阵 (Tr_velo_to_cam)
-    Tr_velo_to_cam = np.array([
-        0.0, -1.0, 0.0, 0.0,
-        0.0, 0.0, -1.0, 0.0,
-        1.0, 0.0, 0.0, 0.0
-    ]).reshape(3, 4)
+    # # 外参矩阵 (Tr_velo_to_cam)
+    # Tr_velo_to_cam = np.array([
+    #     0.0, -1.0, 0.0, 0.0,
+    #     0.0, 0.0, -1.0, 0.0,
+    #     1.0, 0.0, 0.0, 0.0
+    # ]).reshape(3, 4)
+
+    calib_data = read_calibration(calib_path)
+
+    # 获取相机内参矩阵 (P矩阵去掉最后一列)
+    cam_intrinsic = calib_data[f'P{1}'][:, :3]
+    
+    # 获取雷达到相机的变换矩阵
+    Tr_velo_to_cam = calib_data['Tr_velo_to_cam'][camera_id]
+    
     
     # 执行投影
     mask, depth_map, overlap_img = project_lidar_to_camera(
