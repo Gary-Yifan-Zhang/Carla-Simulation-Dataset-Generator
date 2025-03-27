@@ -80,7 +80,7 @@ def spawn_dataset(data):
                 data["agents_data"][agent]["visible_environment_objects"].append(obj)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[0], ego_state)
+            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[2], ego_state)
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
 
@@ -92,7 +92,7 @@ def spawn_dataset(data):
                 data["agents_data"][agent]["visible_actors"].append(act)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, extrinsic[0], ego_state)
+            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, extrinsic[2], ego_state)
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
                 
@@ -198,6 +198,13 @@ def get_bounding_box(actor, min_extent=0.5, is_environment_object=False):
             bbox.extent.x *=1.05
             bbox.extent.y *=1.05
             bbox.extent.z *=1.05
+
+        if 'walker' in actor.type_id.lower() or 'pedestrian' in actor.type_id.lower():
+            bbox.extent = carla.Vector3D(
+                x=bbox.extent.x * 2,
+                y=bbox.extent.y * 2,
+                z=bbox.extent.z
+            )
     
     return bbox
 
@@ -259,11 +266,11 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
         draw_2d_bounding_box(rgb_image, bbox_2d_rectified)
 
         kitti_label = KittiDescriptor()
+        kitti_label.set_type(obj_tp)
         kitti_label.set_truncated(truncated)
         kitti_label.set_occlusion(occluded)
         kitti_label.set_bbox(bbox_2d)
         kitti_label.set_3d_object_dimensions(ext)
-        kitti_label.set_type(obj_tp)
         kitti_label.set_3d_object_location(midpoint)
         kitti_label.set_rotation_y(rotation_y)
         kitti_label.set_id(get_custom_id(obj, agent))
@@ -357,8 +364,8 @@ def create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state):
     point_cloud_label.set_truncated(0)
     point_cloud_label.set_occlusion(0)
     point_cloud_label.set_bbox([0, 0, 0, 0])
-    point_cloud_label.set_3d_object_dimensions(ext)
     point_cloud_label.set_type(obj_tp)
+    point_cloud_label.set_3d_object_dimensions(ext)
     point_cloud_label.set_lidar_object_location(midpoint)
     point_cloud_label.set_rotation_y(rotation_y)
     return point_cloud_label
