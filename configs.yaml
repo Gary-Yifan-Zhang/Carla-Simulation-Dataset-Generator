@@ -21,13 +21,13 @@ SENSOR_CONFIG:
   LIDAR:
     TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 10240000, channels: 128}
+    ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 64000000, channels: 256}
 
  
   SEMANTIC_LIDAR:
     TRANSFORM: { location: [0, 0, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast_semantic
-    ATTRIBUTE: { range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 10240000, channels: 128 }
+    ATTRIBUTE: { range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 64000000, channels: 256}
 
   SUB_RGB_1:
     BLUEPRINT: sensor.camera.rgb
@@ -145,22 +145,22 @@ SENSOR_CONFIG:
   SUB_LIDAR_1:
     TRANSFORM: {location: [0, -0.8, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 6400000, channels: 128}
+    ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 20480000, channels: 128}
 
   SUB_LIDAR_2:
     TRANSFORM: {location: [0, 0.8, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 6400000, channels: 128}
+    ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 20480000, channels: 128}
 
   SUB_LIDAR_3:
     TRANSFORM: {location: [-1, -0.8, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 6400000, channels: 128}
+    ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 20480000, channels: 128}
 
   SUB_LIDAR_4:
     TRANSFORM: {location: [-1, 0.8, 1.6], rotation: [0, 0, 0]}
     BLUEPRINT: sensor.lidar.ray_cast
-    ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 6400000, channels: 128}
+    ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 20480000, channels: 128}
 
 
 FILTER_CONFIG:
