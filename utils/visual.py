@@ -584,10 +584,10 @@ def depth_to_pcd(data_root, frame_id, camera_id):
         vis.add_geometry(pcd)
 
         # 设置优化后的视角参数
-        view_ctl = vis.get_view_control()
-        view_ctl.set_front([-0.5, -0.3, 0.8])  # 最佳观测角度
-        view_ctl.set_up([0, 0, 1])             # 保持Z轴向上
-        view_ctl.set_zoom(0.3)                 # 适合车辆尺寸的缩放
+        # view_ctl = vis.get_view_control()
+        # view_ctl.set_front([-0.5, -0.3, 0.8])  # 最佳观测角度
+        # view_ctl.set_up([0, 0, 1])             # 保持Z轴向上
+        # view_ctl.set_zoom(0.3)                 # 适合车辆尺寸的缩放
 
         # 添加点云着色
         pcd.paint_uniform_color([0.2, 0.7, 0.3])  # 绿色点云
@@ -683,8 +683,6 @@ def read_calibration(file_path):
                 calibration_data['P2'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
             elif line.startswith('P3:'):
                 calibration_data['P3'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
-            elif line.startswith('R0_rect:'):
-                calibration_data['R0_rect'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 3)
             elif line.startswith('Tr_velo_to_cam_'):
                 # 提取相机编号
                 cam_id = int(line.split(':')[0].split('_')[-1])
@@ -733,9 +731,73 @@ def get_lidar_to_camera_transform(data_root, camera_id):
 
     # 提取所需的3x4矩阵
     Tr_velo_to_cam = Tr_velo_to_cam_full[:3, :]
+    print(Tr_velo_to_cam)
 
     return Tr_velo_to_cam
 
+def colorize_lidar_pcd(mask, depth_map, img_array, cam_intrinsic, max_depth=100.0, show=True):
+    """
+    使用投影结果生成彩色点云
+    
+    参数：
+        mask: 有效点掩码矩阵 (H,W)
+        depth_map: 深度图矩阵 (H,W)
+        img_array: RGB图像数组 (H,W,3)
+        cam_intrinsic: 相机内参矩阵 (3x3)
+        max_depth: 最大有效深度（米）
+        show: 是否显示点云
+    """
+    # 解析相机参数
+    fx, fy = cam_intrinsic[0,0], cam_intrinsic[1,1]
+    cx, cy = cam_intrinsic[0,2], cam_intrinsic[1,2]
+
+    # 获取有效点坐标
+    valid_coords = np.argwhere(mask)
+    u = valid_coords[:, 1]  # 列坐标 (x)
+    v = valid_coords[:, 0]  # 行坐标 (y)
+    Z = depth_map[mask]     # 深度值
+
+    # 过滤有效深度
+    valid_depth = Z <= max_depth
+    u = u[valid_depth]
+    v = v[valid_depth]
+    Z = Z[valid_depth]
+
+    # 计算3D坐标
+    X = (u - cx) * Z / fx
+    Y = (v - cy) * Z / fy
+    points = np.column_stack((X, Y, Z))
+
+    # 获取颜色信息
+    colors = img_array[v, u] / 255.0  # 归一化到0-1
+
+    # 创建点云对象
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    pcd.colors = o3d.utility.Vector3dVector(colors)
+
+    if show:
+        # 可视化设置
+        vis = o3d.visualization.Visualizer()
+        vis.create_window(window_name='Colored LiDAR Point Cloud', width=1280, height=720)
+        
+        # 添加坐标系（缩小尺寸）
+        coord_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=2.0)
+        vis.add_geometry(coord_frame)
+        vis.add_geometry(pcd)
+
+        # 设置视角参数
+        view_ctl = vis.get_view_control()
+        view_ctl.set_front([-0.5, -0.3, 0.8])  # 最佳观测角度
+        view_ctl.set_up([0, 0, 1])             # Z轴向上
+        view_ctl.set_zoom(0.3)
+
+        # 运行可视化
+        print("按Q退出可视化窗口...")
+        vis.run()
+        vis.destroy_window()
+
+    return pcd
 
 if __name__ == "__main__":
     # seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
@@ -759,22 +821,24 @@ if __name__ == "__main__":
     
     # 输入参数
     frame_id = 1
-    data_root = "./data/training_20250326_142719"
-    camera_id = 4
+    data_root = "./data/training_20250327_114435"
+    camera_id = 0
+    lidar_id = 999
     
     # 路径配置
-    bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_0.bin"
+    bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_{lidar_id}.bin"
     img_path = f"{data_root}/image/{frame_id:06}_camera_{camera_id}.png"
     calib_path = f"{data_root}/calib/{frame_id:06}.txt"
 
     start_frame = 0
     end_frame = 150
-    frame_rate = 20
+    frame_rate = 10
+    # images_to_video(data_root, start_frame, end_frame, frame_rate)
 
     calib_data = read_calibration(calib_path)
 
     # 获取相机内参矩阵 (P矩阵去掉最后一列)
-    cam_intrinsic = calib_data[f'P{1}'][:, :3]
+    cam_intrinsic = calib_data[f'P{0}'][:, :3]
     
     Tr_velo_to_cam = get_lidar_to_camera_transform(data_root, camera_id)
     
@@ -794,11 +858,25 @@ if __name__ == "__main__":
     if key == ord('q'):  # 按下 'q' 键退出
         cv2.destroyAllWindows()
     
-    # 保存深度图和mask
-    # 保存深度图、mask和overlap_img
+    # # 保存深度图和mask
+    # # 保存深度图、mask和overlap_img
     # frame_id = 1
     # camera_id = 0
     # save_depth_and_mask(depth_map, mask, overlap_img, data_root, frame_id, camera_id)
 
     # # 读取并可视化
     # depth_to_pcd(data_root, frame_id, camera_id)
+
+    # 读取原始图像
+    img = cv2.imread(img_path)
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    # 生成彩色点云
+    colored_pcd = colorize_lidar_pcd(
+        mask=mask,
+        depth_map=depth_map,
+        img_array=img_rgb,
+        cam_intrinsic=cam_intrinsic,
+        max_depth=100.0,
+        show=True
+    )
