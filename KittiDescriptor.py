@@ -72,9 +72,7 @@ class KittiDescriptor:
         
         # 如果是行人，将width和length扩大到两倍
         if self.type == "Pedestrian":
-            width *= 2
-            length *= 2
-            print(f"行人尺寸调整：width={width}, length={length}")
+            height, width, length = bbox_extent.z, bbox_extent.x * 2, bbox_extent.y * 2
             
         # Since Carla gives us bbox extent, which is a half-box, multiply all by two
         self.extent = (height, width, length)
