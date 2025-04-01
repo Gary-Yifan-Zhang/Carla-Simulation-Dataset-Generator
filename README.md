@@ -22,7 +22,7 @@
 
 ## 🌟 Project Background
 This project is a high-quality roadside dataset auto-generator developed based on the CARLA simulation environment. It supports the following data outputs:
-- **Multi-view RGB images** (resolution 1920×1080)
+- **Multi-view RGB images** (resolution 960×640)
 - **3D LiDAR point cloud data**
 - **Annotation files** (including 2D/3D bounding boxes)
 - **Sensor calibration parameters**
@@ -66,6 +66,8 @@ The generated data is fully compatible with the KITTI dataset format, making it 
 ```python
 # Step 1: Start CARLA server
 ./CarlaUE4.sh -quality-level=Epic
+# or headless mode
+DISPLAY= ./CarlaUE4.sh -opengl -RenderOffScreen
 
 # tep 2: Run the generator script
 python main.py 
@@ -172,12 +174,12 @@ training_YYYYMMDD_HHMMSS/
 
 ### 🚗 Main Sensors
 - **RGB Camera**:
-  - Resolution: 1920x1080
+  - Resolution: 960x640
   - FOV: 90°
   - Position: Front center (0, 0.0, 1.6)
   
 - **Depth Camera**:
-  - Resolution: 1920x1080
+  - Resolution: 960x640
   - FOV: 90°
   - Position: Front center (0, 0, 1.6)
 
@@ -195,14 +197,14 @@ training_YYYYMMDD_HHMMSS/
 
 ### 🎥 Auxiliary Cameras
 - **Sub RGB Cameras** (2 units):
-  - Resolution: 1920x1080
+  - Resolution: 960x640
   - FOV: 90°
   - Positions: 
     - Left: (0, 0.1, 1.6)
     - Right: (0, -0.1, 1.6)
 
 - **View RGB Camera**:
-  - Resolution: 1920x1080
+  - Resolution: 960x640
   - FOV: 90°
   - Position: (1.0, -3.2, 1.6)
   - Rotation: 30° yaw
@@ -217,7 +219,7 @@ training_YYYYMMDD_HHMMSS/
   - Range: 70m
   - Rotation Frequency: 20Hz
   - Vertical FOV: -10° to +20°
-  - Points per Second: 640K
+  - Points per Second: 960K
   - Channels: 128
   - Positions:
     - Front Left: (0, -0.8, 1.6)
@@ -226,7 +228,7 @@ training_YYYYMMDD_HHMMSS/
     - Rear Right: (-1, 0.8, 1.6)
 
 ### 🎨 Semantic Camera:
-  - Resolution: 1920x1080
+  - Resolution: 960x640
   - FOV: 90°
   - Position: Front center (0, 0.0, 1.6)
   
@@ -292,7 +294,7 @@ The dataset involves coordinate system conversions between different reference f
 
 ## 📝 Notes
 1. **The CARLA server must remain running** during data generation.
-2. **A high-performance GPU is recommended** (e.g., 1080Ti or higher) for optimal performance.
+2. **A high-performance GPU is recommended** (e.g., 640Ti or higher) for optimal performance.
 3. **Data generation rate** is approximately **8-12 FPS**, depending on hardware configuration.
 4. **Custom sensor layouts are supported**. Modify `config/sensors.json` to configure sensor placement.
 
@@ -306,7 +308,7 @@ This project is developed based on the following open-source projects:
 - [x] Further modify data types
 - [x] Add bounding boxes to multi-view images
 - [ ] Create Waymo dataset preprocessing interface
-- [ ] Multi-radar fusion
+- [x] Multi-radar fusion
 - [ ] Create more complex scenarios using OpenScenario
 - [ ] Migrate to CARLA with UE5
 - [ ] Bugs in 3D bounding boxes of traffic lights

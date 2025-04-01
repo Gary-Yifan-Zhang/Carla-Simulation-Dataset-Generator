@@ -24,6 +24,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage.segmentation import flood_fill
+from tqdm import tqdm
 
 # 定义类别和颜色映射
 ID_TO_COLOR = {
@@ -583,10 +584,10 @@ def depth_to_pcd(data_root, frame_id, camera_id):
         vis.add_geometry(pcd)
 
         # 设置优化后的视角参数
-        view_ctl = vis.get_view_control()
-        view_ctl.set_front([-0.5, -0.3, 0.8])  # 最佳观测角度
-        view_ctl.set_up([0, 0, 1])             # 保持Z轴向上
-        view_ctl.set_zoom(0.3)                 # 适合车辆尺寸的缩放
+        # view_ctl = vis.get_view_control()
+        # view_ctl.set_front([-0.5, -0.3, 0.8])  # 最佳观测角度
+        # view_ctl.set_up([0, 0, 1])             # 保持Z轴向上
+        # view_ctl.set_zoom(0.3)                 # 适合车辆尺寸的缩放
 
         # 添加点云着色
         pcd.paint_uniform_color([0.2, 0.7, 0.3])  # 绿色点云
@@ -610,6 +611,195 @@ def depth_to_pcd(data_root, frame_id, camera_id):
 
     return points
 
+import cv2
+import os
+
+def images_to_video(data_root, start_frame, end_frame, frame_rate=30):
+    """
+    将图片序列转换为视频
+
+    参数:
+        data_root (str): 数据根目录路径
+        start_frame (int): 起始帧ID
+        end_frame (int): 结束帧ID
+        frame_rate (int): 视频帧率，默认为30
+    """
+    # 创建视频保存目录
+    video_dir = os.path.join(data_root, 'video')
+    os.makedirs(video_dir, exist_ok=True)
+    
+    # 视频输出路径
+    video_path = os.path.join(video_dir, 'output_video.mp4')
+    
+    # 获取图片路径列表
+    img_paths = [f"{data_root}/image/{frame_id:06}_camera_0.png" for frame_id in range(start_frame, end_frame + 1)]
+    
+    # 读取第一张图片以获取视频尺寸
+    first_img = cv2.imread(img_paths[0])
+    print(f"图片尺寸: {first_img.shape}")
+    height, width, layers = first_img.shape
+    
+    # 初始化视频写入对象
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    video_writer = cv2.VideoWriter(video_path, fourcc, frame_rate, (width, height))
+    
+    total_frames = len(img_paths)
+    progress_bar = tqdm(total=total_frames, desc="生成视频进度", unit="帧")
+
+    for img_path in img_paths:
+        img = cv2.imread(img_path)
+        if img is None:
+            print(f"无法读取图片: {img_path}")
+            progress_bar.update(1)  # 即使读取失败也更新进度
+            continue
+        video_writer.write(img)
+        progress_bar.update(1)  # 更新进度条
+        progress_bar.set_postfix({"当前帧": os.path.basename(img_path)})  # 显示正在处理的文件名
+
+    progress_bar.close()  # 关闭进度条
+    
+    # 释放视频写入对象
+    video_writer.release()
+    print(f"视频已保存到: {video_path}")
+
+def read_calibration(file_path):
+    """读取标定文件中的所有相机和雷达数据"""
+    calibration_data = {
+        'P0': None,
+        'P1': None,
+        'P2': None,
+        'P3': None,
+        'R0_rect': None,
+        'Tr_velo_to_cam': {}
+    }
+
+    with open(file_path, 'r') as f:
+        for line in f:
+            if line.startswith('P0:'):
+                calibration_data['P0'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
+            elif line.startswith('P1:'):
+                calibration_data['P1'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
+            elif line.startswith('P2:'):
+                calibration_data['P2'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
+            elif line.startswith('P3:'):
+                calibration_data['P3'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
+            elif line.startswith('Tr_velo_to_cam_'):
+                # 提取相机编号
+                cam_id = int(line.split(':')[0].split('_')[-1])
+                calibration_data['Tr_velo_to_cam'][cam_id] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
+            elif line.startswith('TR_imu_to_velo:'):
+                calibration_data['TR_imu_to_velo'] = np.array(list(map(float, line.split()[1:]))).reshape(3, 4)
+
+    return calibration_data
+
+def get_lidar_to_camera_transform(data_root, camera_id):
+    """
+    计算雷达到相机的转换矩阵
+    
+    参数：
+        data_root: 数据根目录路径
+        camera_id: 相机ID
+        
+    返回：
+        Tr_velo_to_cam: 3x4 雷达到相机的转换矩阵
+    """
+    # 从extrinsic文件夹读取相机外参矩阵
+    camera_extrinsic_path = f"{data_root}/extrinsic/{camera_id:03}.txt"
+    camera_extrinsic = np.loadtxt(camera_extrinsic_path)
+
+    # 从extrinsic文件夹读取雷达外参矩阵
+    lidar_extrinsic_path = f"{data_root}/extrinsic/005.txt"
+    lidar_extrinsic = np.loadtxt(lidar_extrinsic_path)
+
+    # 计算雷达外参矩阵的逆
+    lidar_extrinsic_inv = np.linalg.inv(lidar_extrinsic)
+
+    # 计算雷达到相机的CARLA坐标系转换矩阵
+    lidar_to_camera_carla = np.dot(camera_extrinsic, lidar_extrinsic_inv)
+
+    # CARLA 到 KITTI 坐标系转换矩阵
+    # CARLA (x,y,z) -> KITTI (z,x,-y)
+    velo_to_cam = np.array([
+                [0.0, -1.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0]
+            ])
+
+    # 最终的雷达到相机（KITTI坐标系）的转换矩阵
+    Tr_velo_to_cam_full = np.dot(velo_to_cam, lidar_to_camera_carla)
+
+    # 提取所需的3x4矩阵
+    Tr_velo_to_cam = Tr_velo_to_cam_full[:3, :]
+    print(Tr_velo_to_cam)
+
+    return Tr_velo_to_cam
+
+def colorize_lidar_pcd(mask, depth_map, img_array, cam_intrinsic, max_depth=100.0, show=True):
+    """
+    使用投影结果生成彩色点云
+    
+    参数：
+        mask: 有效点掩码矩阵 (H,W)
+        depth_map: 深度图矩阵 (H,W)
+        img_array: RGB图像数组 (H,W,3)
+        cam_intrinsic: 相机内参矩阵 (3x3)
+        max_depth: 最大有效深度（米）
+        show: 是否显示点云
+    """
+    # 解析相机参数
+    fx, fy = cam_intrinsic[0,0], cam_intrinsic[1,1]
+    cx, cy = cam_intrinsic[0,2], cam_intrinsic[1,2]
+
+    # 获取有效点坐标
+    valid_coords = np.argwhere(mask)
+    u = valid_coords[:, 1]  # 列坐标 (x)
+    v = valid_coords[:, 0]  # 行坐标 (y)
+    Z = depth_map[mask]     # 深度值
+
+    # 过滤有效深度
+    valid_depth = Z <= max_depth
+    u = u[valid_depth]
+    v = v[valid_depth]
+    Z = Z[valid_depth]
+
+    # 计算3D坐标
+    X = (u - cx) * Z / fx
+    Y = (v - cy) * Z / fy
+    points = np.column_stack((X, Y, Z))
+
+    # 获取颜色信息
+    colors = img_array[v, u] / 255.0  # 归一化到0-1
+
+    # 创建点云对象
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    pcd.colors = o3d.utility.Vector3dVector(colors)
+
+    if show:
+        # 可视化设置
+        vis = o3d.visualization.Visualizer()
+        vis.create_window(window_name='Colored LiDAR Point Cloud', width=1280, height=720)
+        
+        # 添加坐标系（缩小尺寸）
+        coord_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=2.0)
+        vis.add_geometry(coord_frame)
+        vis.add_geometry(pcd)
+        # vis.get_render_option().point_size = 0.5
+
+        # 设置视角参数
+        view_ctl = vis.get_view_control()
+        view_ctl.set_front([-0.5, -0.3, 0.8])  # 最佳观测角度
+        view_ctl.set_up([0, 1, 0])             # y轴向上
+        view_ctl.set_zoom(0.3)
+
+        # 运行可视化
+        print("按Q退出可视化窗口...")
+        vis.run()
+        vis.destroy_window()
+
+    return pcd
+
 if __name__ == "__main__":
     # seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
     # img_path = './data/training_20250305_130741/image/000000_camera_0.png'
@@ -631,27 +821,29 @@ if __name__ == "__main__":
     # )
     
     # 输入参数
-    frame_id = 20
-    data_root = "./data/training_20250313_103515"
+    frame_id = 220
+    data_root = "./data/training_20250401_101214"
+    camera_id = 1
+    lidar_id = 0
     
     # 路径配置
-    bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_0.bin"
-    img_path = f"{data_root}/image/{frame_id:06}_camera_0.png"
-    
-    # 相机参数 (P0矩阵)
-    cam_intrinsic = np.array([
-        [960.0, 0.0, 960.0],
-        [0.0, 960.0, 540.0],
-        [0.0, 0.0, 1.0]
-    ])
-    
-    # 外参矩阵 (Tr_velo_to_cam)
-    Tr_velo_to_cam = np.array([
-        0.0, -1.0, 0.0, 0.0,
-        0.0, 0.0, -1.0, 0.0,
-        1.0, 0.0, 0.0, 0.0
-    ]).reshape(3, 4)
-    
+    bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_{lidar_id}.bin"
+    img_path = f"{data_root}/image/{frame_id:06}_camera_{camera_id}.png"
+    calib_path = f"{data_root}/calib/{frame_id:06}.txt"
+
+    start_frame = 0
+    end_frame = 150
+    frame_rate = 10
+    # images_to_video(data_root, start_frame, end_frame, frame_rate)
+
+    calib_data = read_calibration(calib_path)
+
+    # 获取相机内参矩阵 (P矩阵去掉最后一列)
+    cam_intrinsic = calib_data[f'P{0}'][:, :3]
+
+    Tr_velo_to_cam = get_lidar_to_camera_transform(data_root, camera_id)
+    Tr_velo_to_cam[0, 3] = 0
+    Tr_velo_to_cam[2, 3] = -1   
     # 执行投影
     mask, depth_map, overlap_img = project_lidar_to_camera(
         bin_path, img_path, cam_intrinsic, Tr_velo_to_cam, max_depth=100.0
@@ -668,11 +860,25 @@ if __name__ == "__main__":
     if key == ord('q'):  # 按下 'q' 键退出
         cv2.destroyAllWindows()
     
-    # 保存深度图和mask
-    # 保存深度图、mask和overlap_img
+    # # 保存深度图和mask
+    # # 保存深度图、mask和overlap_img
     # frame_id = 1
     # camera_id = 0
     # save_depth_and_mask(depth_map, mask, overlap_img, data_root, frame_id, camera_id)
 
     # # 读取并可视化
     # depth_to_pcd(data_root, frame_id, camera_id)
+
+    # 读取原始图像
+    img = cv2.imread(img_path)
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    # # 生成彩色点云
+    colored_pcd = colorize_lidar_pcd(
+        mask=mask,
+        depth_map=depth_map,
+        img_array=img_rgb,
+        cam_intrinsic=cam_intrinsic,
+        max_depth=100.0,
+        show=True
+    )

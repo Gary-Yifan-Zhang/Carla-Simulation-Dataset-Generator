@@ -182,22 +182,24 @@ def load_extrinsic_npz(file_path, sensor_name=None):
     返回：
         若指定sensor_name: 返回对应4x4矩阵
         未指定sensor_name: 返回(extrinsics_dict, sensor_mapping)
-        
-    示例：
-        # 获取所有数据
-        extrinsics, mapping = load_extrinsic_npz("path/to/file.npz")
-        
-        # 获取特定传感器数据
-        rgb_matrix = load_extrinsic_npz("path/to/file.npz", "RGB")
     """
     try:
         data = np.load(file_path, allow_pickle=True)
         
-        # 加载传感器映射关系
-        sensor_mapping = data['sensor_mapping'].item()
+        # 修改：处理sensor_mapping的加载
+        if 'sensor_mapping' in data:
+            sensor_mapping = data['sensor_mapping']
+            # 如果sensor_mapping是numpy数组且长度为1，则提取其内容
+            if isinstance(sensor_mapping, np.ndarray) and sensor_mapping.size == 1:
+                sensor_mapping = sensor_mapping.item()
+        else:
+            sensor_mapping = {}
         
         # 构建外参字典
-        extrinsics = {name: data[name] for name in sensor_mapping.keys()}
+        extrinsics = {}
+        for key in data.keys():
+            if key != 'sensor_mapping':  # 排除sensor_mapping
+                extrinsics[key] = data[key]
         
         if sensor_name:
             if sensor_name not in extrinsics:
@@ -217,7 +219,7 @@ def load_extrinsic_npz(file_path, sensor_name=None):
     
 if __name__ == "__main__":
     # 示例1：加载全部数据
-    all_extrinsics, mapping = load_extrinsic_npz("./data/training_20250311_142557/extrinsic/000004.npz")
+    all_extrinsics, mapping = load_extrinsic_npz("./data/training_20250326_111957/extrinsic/000001.npz")
     print(f"包含传感器: {list(all_extrinsics.keys())}")
     print(f"RGB传感器矩阵:\n{all_extrinsics['RGB']}")
     print(f"LIDAR传感器矩阵:\n{all_extrinsics['LIDAR']}")

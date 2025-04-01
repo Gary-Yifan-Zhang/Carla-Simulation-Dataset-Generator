@@ -15,7 +15,7 @@ WINDOW_HEIGHT = config["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_y"
 
 
 GLOBAL_ID_MAP = {}
-NEXT_ID = 1
+NEXT_ID = 0
 
 
 def spawn_dataset(data):
@@ -38,13 +38,8 @@ def spawn_dataset(data):
     actors = [x for x in actors if x.type_id.find("vehicle") != -1 or x.type_id.find("walker") != -1]
 
     agents_data = data["agents_data"]
+
     
-    # 在每个agent处理前重置ID计数器
-    global NEXT_ID
-    NEXT_ID = 1
-    GLOBAL_ID_MAP.clear()
-    
-    # TODO: 外参还是不对。旋转的问题
     for agent, dataDict in agents_data.items():
         GLOBAL_ID_MAP[agent.id] = 0
         intrinsic = dataDict["intrinsic"]
@@ -85,7 +80,7 @@ def spawn_dataset(data):
                 data["agents_data"][agent]["visible_environment_objects"].append(obj)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[0], ego_state)
+            pc_label_kitti = is_visible_in_lidar(agent, obj, semantic_lidar, extrinsic[2], ego_state)
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
 
@@ -97,7 +92,7 @@ def spawn_dataset(data):
                 data["agents_data"][agent]["visible_actors"].append(act)
                 image_labels_kitti.append(image_label_kitti)
 
-            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, extrinsic[0], ego_state)
+            pc_label_kitti = is_visible_in_lidar(agent, act, semantic_lidar, extrinsic[2], ego_state)
             if pc_label_kitti is not None:
                 pc_labels_kitti.append(pc_label_kitti)
                 
@@ -203,6 +198,13 @@ def get_bounding_box(actor, min_extent=0.5, is_environment_object=False):
             bbox.extent.x *=1.05
             bbox.extent.y *=1.05
             bbox.extent.z *=1.05
+
+        if 'walker' in actor.type_id.lower() or 'pedestrian' in actor.type_id.lower():
+            bbox.extent = carla.Vector3D(
+                x=bbox.extent.x * 2,
+                y=bbox.extent.y * 2,
+                z=bbox.extent.z
+            )
     
     return bbox
 
@@ -244,6 +246,8 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
     num_visible_vertices, num_vertices_outside_camera = get_occlusion_stats(vertices_pixel, depth_data)
     if num_visible_vertices >= MIN_VISIBLE_VERTICES_FOR_RENDER and \
             num_vertices_outside_camera < MAX_OUT_VERTICES_FOR_RENDER:
+        if obj.id == agent.id:
+            return None
         obj_tp = obj_type(obj)
         rotation_y = get_relative_rotation_yaw(agent.get_transform().rotation, obj_transform.rotation) % math.pi
         midpoint = midpoint_from_world_to_camera(obj_transform.location, extrinsic)
@@ -262,11 +266,11 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
         draw_2d_bounding_box(rgb_image, bbox_2d_rectified)
 
         kitti_label = KittiDescriptor()
+        kitti_label.set_type(obj_tp)
         kitti_label.set_truncated(truncated)
         kitti_label.set_occlusion(occluded)
         kitti_label.set_bbox(bbox_2d)
         kitti_label.set_3d_object_dimensions(ext)
-        kitti_label.set_type(obj_tp)
         kitti_label.set_3d_object_location(midpoint)
         kitti_label.set_rotation_y(rotation_y)
         kitti_label.set_id(get_custom_id(obj, agent))
@@ -322,6 +326,8 @@ def create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state):
     """
         创建点云标签的通用函数
     """
+    if obj.id == agent.id:
+            return None
     obj_tp = obj_type(obj)
     # 获取ego的变换矩阵
     ego_matrix = np.array(ego_state["matrix"])
@@ -340,7 +346,6 @@ def create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state):
     
     # 提取位置（直接取变换矩阵的平移分量）
     midpoint = relative_matrix[:3, 3]  # [x, y, z]
-
     
     # 从相对矩阵提取yaw角
     rotation_y = np.arctan2(relative_matrix[1, 0], relative_matrix[0, 0])
@@ -359,8 +364,8 @@ def create_point_cloud_label(obj, obj_transform, extrinsic, agent, ego_state):
     point_cloud_label.set_truncated(0)
     point_cloud_label.set_occlusion(0)
     point_cloud_label.set_bbox([0, 0, 0, 0])
-    point_cloud_label.set_3d_object_dimensions(ext)
     point_cloud_label.set_type(obj_tp)
+    point_cloud_label.set_3d_object_dimensions(ext)
     point_cloud_label.set_lidar_object_location(midpoint)
     point_cloud_label.set_rotation_y(rotation_y)
     return point_cloud_label
@@ -470,8 +475,8 @@ def get_custom_id(obj, agent):
         return -1
     
     # 如果是ego车辆
-    if obj.id == agent.id:
-        return 0
+    # if obj.id == agent.id:
+    #     return 0
     
     # 如果物体已有映射ID则返回
     if obj.id in GLOBAL_ID_MAP:

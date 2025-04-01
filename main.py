@@ -36,8 +36,9 @@ def main():
         scene.spawn_agent()
         # 设置观察视角(与RGB相机一致)
         scene.set_spectator()
+        if not args.no_save: 
         # 监听传感器信息
-        scene.listen_sensor_data()
+            scene.listen_sensor_data()
 
         # 帧数
         frame = 0
@@ -46,6 +47,15 @@ def main():
         counter = 0
         # 获取最大记录次数配置（带默认值）
         max_record = config["SAVE_CONFIG"].get("MAX_RECORD_COUNT", float('inf'))
+
+        # 新增初始化等待阶段
+        print("初始化完成，开始预运行...")
+        INIT_WAIT_FRAMES = 100  # 等待100帧（约5秒，假设20FPS）
+        for _ in range(INIT_WAIT_FRAMES):
+            scene.update_spectator()  # 保持视角更新
+            scene.world.tick()
+            print(f"预运行进度: {_+1}/{INIT_WAIT_FRAMES}", end='\r')
+        print("\n预运行完成，开始主循环")
 
         while True:
             if not args.no_save:  # 仅在非--no-save模式下进行记录
@@ -81,7 +91,7 @@ def main():
                     scene.world.tick()
             else:
                 # --no-save模式下只更新场景
-                scene.update_spectator()
+                # scene.update_spectator()
                 scene.world.tick()
 
             frame += 1
