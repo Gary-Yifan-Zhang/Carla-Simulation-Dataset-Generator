@@ -77,7 +77,7 @@ def transform_point_cloud(points, transform_config):
 def read_point_cloud(file_path):
     """读取二进制点云文件"""
     point_cloud = np.fromfile(file_path, dtype=np.float32).reshape(-1, 4)
-    print(f"读取点云：{file_path}，形状：{point_cloud.shape}")
+    # print(f"读取点云：{file_path}，形状：{point_cloud.shape}")
     return point_cloud
 
 def read_calibration(file_path):
@@ -108,15 +108,18 @@ def read_bounding_boxes(file_path, calibration_matrix, translation_vector):
             object_type = data[0]
             h, l, w = float(data[9]), float(data[10]), float(data[11])
             
-            # 尺寸调整
-            h *= 1.05
-            w *= 1.05
-            l *= 1.05
+            # # 尺寸调整
+            # h *= 1.05
+            # w *= 1.05
+            # l *= 1.05
             
-            # 如果是行人，长宽加倍
-            # if object_type == "Pedestrian":
-            #     l *= 2
-            #     w *= 2
+            # # 如果是行人，长宽加倍
+            if object_type == "Pedestrian":
+                print(l, w)
+
+                # l *= 2
+                # w *= 2
+                # print(l, w)
             
             x, y, z = float(data[12]), float(data[13]), float(data[14])
             rotation_y = float(data[15])
@@ -206,8 +209,8 @@ def batch_merge(data_folder, config_path):
 
 if __name__ == "__main__":
     config_path = "configs.yaml"
-    data_folder = "data/training_20250325_142657"
-    file_id = "000110"
+    data_folder = "data/training_20250401_101214"
+    file_id = "000001"
     
     lidar_configs = load_config(config_path)
     calibration_file_path = f"{data_folder}/calib/{file_id}.txt"

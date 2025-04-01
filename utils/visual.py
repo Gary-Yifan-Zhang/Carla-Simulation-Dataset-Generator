@@ -785,11 +785,12 @@ def colorize_lidar_pcd(mask, depth_map, img_array, cam_intrinsic, max_depth=100.
         coord_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=2.0)
         vis.add_geometry(coord_frame)
         vis.add_geometry(pcd)
+        # vis.get_render_option().point_size = 0.5
 
         # 设置视角参数
         view_ctl = vis.get_view_control()
         view_ctl.set_front([-0.5, -0.3, 0.8])  # 最佳观测角度
-        view_ctl.set_up([0, 0, 1])             # Z轴向上
+        view_ctl.set_up([0, 1, 0])             # y轴向上
         view_ctl.set_zoom(0.3)
 
         # 运行可视化
@@ -820,10 +821,10 @@ if __name__ == "__main__":
     # )
     
     # 输入参数
-    frame_id = 1
-    data_root = "./data/training_20250327_114435"
-    camera_id = 0
-    lidar_id = 999
+    frame_id = 220
+    data_root = "./data/training_20250401_101214"
+    camera_id = 1
+    lidar_id = 0
     
     # 路径配置
     bin_path = f"{data_root}/velodyne/{frame_id:06}_lidar_{lidar_id}.bin"
@@ -839,9 +840,10 @@ if __name__ == "__main__":
 
     # 获取相机内参矩阵 (P矩阵去掉最后一列)
     cam_intrinsic = calib_data[f'P{0}'][:, :3]
-    
+
     Tr_velo_to_cam = get_lidar_to_camera_transform(data_root, camera_id)
-    
+    Tr_velo_to_cam[0, 3] = 0
+    Tr_velo_to_cam[2, 3] = -1   
     # 执行投影
     mask, depth_map, overlap_img = project_lidar_to_camera(
         bin_path, img_path, cam_intrinsic, Tr_velo_to_cam, max_depth=100.0
@@ -871,7 +873,7 @@ if __name__ == "__main__":
     img = cv2.imread(img_path)
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    # 生成彩色点云
+    # # 生成彩色点云
     colored_pcd = colorize_lidar_pcd(
         mask=mask,
         depth_map=depth_map,
