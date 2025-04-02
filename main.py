@@ -19,8 +19,9 @@ def main():
     config = yaml_to_config("configs.yaml")
     # 初始化仿真场景
     scene = SimulationScene(config)
-    # 初始化保存设置
-    dataset_save = DatasetSave(config)
+    if not args.no_save:
+        # 初始化保存设置
+        dataset_save = DatasetSave(config)
     try:
         # 设置场景地图
         scene.set_map()
