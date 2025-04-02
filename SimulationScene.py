@@ -290,11 +290,9 @@ class SimulationScene:
             self.traffic_manager.vehicle_percentage_speed_difference(self.agent, 30)  # 限速30%
 
 
-                
-
     def spawn_agent(self):
         """
-            生成agent（用于放置传感器的车辆与传感器）
+            生成agent（用于放置传感器的车辆）
         """
         # 创建精确的生成点
         ego_transform = carla.Transform(
@@ -319,25 +317,45 @@ class SimulationScene:
             self.agent = agent
             agent.set_autopilot(True, self.traffic_manager.get_port())
             self.actors["agents"].append(agent)
+            self._spawn_sensors(agent)  # 调用独立传感器生成方法
         except RuntimeError as e:
             logging.error(f"主车生成失败: {str(e)}")
             raise
 
-        # 生成config中预设的传感器
+        self.world.tick()
+
+    def _spawn_sensors(self, agent):
+        """
+            为指定agent生成传感器
+        
+        参数：
+            agent: 需要安装传感器的车辆对象
+        """
+        # 初始化传感器字典
         self.actors["sensors"][agent] = []
+        
+        # 遍历配置生成传感器
         for sensor_name, config in self.config["SENSOR_CONFIG"].items():
             sensor_bp = self.world.get_blueprint_library().find(config["BLUEPRINT"])
+            
+            # 设置传感器属性
             for attr, val in config["ATTRIBUTE"].items():
                 sensor_bp.set_attribute(attr, str(val))
+                
+            # 转换坐标系
             config_transform = config["TRANSFORM"]
             carla_transform = config_transform_to_carla_transform(config_transform)
-            sensor_actor = self.world.spawn_actor(sensor_bp, carla_transform, attach_to=agent)
             
-            # 打印传感器的名字
-            # print(f"Spawned sensor: {sensor_name}")
-            
+            # 生成并挂载传感器
+            sensor_actor = self.world.spawn_actor(
+                sensor_bp, 
+                carla_transform, 
+                attach_to=agent
+            )
             self.actors["sensors"][agent].append(sensor_actor)
-        self.world.tick()
+            
+            # 调试信息
+            logging.debug(f"已挂载传感器: {sensor_name} -> {sensor_actor.type_id}")
 
     def set_spectator(self):
         """
