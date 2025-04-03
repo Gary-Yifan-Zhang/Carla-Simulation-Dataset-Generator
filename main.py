@@ -25,6 +25,8 @@ def main():
     try:
         # 设置场景地图
         scene.set_map()
+        # # 执行场景
+        # scene.run_scenario()   
         # 设置场景天气
         scene.set_weather()
         # 开启同步模式
