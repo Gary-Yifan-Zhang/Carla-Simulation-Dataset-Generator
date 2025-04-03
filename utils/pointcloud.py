@@ -113,14 +113,6 @@ def read_bounding_boxes(file_path, calibration_matrix, translation_vector):
             # w *= 1.05
             # l *= 1.05
             
-            # # 如果是行人，长宽加倍
-            if object_type == "Pedestrian":
-                print(l, w)
-
-                # l *= 2
-                # w *= 2
-                # print(l, w)
-            
             x, y, z = float(data[12]), float(data[13]), float(data[14])
             rotation_y = float(data[15])
 
@@ -209,7 +201,7 @@ def batch_merge(data_folder, config_path):
 
 if __name__ == "__main__":
     config_path = "configs.yaml"
-    data_folder = "data/training_20250401_101214"
+    data_folder = "data/training_20250402_173234"
     file_id = "000001"
     
     lidar_configs = load_config(config_path)
@@ -222,4 +214,4 @@ if __name__ == "__main__":
     merged_pc = merge_point_clouds(data_folder, file_id, lidar_configs)
     visualize(merged_pc, bboxes)
     
-    # batch_merge(data_folder, config_path)
+    batch_merge(data_folder, config_path)
