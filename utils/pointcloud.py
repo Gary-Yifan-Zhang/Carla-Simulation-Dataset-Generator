@@ -201,7 +201,7 @@ def batch_merge(data_folder, config_path):
 
 if __name__ == "__main__":
     config_path = "configs.yaml"
-    data_folder = "data/training_20250402_173234"
+    data_folder = "data/training_20250403_104828"
     file_id = "000001"
     
     lidar_configs = load_config(config_path)
@@ -214,4 +214,4 @@ if __name__ == "__main__":
     merged_pc = merge_point_clouds(data_folder, file_id, lidar_configs)
     visualize(merged_pc, bboxes)
     
-    batch_merge(data_folder, config_path)
+    # batch_merge(data_folder, config_path)
