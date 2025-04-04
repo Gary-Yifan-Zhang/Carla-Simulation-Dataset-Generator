@@ -821,8 +821,8 @@ if __name__ == "__main__":
     # )
     
     # 输入参数
-    frame_id = 220
-    data_root = "./data/training_20250401_101214"
+    frame_id = 1
+    data_root = "./data/training_20250403_134300"
     camera_id = 1
     lidar_id = 0
     
@@ -832,9 +832,11 @@ if __name__ == "__main__":
     calib_path = f"{data_root}/calib/{frame_id:06}.txt"
 
     start_frame = 0
-    end_frame = 150
-    frame_rate = 10
-    # images_to_video(data_root, start_frame, end_frame, frame_rate)
+    end_frame = 250
+    frame_rate = 15
+
+
+    images_to_video(data_root, start_frame, end_frame, frame_rate)
 
     calib_data = read_calibration(calib_path)
 
