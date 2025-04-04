@@ -4,6 +4,7 @@ from DatasetSave import DatasetSave
 import time
 import argparse
 from utils.mask import process_all_masks
+from utils.visual import images_to_video
 
 
 
@@ -53,7 +54,7 @@ def main():
 
         # 新增初始化等待阶段
         print("初始化完成，开始预运行...")
-        INIT_WAIT_FRAMES = 100  # 等待100帧（约5秒，假设20FPS）
+        INIT_WAIT_FRAMES = 10  # 等待100帧（约5秒，假设20FPS）
         for _ in range(INIT_WAIT_FRAMES):
             scene.update_spectator()  # 保持视角更新
             scene.world.tick()
@@ -83,6 +84,9 @@ def main():
                         # 自动生成mask并保存
                         process_all_masks(dataset_save.OUTPUT_FOLDER)
                         print("mask已生成并保存...")
+                        print("*" * 60)
+                        images_to_video(dataset_save.OUTPUT_FOLDER, 0, max_record, 15)
+                        print("视频生成完成")
                         print("*" * 60)
                         program_end_time = time.time()
                         total_time = program_end_time - program_start_time
