@@ -29,7 +29,8 @@ class SimulationScene:
         self.agent_transform = None
         self.agent = None
         # 新增随机种子配置
-        self.random_seed = 42  # 固定随机种子
+        # 47 or 17
+        self.random_seed = 47  # 固定随机种子
         random.seed(self.random_seed)
         np.random.seed(self.random_seed)
 
@@ -131,7 +132,7 @@ class SimulationScene:
                 "speed": 1.8 
             },
             {
-                "location": carla.Location(x=-2.17, y=36.10, z=0.80),
+                "location": carla.Location(x=-2.17, y=37.10, z=0.80),
                 "yaw": -89.84,
                 "target_offset": {"x": 0, "y": -15},
                 "speed": 2.0
@@ -143,10 +144,10 @@ class SimulationScene:
                 "speed": 1.5 
             },
             {
-                "location": carla.Location(x=3.97, y=36.10, z=0.80),
+                "location": carla.Location(x=3.97, y=35.10, z=0.80),
                 "yaw": -45.0,
                 "target_offset": {"x": -5, "y": -10},  # 斜向移动
-                "speed": 2.2 
+                "speed": 3.0 
             }
         ]
 
@@ -299,7 +300,7 @@ class SimulationScene:
         # 创建精确的生成点
         ego_transform = carla.Transform(
             location=carla.Location(
-                x=-33.97,  # 精确X坐标
+                x=-7.97,  # 精确X坐标
                 y=28.10,   # 精确Y坐标
                 z=0.80     # 精确Z高度
             ),
@@ -317,7 +318,8 @@ class SimulationScene:
             agent = self.world.spawn_actor(vehicle_bp, ego_transform)
             print(f"主车生成成功 坐标: {ego_transform.location}")
             self.agent = agent
-            agent.set_autopilot(True, self.traffic_manager.get_port())
+            # agent.set_autopilot(True, self.traffic_manager.get_port())
+            agent.set_autopilot(False)
             self.actors["agents"].append(agent)
         except RuntimeError as e:
             logging.error(f"主车生成失败: {str(e)}")
