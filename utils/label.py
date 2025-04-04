@@ -201,8 +201,8 @@ def get_bounding_box(actor, min_extent=0.5, is_environment_object=False):
 
         if 'walker' in actor.type_id.lower() or 'pedestrian' in actor.type_id.lower():
             bbox.extent = carla.Vector3D(
-                x=bbox.extent.x * 2,
-                y=bbox.extent.y * 2,
+                x=bbox.extent.x * 1.5,
+                y=bbox.extent.y * 1.5,
                 z=bbox.extent.z
             )
     
