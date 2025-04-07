@@ -66,10 +66,14 @@ The generated data is fully compatible with the KITTI dataset format, making it 
 ```python
 # Step 1: Start CARLA server
 ./CarlaUE4.sh -quality-level=Epic
+
 # or headless mode
 DISPLAY= ./CarlaUE4.sh -opengl -RenderOffScreen
 
-# tep 2: Run the generator script
+# Step 2: Run scenario
+python scenario_runner/scenario_runner.py --scenario CutInFrom_left_Lane --reloadWorld
+
+# Step 3: Run the generator script
 python main.py 
 ```
 
