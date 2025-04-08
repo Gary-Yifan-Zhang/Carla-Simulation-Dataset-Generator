@@ -285,11 +285,11 @@ class SimulationScene:
 
 
         if self.agent:
-            # traffic_manager = self.client.get_trafficmanager()
-            self.traffic_manager.ignore_lights_percentage(self.agent, 100)  # 忽略所有交通灯
-            self.traffic_manager.auto_lane_change(self.agent, False)  # 禁止自动变道
-            self.traffic_manager.vehicle_percentage_speed_difference(self.agent, 30)  # 限速30%
-
+            self.traffic_manager.ignore_lights_percentage(self.agent, 100)
+            self.traffic_manager.auto_lane_change(self.agent, False)
+            self.traffic_manager.set_speed_limit(self.agent, 1.0)  # 设置速度限制为20m/s (72km/h)
+            self.traffic_manager.vehicle_percentage_speed_difference(self.agent, 0)  # 取消百分比限速
+            self.traffic_manager.force_lane_change(self.agent, False)  # 禁止强制变道
 
                 
 
@@ -300,7 +300,7 @@ class SimulationScene:
         # 创建精确的生成点
         ego_transform = carla.Transform(
             location=carla.Location(
-                x=-7.97,  # 精确X坐标
+                x=-15.97,  # 精确X坐标
                 y=28.10,   # 精确Y坐标
                 z=0.80     # 精确Z高度
             ),
@@ -318,8 +318,8 @@ class SimulationScene:
             agent = self.world.spawn_actor(vehicle_bp, ego_transform)
             print(f"主车生成成功 坐标: {ego_transform.location}")
             self.agent = agent
-            # agent.set_autopilot(True, self.traffic_manager.get_port())
-            agent.set_autopilot(False)
+            agent.set_autopilot(True, self.traffic_manager.get_port())
+            # agent.set_autopilot(False)
             self.actors["agents"].append(agent)
         except RuntimeError as e:
             logging.error(f"主车生成失败: {str(e)}")

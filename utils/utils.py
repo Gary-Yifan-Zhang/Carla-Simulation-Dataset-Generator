@@ -3,7 +3,8 @@ import carla
 import math
 import numpy as np
 import logging
-import logging
+from pathlib import Path
+import time
 
 def yaml_to_config(file):
     """
@@ -216,6 +217,22 @@ def load_extrinsic_npz(file_path, sensor_name=None):
     except Exception as e:
         logging.error(f"加载外参文件失败: {str(e)}")
         raise
+
+def setup_logging():
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+    
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    log_file = log_dir / f"simulation_{timestamp}.log"
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ]
+    )
     
 if __name__ == "__main__":
     # 示例1：加载全部数据

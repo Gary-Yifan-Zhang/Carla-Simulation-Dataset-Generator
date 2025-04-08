@@ -1,4 +1,4 @@
-from utils.utils import yaml_to_config
+from utils.utils import yaml_to_config, setup_logging
 from SimulationScene import SimulationScene
 from DatasetSave import DatasetSave
 import time
@@ -14,6 +14,7 @@ def main():
                         help="跳过数据保存步骤")
     args = parser.parse_args()
     program_start_time = time.time()
+    setup_logging()
 
     # 加载配置文件
     config = yaml_to_config("configs.yaml")
@@ -51,7 +52,7 @@ def main():
 
         # 新增初始化等待阶段
         print("初始化完成，开始预运行...")
-        INIT_WAIT_FRAMES = 100  # 等待100帧（约5秒，假设20FPS）
+        INIT_WAIT_FRAMES = 30  # 等待100帧（约5秒，假设20FPS）
         for _ in range(INIT_WAIT_FRAMES):
             scene.update_spectator()  # 保持视角更新
             scene.world.tick()
