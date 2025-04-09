@@ -185,7 +185,7 @@ def batch_merge(data_folder, config_path):
     file_ids = set(f.split("_")[0] for f in os.listdir(velodyne_dir) if f.endswith(".bin"))
     
     for file_id in sorted(file_ids):
-        print(f"\n正在处理帧：{file_id}")
+        # print(f"\r正在处理帧：{file_id}  ", end='', flush=True)
         
         calibration_file_path = f"{data_folder}/calib/{file_id}.txt"
         rotation_matrix, translation_vector = read_calibration(calibration_file_path)
@@ -197,12 +197,13 @@ def batch_merge(data_folder, config_path):
         
         output_path = f"{data_folder}/velodyne/{file_id}_lidar_999.bin"
         merged_pc.astype(np.float32).tofile(output_path)
-        print(f"融合点云已保存至：{output_path}")
+        
+        print(f"\r融合点云已保存至：{output_path}", end='', flush=True)
 
 if __name__ == "__main__":
     config_path = "configs.yaml"
-    data_folder = "data/training_20250403_104828"
-    file_id = "000001"
+    data_folder = "data/training_20250409_112900"
+    file_id = "000100"
     
     lidar_configs = load_config(config_path)
     calibration_file_path = f"{data_folder}/calib/{file_id}.txt"
@@ -214,4 +215,4 @@ if __name__ == "__main__":
     merged_pc = merge_point_clouds(data_folder, file_id, lidar_configs)
     visualize(merged_pc, bboxes)
     
-    # batch_merge(data_folder, config_path)
+    batch_merge(data_folder, config_path)
