@@ -5,7 +5,7 @@ import time
 import argparse
 from utils.mask import process_all_masks
 from utils.visual import images_to_video
-
+from utils.pointcloud import batch_merge
 
 
 def main():
@@ -13,6 +13,8 @@ def main():
     parser = argparse.ArgumentParser(description="仿真数据采集程序")
     parser.add_argument('--no-save', action='store_true', 
                         help="跳过数据保存步骤")
+    parser.add_argument('--scenario-name', type=str, default="UnknownScenario",
+                        help="当前运行的场景名称")
     args = parser.parse_args()
     program_start_time = time.time()
 
@@ -22,7 +24,7 @@ def main():
     scene = SimulationScene(config)
     if not args.no_save:
         # 初始化保存设置
-        dataset_save = DatasetSave(config)
+        dataset_save = DatasetSave(config, args.scenario_name)
     try:
         # 设置场景地图
         scene.set_map()
@@ -32,12 +34,12 @@ def main():
         scene.set_weather()
         # 开启同步模式
         scene.set_synchrony()
+        # 生成agent（用于放置传感器的车辆与传感器）
+        scene.spawn_agent()
         # 在场景中生成actors(车辆与行人)
         scene.spawn_actors()
         # 设置actors自动运动
         scene.set_actors_route()
-        # 生成agent（用于放置传感器的车辆与传感器）
-        scene.spawn_agent()
         # 设置观察视角(与RGB相机一致)
         scene.set_spectator()
         if not args.no_save: 
@@ -78,6 +80,11 @@ def main():
                     
                     if counter >= max_record:
                         print(f"达到最大记录次数{max_record}，程序即将退出...")
+                        print("*" * 60)
+                        print("开始合成多雷达点云...")
+                        batch_merge(dataset_save.OUTPUT_FOLDER, "configs.yaml")
+                        print("点云合成完成！")
+                        print("*" * 60)
                         # 自动生成所有mask
                         print("开始自动生成mask...")
                         time.sleep(1)  # 等待一秒

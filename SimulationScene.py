@@ -53,7 +53,7 @@ class SimulationScene:
             host='127.0.0.1',
             port=2000,
             timeout=10.0,
-            trafficManagerPort=8000,
+            trafficManagerPort=8001,
             trafficManagerSeed=0,
             sync=True,
             scenario=self.config.get("SCENARIO", "FollowLeadingVehicleWithObstacle_2"),
@@ -82,7 +82,7 @@ class SimulationScene:
         )
         self.client = carla.Client(self.args.host, self.args.port)
 
-        self.scenario_runner = ScenarioRunner(self.args)
+        # self.scenario_runner = ScenarioRunner(self.args)
         print("Init")
 
     def run_scenario(self):
