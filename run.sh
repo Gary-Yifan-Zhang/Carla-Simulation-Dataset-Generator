@@ -1,11 +1,12 @@
 #!/bin/bash
 
 SCENARIO_NAME="DynamicObjectCrossing_1"
-MAIN_PY_ARGS="--no-save" 
+# MAIN_PY_ARGS="--no-save" 
+MAIN_PY_ARGS="" 
 
 tmux new-session -d -s carla_session "python scenario_runner/scenario_runner.py --scenario ${SCENARIO_NAME} --reloadWorld"
 sleep 1.5
-tmux split-window -t carla_session "python main.py ${MAIN_PY_ARGS}" 
+tmux split-window -t carla_session "python main.py ${MAIN_PY_ARGS} --scenario-name ${SCENARIO_NAME}"
 tmux attach -t carla_session
 
 # Currently the following scenarios are supported:

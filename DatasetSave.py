@@ -4,7 +4,7 @@ import time
 
 
 class DatasetSave:
-    def __init__(self, config):
+    def __init__(self, config, scenario_name):
         """
             初始化
 
@@ -27,10 +27,10 @@ class DatasetSave:
         self.DEPTH_PATH = None 
         self.SEMANTIC_PATH = None
 
-        self.generate_path(self.config["SAVE_CONFIG"]["ROOT_PATH"])
+        self.generate_path(self.config["SAVE_CONFIG"]["ROOT_PATH"], scenario_name)
         self.captured_frame_no = self.get_current_files_num()
 
-    def generate_path(self, root_path):
+    def generate_path(self, root_path, scenario_name):
         """
             生成数据存储的路径
 
@@ -40,7 +40,7 @@ class DatasetSave:
 
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         print(timestamp)
-        PHASE = f"training_{timestamp}"
+        PHASE = f"training_{timestamp}_{scenario_name}"
         self.OUTPUT_FOLDER = os.path.join(root_path, PHASE)
         folders = ['calib', 'image', 'image_label', 'bbox_img', 
               'velodyne', 'lidar_label', 'ego_state', 'extrinsic', 

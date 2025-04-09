@@ -13,6 +13,8 @@ def main():
     parser = argparse.ArgumentParser(description="仿真数据采集程序")
     parser.add_argument('--no-save', action='store_true', 
                         help="跳过数据保存步骤")
+    parser.add_argument('--scenario-name', type=str, default="UnknownScenario",
+                        help="当前运行的场景名称")
     args = parser.parse_args()
     program_start_time = time.time()
 
@@ -22,7 +24,7 @@ def main():
     scene = SimulationScene(config)
     if not args.no_save:
         # 初始化保存设置
-        dataset_save = DatasetSave(config)
+        dataset_save = DatasetSave(config, args.scenario_name)
     try:
         # 设置场景地图
         scene.set_map()
