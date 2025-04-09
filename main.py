@@ -5,7 +5,7 @@ import time
 import argparse
 from utils.mask import process_all_masks
 from utils.visual import images_to_video
-
+from utils.pointcloud import batch_merge
 
 
 def main():
@@ -80,6 +80,11 @@ def main():
                     
                     if counter >= max_record:
                         print(f"达到最大记录次数{max_record}，程序即将退出...")
+                        print("*" * 60)
+                        print("开始合成多雷达点云...")
+                        batch_merge(dataset_save.OUTPUT_FOLDER, "configs.yaml")
+                        print("点云合成完成！")
+                        print("*" * 60)
                         # 自动生成所有mask
                         print("开始自动生成mask...")
                         time.sleep(1)  # 等待一秒
