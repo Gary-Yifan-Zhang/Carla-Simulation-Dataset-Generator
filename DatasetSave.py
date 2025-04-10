@@ -27,6 +27,8 @@ class DatasetSave:
         self.DEPTH_PATH = None 
         self.SEMANTIC_PATH = None
 
+        self.NEW_VIEW_PATH = None
+
         self.generate_path(self.config["SAVE_CONFIG"]["ROOT_PATH"], scenario_name)
         self.captured_frame_no = self.get_current_files_num()
 
@@ -44,7 +46,7 @@ class DatasetSave:
         self.OUTPUT_FOLDER = os.path.join(root_path, PHASE)
         folders = ['calib', 'image', 'image_label', 'bbox_img', 
               'velodyne', 'lidar_label', 'ego_state', 'extrinsic', 
-              'depth', 'semantic']
+              'depth', 'semantic', 'new_view']
 
         for folder in folders:
             directory = os.path.join(self.OUTPUT_FOLDER, folder)
@@ -65,6 +67,7 @@ class DatasetSave:
         self.EXTRINSIC_TXT_PATH = os.path.join(self.OUTPUT_FOLDER, 'extrinsic/{0:06}.txt')
         self.DEPTH_PATH = os.path.join(self.OUTPUT_FOLDER, 'depth/{0:06}_depth_{1}.png')
         self.SEMANTIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'semantic/{0:06}_semantic_{1}.png')
+        self.NEW_VIEW_PATH = os.path.join(self.OUTPUT_FOLDER, 'new_view/{0:06}_new_view_{1}.png')
 
 
 
@@ -169,6 +172,12 @@ class DatasetSave:
             for i in range(5)
         ]
 
+        # 新视角图片路径生成
+        new_view_files = [
+            self.NEW_VIEW_PATH.format(self.captured_frame_no, i)
+            for i in range(5)
+        ]
+
         # 其他路径保持不变
         calib_filename = self.CALIBRATION_PATH.format(self.captured_frame_no)
         lidar_label_filename = self.LIDAR_LABEL_PATH.format(self.captured_frame_no)
@@ -202,13 +211,16 @@ class DatasetSave:
                     dt["sensor_data"][[8, 9, 10, 15, 16][seg_cam]]
                 )
 
-            # 激光雷达数据保存（保持原始TODO注释）
-            save_lidar_data(lidar_files[0], dt["sensor_data"][2], extrinsic[2])
-            save_lidar_data(lidar_files[1], dt["sensor_data"][19], extrinsic[19])
-            save_lidar_data(lidar_files[2], dt["sensor_data"][20], extrinsic[20])
-            save_lidar_data(lidar_files[3], dt["sensor_data"][21], extrinsic[21])
-            save_lidar_data(lidar_files[4], dt["sensor_data"][22], extrinsic[22])
-            # save_lidar_data(lidar_files[1], dt["sensor_data"][6], extrinsic[6])  # 保持注释状态
+            # 在数据保存部分添加
+            for i, view_idx in enumerate([6, 23, 24, 25, 26]): 
+                save_image_data(new_view_files[i], dt["sensor_data"][view_idx])
+
+            # 激光雷达数据保存
+            sensor_indices = [2, 19, 20, 21, 22]
+            for i, sensor_idx in enumerate(sensor_indices):
+                save_lidar_data(lidar_files[i], 
+                              dt["sensor_data"][sensor_idx], 
+                              extrinsic[sensor_idx])
             save_kitti_label_data(lidar_label_filename, dt["pc_labels_kitti"])
 
             # 保存标签和标注数据
