@@ -57,15 +57,15 @@ SENSOR_CONFIG:
   #     location: [0, 0, 1.0]
   #     rotation: [0, 0, 0]
 
-  VIEW_RGB_1:
+  NEW_RGB_1:
     BLUEPRINT: sensor.camera.rgb
     ATTRIBUTE:
       image_size_x: 960
       image_size_y: 640
       fov: 90
     TRANSFORM:
-      location: [1.0, -3.2, 1.6]
-      rotation: [0, 30, 0]
+      location: [1.5, 0, 1.6]
+      rotation: [0, 0, 0]
 
   VIEW_RGB_BEV:
     BLUEPRINT: sensor.camera.rgb
@@ -162,6 +162,45 @@ SENSOR_CONFIG:
     BLUEPRINT: sensor.lidar.ray_cast
     ATTRIBUTE: {range: 70, rotation_frequency: 100, upper_fov: 20, lower_fov: -10, points_per_second: 20480000, channels: 128}
 
+  NEW_RGB_2:
+      BLUEPRINT: sensor.camera.rgb
+      ATTRIBUTE:
+        image_size_x: 960
+        image_size_y: 640
+        fov: 90
+      TRANSFORM:
+        location: [1.0, 3.2, 1.6]
+        rotation: [0, 0, 0]
+
+  NEW_RGB_3:
+      BLUEPRINT: sensor.camera.rgb
+      ATTRIBUTE:
+        image_size_x: 960
+        image_size_y: 640
+        fov: 90
+      TRANSFORM:
+        location: [1.0, 3.2, 1.6]
+        rotation: [0, 30, 0]
+
+  NEW_RGB_4:
+      BLUEPRINT: sensor.camera.rgb
+      ATTRIBUTE:
+        image_size_x: 960
+        image_size_y: 640
+        fov: 90
+      TRANSFORM:
+        location: [1.0, -3.2, 1.6]
+        rotation: [0, 0, 0]
+    
+  NEW_RGB_5:
+    BLUEPRINT: sensor.camera.rgb
+    ATTRIBUTE:
+      image_size_x: 960
+      image_size_y: 640
+      fov: 90
+    TRANSFORM:
+      location: [1.0, 3.2, 1.6]
+      rotation: [0, -30, 0]
 
 FILTER_CONFIG:
   PRELIMINARY_FILTER_DISTANCE: 50
@@ -172,5 +211,5 @@ FILTER_CONFIG:
 
 SAVE_CONFIG:
   ROOT_PATH: data
-  STEP: 3
+  STEP: 10
   MAX_RECORD_COUNT: 200
