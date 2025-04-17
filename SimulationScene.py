@@ -52,7 +52,12 @@ class SimulationScene:
         """
             设置场景天气
         """
-        pass
+        weather = carla.WeatherParameters(
+            cloudiness=0.0,
+            precipitation=0.0,
+            sun_altitude_angle=70.0
+        )
+        self.world.set_weather(weather)
 
     def set_synchrony(self):
         """
