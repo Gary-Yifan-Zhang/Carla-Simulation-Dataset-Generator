@@ -53,7 +53,7 @@ class SimulationScene:
             设置场景天气
         """
         weather = carla.WeatherParameters(
-            cloudiness=0.0,
+            cloudiness=10.0,
             precipitation=0.0,
             sun_altitude_angle=70.0
         )
