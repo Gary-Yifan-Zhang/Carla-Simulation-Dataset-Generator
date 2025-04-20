@@ -180,7 +180,7 @@ SENSOR_CONFIG:
         fov: 90
       TRANSFORM:
         location: [1.0, 3.2, 1.6]
-        rotation: [0, 30, 0]
+        rotation: [0, 15, 0]
 
   NEW_RGB_4:
       BLUEPRINT: sensor.camera.rgb
@@ -200,7 +200,107 @@ SENSOR_CONFIG:
       fov: 90
     TRANSFORM:
       location: [1.0, 3.2, 1.6]
-      rotation: [0, -30, 0]
+      rotation: [0, -15, 0]
+
+  NEW_DEPTH_1:
+      BLUEPRINT: sensor.camera.depth
+      ATTRIBUTE:
+        image_size_x: 960
+        image_size_y: 640
+        fov: 90
+      TRANSFORM:
+        location: [1.5, 0, 1.6]
+        rotation: [0, 0, 0]
+
+  NEW_DEPTH_2:
+      BLUEPRINT: sensor.camera.depth
+      ATTRIBUTE:
+        image_size_x: 960
+        image_size_y: 640
+        fov: 90
+      TRANSFORM:
+        location: [1.0, 3.2, 1.6]
+        rotation: [0, 0, 0]
+
+  NEW_DEPTH_3:
+      BLUEPRINT: sensor.camera.depth
+      ATTRIBUTE:
+        image_size_x: 960
+        image_size_y: 640
+        fov: 90
+      TRANSFORM:
+        location: [1.0, 3.2, 1.6]
+        rotation: [0, 15, 0]
+
+  NEW_DEPTH_4:
+      BLUEPRINT: sensor.camera.depth
+      ATTRIBUTE:
+        image_size_x: 960
+        image_size_y: 640
+        fov: 90
+      TRANSFORM:
+        location: [1.0, -3.2, 1.6]
+        rotation: [0, 0, 0]
+    
+  NEW_DEPTH_5:
+    BLUEPRINT: sensor.camera.depth
+    ATTRIBUTE:
+      image_size_x: 960
+      image_size_y: 640
+      fov: 90
+    TRANSFORM:
+      location: [1.0, 3.2, 1.6]
+      rotation: [0, -15, 0]
+
+  NEW_SEM_1:
+      BLUEPRINT: sensor.camera.semantic_segmentation
+      ATTRIBUTE:
+        image_size_x: 960
+        image_size_y: 640
+        fov: 90
+      TRANSFORM:
+        location: [1.5, 0, 1.6]
+        rotation: [0, 0, 0]
+
+  NEW_SEM_2:
+      BLUEPRINT: sensor.camera.semantic_segmentation
+      ATTRIBUTE:
+        image_size_x: 960
+        image_size_y: 640
+        fov: 90
+      TRANSFORM:
+        location: [1.0, 3.2, 1.6]
+        rotation: [0, 0, 0]
+
+  NEW_SEM_3:
+      BLUEPRINT: sensor.camera.semantic_segmentation
+      ATTRIBUTE:
+        image_size_x: 960
+        image_size_y: 640
+        fov: 90
+      TRANSFORM:
+        location: [1.0, 3.2, 1.6]
+        rotation: [0, 15, 0]
+
+  NEW_SEM_4:
+      BLUEPRINT: sensor.camera.semantic_segmentation
+      ATTRIBUTE:
+        image_size_x: 960
+        image_size_y: 640
+        fov: 90
+      TRANSFORM:
+        location: [1.0, -3.2, 1.6]
+        rotation: [0, 0, 0]
+    
+  NEW_SEM_5:
+    BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE:
+      image_size_x: 960
+      image_size_y: 640
+      fov: 90
+    TRANSFORM:
+      location: [1.0, 3.2, 1.6]
+      rotation: [0, -15, 0]
 
 FILTER_CONFIG:
   PRELIMINARY_FILTER_DISTANCE: 50
