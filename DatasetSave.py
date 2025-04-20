@@ -46,7 +46,8 @@ class DatasetSave:
         self.OUTPUT_FOLDER = os.path.join(root_path, PHASE)
         folders = ['calib', 'image', 'image_label', 'bbox_img', 
               'velodyne', 'lidar_label', 'ego_state', 'extrinsic', 
-              'depth', 'semantic', 'new_view']
+              'depth', 'semantic', 'new_view', 'new_view/label',
+              'new_view/new_bbox']
 
         for folder in folders:
             directory = os.path.join(self.OUTPUT_FOLDER, folder)
@@ -68,7 +69,7 @@ class DatasetSave:
         self.DEPTH_PATH = os.path.join(self.OUTPUT_FOLDER, 'depth/{0:06}_depth_{1}.png')
         self.SEMANTIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'semantic/{0:06}_semantic_{1}.png')
         self.NEW_VIEW_PATH = os.path.join(self.OUTPUT_FOLDER, 'new_view/{0:06}_new_view_{1}.png')
-
+        self.NEW_BBOX_PATH = os.path.join(self.NEW_VIEW_PATH, 'new_bbox/{0:06}_new_bbox_{1}.png')
 
 
     def get_current_files_num(self):
@@ -178,6 +179,17 @@ class DatasetSave:
             for i in range(5)
         ]
 
+         # 新视角标签路径生成（添加以下代码）
+        new_view_label_files = [
+            os.path.join(self.OUTPUT_FOLDER, f'new_view/label/{self.captured_frame_no:06}_new_view_{i}.txt')
+            for i in range(5)
+        ]
+
+        new_bbox_files = [
+            self.NEW_BBOX_PATH.format(self.captured_frame_no, i)
+            for i in range(5)
+        ]
+
         # 其他路径保持不变
         calib_filename = self.CALIBRATION_PATH.format(self.captured_frame_no)
         lidar_label_filename = self.LIDAR_LABEL_PATH.format(self.captured_frame_no)
@@ -211,9 +223,18 @@ class DatasetSave:
                     dt["sensor_data"][[8, 9, 10, 15, 16][seg_cam]]
                 )
 
-            # 在数据保存部分添加
+            # 新视角图像保存
             for i, view_idx in enumerate([6, 23, 24, 25, 26]): 
                 save_image_data(new_view_files[i], dt["sensor_data"][view_idx])
+                # 保存对应标签
+                save_kitti_label_data(
+                    new_view_label_files[i],
+                    dt[f"image_labels_kitti_{5+i}"]  # 假设新增的5个标签存储在5-9索引
+                )
+                # save_bbox_image_data(
+                #     new_bbox_files[i],
+                #     dt[f"bbox_img_{5+i}"]  # 假设bbox_img_5到9对应新视角
+                # )
 
             # 激光雷达数据保存
             sensor_indices = [2, 19, 20, 21, 22]
@@ -233,6 +254,9 @@ class DatasetSave:
                     bbox_img_filenames[cam_idx],
                     dt[f"bbox_img{'_'+str(cam_idx) if cam_idx>0 else ''}"]
                 )
+
+            # 将新视角的label保存到新视角的文件夹
+            
             # EGO状态保存保持不变
             save_ego_data(
                 ego_state_filename,
@@ -246,7 +270,7 @@ class DatasetSave:
             # # 保存深度和语义数据
             # for i, depth_idx in enumerate([1, 11, 12]):
             #     save_depth_image_data(depth_files[i], dt["sensor_data"][depth_idx])
-            # for i, seg_idx in enumerate([8, 9, 10]):
+            # for i, seg_idx in enumerate(32， 33， 34， 35， 36]):
             #     save_semantic_image_data(semantic_files[i], dt["sensor_data"][seg_idx])
 
         self.captured_frame_no += 1
