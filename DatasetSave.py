@@ -69,7 +69,7 @@ class DatasetSave:
         self.DEPTH_PATH = os.path.join(self.OUTPUT_FOLDER, 'depth/{0:06}_depth_{1}.png')
         self.SEMANTIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'semantic/{0:06}_semantic_{1}.png')
         self.NEW_VIEW_PATH = os.path.join(self.OUTPUT_FOLDER, 'new_view/{0:06}_new_view_{1}.png')
-        self.NEW_BBOX_PATH = os.path.join(self.NEW_VIEW_PATH, 'new_bbox/{0:06}_new_bbox_{1}.png')
+        self.NEW_BBOX_PATH = os.path.join(self.OUTPUT_FOLDER, 'new_view/new_bbox/{0:06}_new_bbox_{1}.png')
 
 
     def get_current_files_num(self):
@@ -231,10 +231,12 @@ class DatasetSave:
                     new_view_label_files[i],
                     dt[f"image_labels_kitti_{5+i}"]  # 假设新增的5个标签存储在5-9索引
                 )
-                # save_bbox_image_data(
-                #     new_bbox_files[i],
-                #     dt[f"bbox_img_{5+i}"]  # 假设bbox_img_5到9对应新视角
-                # )
+                save_bbox_image_data(
+                    new_bbox_files[i],
+                    dt[f"bbox_img_{5+i}"]  # 假设bbox_img_5到9对应新视角
+                )
+            # save_bbox_image_data(new_bbox_files[1], dt["bbox_img_5"])
+            # print(new_bbox_files[0])
 
             # 激光雷达数据保存
             sensor_indices = [2, 19, 20, 21, 22]
