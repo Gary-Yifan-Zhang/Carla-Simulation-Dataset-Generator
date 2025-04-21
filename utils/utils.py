@@ -223,11 +223,25 @@ def load_extrinsic_npz(file_path, sensor_name=None):
         raise
 
 def parse_filename(filename):
-    """解析文件名获取帧号和摄像头ID"""
-    match = re.match(r"^(\d+)_camera_(\d+)\.txt$", filename)
+    """
+    解析文件名获取帧号和摄像头ID
+    
+    解析两种命名格式：
+    1. {frame_id}_camera_{camera_id}.txt
+    2. {frame_id}_new_view_{view_id}.txt
+    """
+    match = re.match(r"^(\d+)_(camera|new_view)_(\d+)\.txt$", filename)
     if not match:
         raise ValueError(f"文件名格式错误: {filename}")
-    return int(match.group(1)), int(match.group(2))
+    
+    frame_id = int(match.group(1))
+    sensor_type = match.group(2)  # camera 或 new_view
+    sensor_id = int(match.group(3))
+    
+    # 统一生成摄像头ID：camera_0 -> 0, new_view_1 -> 5+1=6
+    unified_cam_id = sensor_id if sensor_type == "camera" else 5 + sensor_id
+    
+    return frame_id, unified_cam_id
 
 
 def parse_kitti_line(line):
@@ -236,11 +250,17 @@ def parse_kitti_line(line):
     if len(parts) != 16:
         return None
     
+    # 转换类别名称
+    original_class = parts[0]
+    class_name = original_class.lower()
+    if class_name == "pedestrian":
+        class_name = "person"
+    
     return {
         "bbox": [float(parts[5]), float(parts[6]), float(parts[7]), float(parts[8])],
         "confidence": 1.0,  # KITTI标签默认置信度为1
         "class_id": class_name_to_id(parts[0]),
-        "class_name": parts[0].lower()
+        "class_name": class_name
     }
 
 def class_name_to_id(class_name):
@@ -260,11 +280,20 @@ def convert_labels(input_dir, output_dir, fps=24, resolution=(480, 320)):
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
+     # 获取所有符合格式的文件
+    label_files = []
+    for pattern in ["*_camera_*.txt", "*_new_view_*.txt"]:
+        label_files.extend(input_path.glob(pattern))
+    
+    # 按帧号排序
+    label_files.sort(key=lambda x: int(x.name.split('_')[0]))
+
+
     # 组织摄像头数据
     cameras = {}
     
     # 处理所有标签文件
-    for file in tqdm(sorted(input_path.glob("*_camera_*.txt")), desc="处理进度"):
+    for file in tqdm(label_files, desc="处理进度"):
         try:
             frame_num, cam_id = parse_filename(file.name)
             
@@ -338,6 +367,6 @@ if __name__ == "__main__":
     output_dir = f'{base_dir}/bbox_labels'
     
     try:
-        convert_labels(label_dir, output_dir, fps=24, resolution=(960, 640))
+        convert_labels(new_label_dir, output_dir, fps=24, resolution=(960, 640))
     except Exception as e:
         print(f"发生错误：{str(e)}")
