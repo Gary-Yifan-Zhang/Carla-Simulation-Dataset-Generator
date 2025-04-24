@@ -53,9 +53,9 @@ class SimulationScene:
             设置场景天气
         """
         weather = carla.WeatherParameters(
-            cloudiness=10.0,
+            cloudiness=30.0,
             precipitation=0.0,
-            sun_altitude_angle=70.0
+            sun_altitude_angle=50.0
         )
         self.world.set_weather(weather)
 
@@ -232,22 +232,22 @@ class SimulationScene:
             data["egostate"] = {
                 "location": {
                     "x": transform.location.x,
-                    "y": transform.location.y,
+                    "y": -transform.location.y,
                     "z": transform.location.z
                 },
                 "rotation": {
-                    "roll": transform.rotation.roll,
+                    "roll": -transform.rotation.roll,
                     "pitch": transform.rotation.pitch,
-                    "yaw": transform.rotation.yaw
+                    "yaw": -transform.rotation.yaw
                 },
                 "velocity": {
                     "x": velocity.x,
-                    "y": velocity.y,
+                    "y": -velocity.y,
                     "z": velocity.z
                 },
                 "acceleration": {
                     "x": acceleration.x,
-                    "y": acceleration.y,
+                    "y": -acceleration.y,
                     "z": acceleration.z
                 },
                 "extent": {  # 车辆包围盒尺寸

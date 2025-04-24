@@ -359,7 +359,7 @@ def convert_labels(input_dir, output_dir, fps=24, resolution=(480, 320)):
 
 
 if __name__ == "__main__":
-    base_dir = './data/training_20250420_153627_DynamicObjectCrossing_9'
+    base_dir = './data/training_20250422_113414_FollowLeadingVehicleWithObstacle_1'
 
     # 基于base路径定义其他路径
     label_dir = f'{base_dir}/image_label'
@@ -367,6 +367,6 @@ if __name__ == "__main__":
     output_dir = f'{base_dir}/bbox_labels'
     
     try:
-        convert_labels(new_label_dir, output_dir, fps=24, resolution=(960, 640))
+        convert_labels(label_dir, output_dir, fps=15, resolution=(960, 640))
     except Exception as e:
         print(f"发生错误：{str(e)}")

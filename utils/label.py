@@ -272,14 +272,14 @@ def get_bounding_box(actor, min_extent=0.5, is_environment_object=False):
             bbox.location.z += 0.15  # 高度增加0.4，中心点上移0.2
         
         if 'vehicle' in actor.type_id:
-            bbox.extent.x *=1.05
-            bbox.extent.y *=1.05
-            bbox.extent.z *=1.05
+            bbox.extent.x *=1.01
+            bbox.extent.y *=1.01
+            bbox.extent.z *=1.01
 
         if 'walker' in actor.type_id.lower() or 'pedestrian' in actor.type_id.lower():
             bbox.extent = carla.Vector3D(
-                x=bbox.extent.x * 1.5,
-                y=bbox.extent.y * 1.5,
+                x=bbox.extent.x * 1.3,
+                y=bbox.extent.y * 1.3,
                 z=bbox.extent.z
             )
     
@@ -331,6 +331,7 @@ def is_visible_in_camera(agent, obj, rgb_image, depth_data, intrinsic, extrinsic
         bbox_2d = get_2d_bbox_in_pixel(vertices_pixel)
         ext = obj_bbox.extent
         truncated = num_vertices_outside_camera / 8
+
         if num_visible_vertices >= 6:
             occluded = 0
         elif num_visible_vertices >= 4:
