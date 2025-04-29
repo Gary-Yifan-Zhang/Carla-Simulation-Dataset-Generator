@@ -662,6 +662,54 @@ def images_to_video(data_root, start_frame, end_frame, frame_rate=30):
     video_writer.release()
     print(f"视频已保存到: {video_path}")
 
+def new_view_to_video(data_root, start_frame, end_frame, frame_rate=30):
+    """
+    将图片序列转换为视频
+
+    参数:
+        data_root (str): 数据根目录路径
+        start_frame (int): 起始帧ID
+        end_frame (int): 结束帧ID
+        frame_rate (int): 视频帧率，默认为30
+    """
+    # 创建视频保存目录
+    video_dir = os.path.join(data_root, 'video')
+    os.makedirs(video_dir, exist_ok=True)
+    
+    # 视频输出路径
+    video_path = os.path.join(video_dir, 'new_view_3.mp4')
+    
+    # 获取图片路径列表
+    img_paths = [f"{data_root}/new_view/{frame_id:06}_new_view_3.png" for frame_id in range(start_frame, end_frame + 1)]
+    
+    # 读取第一张图片以获取视频尺寸
+    first_img = cv2.imread(img_paths[0])
+    print(f"图片尺寸: {first_img.shape}")
+    height, width, layers = first_img.shape
+    
+    # 初始化视频写入对象
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    video_writer = cv2.VideoWriter(video_path, fourcc, frame_rate, (width, height))
+    
+    total_frames = len(img_paths)
+    progress_bar = tqdm(total=total_frames, desc="生成视频进度", unit="帧")
+
+    for img_path in img_paths:
+        img = cv2.imread(img_path)
+        if img is None:
+            print(f"无法读取图片: {img_path}")
+            progress_bar.update(1)  # 即使读取失败也更新进度
+            continue
+        video_writer.write(img)
+        progress_bar.update(1)  # 更新进度条
+        progress_bar.set_postfix({"当前帧": os.path.basename(img_path)})  # 显示正在处理的文件名
+
+    progress_bar.close()  # 关闭进度条
+    
+    # 释放视频写入对象
+    video_writer.release()
+    print(f"视频已保存到: {video_path}")
+
 def read_calibration(file_path):
     """读取标定文件中的所有相机和雷达数据"""
     calibration_data = {
@@ -822,7 +870,7 @@ if __name__ == "__main__":
     
     # 输入参数
     frame_id = 1
-    data_root = "./data/4_Peds_seed47_training_20250402_173234"
+    data_root = "./data/training_20250424_113506_SignalizedJunctionLeftTurn_5"
     camera_id = 1
     lidar_id = 0
     
@@ -837,6 +885,7 @@ if __name__ == "__main__":
 
 
     # images_to_video(data_root, start_frame, end_frame, frame_rate)
+    new_view_to_video(data_root, start_frame, end_frame, frame_rate)
 
     calib_data = read_calibration(calib_path)
 

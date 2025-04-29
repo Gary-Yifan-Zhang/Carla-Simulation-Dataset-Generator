@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SCENARIO_NAME="StationaryObjectCrossing_1"
-MAIN_PY_ARGS="--no-save" 
-# MAIN_PY_ARGS="" 
+SCENARIO_NAME="SignalizedJunctionRightTurn_5"
+# MAIN_PY_ARGS="--no-save" 
+MAIN_PY_ARGS="" 
 
 tmux new-session -d -s carla_session "python scenario_runner/scenario_runner.py --scenario ${SCENARIO_NAME} --reloadWorld"
-sleep 4
+sleep 3
 tmux split-window -t carla_session "python main.py ${MAIN_PY_ARGS} --scenario-name ${SCENARIO_NAME}"
 tmux attach -t carla_session
 
