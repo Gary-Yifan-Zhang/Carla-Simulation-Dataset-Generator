@@ -164,7 +164,7 @@ class DatasetSave:
         ]
         semantic_files = [
             self.SEMANTIC_PATH.format(self.captured_frame_no, i)
-            for i, idx in enumerate([0, 1, 2])
+            for i, idx in enumerate([0, 1, 2, 3, 4])
         ]
 
         # 激光雷达路径生成（保持原始格式）
@@ -226,17 +226,16 @@ class DatasetSave:
             # 新视角图像保存
             for i, view_idx in enumerate([6, 23, 24, 25, 26]): 
                 save_image_data(new_view_files[i], dt["sensor_data"][view_idx])
-                # 保存对应标签
-                save_kitti_label_data(
-                    new_view_label_files[i],
-                    dt[f"image_labels_kitti_{5+i}"]  # 假设新增的5个标签存储在5-9索引
-                )
-                save_bbox_image_data(
-                    new_bbox_files[i],
-                    dt[f"bbox_img_{5+i}"]  # 假设bbox_img_5到9对应新视角
-                )
-            # save_bbox_image_data(new_bbox_files[1], dt["bbox_img_5"])
-            # print(new_bbox_files[0])
+                # # 保存对应标签
+                # save_kitti_label_data(
+                #     new_view_label_files[i],
+                #     dt[f"image_labels_kitti_{5+i}"]  # 假设新增的5个标签存储在5-9索引
+                # )
+                # save_bbox_image_data(
+                #     new_bbox_files[i],
+                #     dt[f"bbox_img_{5+i}"]  # 假设bbox_img_5到9对应新视角
+                # )
+
 
             # 激光雷达数据保存
             sensor_indices = [2, 19, 20, 21, 22]
@@ -272,7 +271,7 @@ class DatasetSave:
             # # 保存深度和语义数据
             # for i, depth_idx in enumerate([1, 11, 12]):
             #     save_depth_image_data(depth_files[i], dt["sensor_data"][depth_idx])
-            # for i, seg_idx in enumerate(32， 33， 34， 35， 36]):
-            #     save_semantic_image_data(semantic_files[i], dt["sensor_data"][seg_idx])
+            for i, seg_idx in enumerate([32, 33, 34, 35, 36]):
+                save_semantic_image_data(semantic_files[i], dt["sensor_data"][seg_idx])
 
         self.captured_frame_no += 1
