@@ -55,7 +55,7 @@ class SimulationScene:
         weather = carla.WeatherParameters(
             cloudiness=30.0,
             precipitation=0.0,
-            sun_altitude_angle=50.0
+            sun_altitude_angle=10.0
         )
         self.world.set_weather(weather)
 
