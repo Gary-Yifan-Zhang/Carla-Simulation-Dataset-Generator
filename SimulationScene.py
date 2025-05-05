@@ -55,7 +55,7 @@ class SimulationScene:
         weather = carla.WeatherParameters(
             cloudiness=30.0,
             precipitation=0.0,
-            sun_altitude_angle=10.0
+            sun_altitude_angle=50.0
         )
         self.world.set_weather(weather)
 
@@ -113,6 +113,7 @@ class SimulationScene:
                     self.actors["agents"].append(self.agent)
                     self._spawn_sensors(self.agent)  # 挂载传感器
                     # 设置自动驾驶模式
+                    # self.traffic_manager.set_distance_to_leading_vehicle(self.agent, 0.5) 
                     self.agent.set_autopilot(True)
                     self.world.tick()
                     return

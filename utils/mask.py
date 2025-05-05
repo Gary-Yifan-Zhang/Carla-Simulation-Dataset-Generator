@@ -36,8 +36,9 @@ nonrigid_ids = [12, 13, 18, 19]  # 行人、骑行者
 def get_segmentation_files(input_dir, camera_count=5):
     """获取所有相机的分割图像文件"""
     return [f for f in os.listdir(input_dir) 
-           if any(f.endswith(f'_camera_seg_{i}.png') for i in range(camera_count))]
-
+           if any(f.endswith(f'_camera_seg_{i}.png') or 
+                 f.endswith(f'_new_view_seg_{i}.png')  # 新增视图格式
+                 for i in range(camera_count))]
 
 def create_masks(input_dir, output_dir):
     """
@@ -60,10 +61,16 @@ def create_masks(input_dir, output_dir):
 
 
     for filename in tqdm(seg_files, desc="处理进度"):
-        if '_camera_seg_' in filename:
+        if '_seg_' in filename:
             file_path = os.path.join(input_dir, filename)
             # 提取基础文件名和后缀编号
-            parts = filename.split('_camera_seg')
+            # parts = filename.split('_camera_seg')
+            if '_camera_' in filename:
+                parts = filename.split('_camera_seg')
+            elif '_new_view_' in filename:
+                parts = filename.split('_new_view_seg')
+            else:
+                continue  # 跳过不符合格式的文件
             base_name = parts[0]
             suffix = parts[1].split('.')[0]  # 获取后缀编号（空字符串、_1、_2）
 
@@ -132,12 +139,18 @@ def apply_mask(image_dir, mask_dir, output_dir):
 
     # 获取所有原图像文件
     image_files = [f for f in os.listdir(
-        image_dir) if f.endswith('.png') and '_camera_' in f]
+        image_dir) if f.endswith('.png') and ('_camera_' in f or '_new_view_' in f)]
     print(f"开始处理 {len(image_files)} 张原图像...")
 
     for filename in tqdm(image_files, desc="处理进度"):
         # 解析文件名
-        parts = filename.split('_camera_')
+        # 解析文件名
+        if '_camera_' in filename:
+            parts = filename.split('_camera_')
+        elif '_new_view_' in filename:
+            parts = filename.split('_new_view_')
+        else:
+            continue  # 跳过不符合格式的文件
         frame_num = parts[0]  # 帧数部分，如000xxx
         camera_num = parts[1].split('.')[0]  # 相机编号，如0, 1, 2
 
@@ -338,8 +351,10 @@ def process_all_masks(base_dir):
     """
     # 定义标准路径
     image_dir = os.path.join(base_dir, "image")
+    new_image_dir = os.path.join(base_dir, "new_view")
     label_dir = os.path.join(base_dir, "image_label")
     mask_dir = os.path.join(base_dir, "mask")
+    new_mask_dir = os.path.join(base_dir, "new_mask")
     masked_images_dir = os.path.join(base_dir, "masked_images")
     bbox_dir = os.path.join(mask_dir, "bbox")
     
@@ -347,10 +362,14 @@ def process_all_masks(base_dir):
     print("\n" + "="*40)
     print("开始生成基础语义分割掩码")
     create_masks(image_dir, mask_dir)
+
+    print("\n" + "="*40)
+    print("开始生成基础语义分割掩码")
+    create_masks(new_image_dir, new_mask_dir)
     
     print("\n" + "="*40)
     print("生成叠加mask的可视化图像")
-    apply_mask(image_dir, mask_dir, masked_images_dir)
+    apply_mask(new_image_dir, new_mask_dir, masked_images_dir)
     
     print("\n" + "="*40)
     print("生成边界框掩码")
@@ -374,18 +393,21 @@ def process_all_masks(base_dir):
 
 if __name__ == "__main__":
     # 定义基础路径
-    base_dir = '../data/training_20250226_102047'
+    base_dir = './data/training_20250505_144342_FollowLeadingVehicleWithObstacle_2'
 
     # 基于base路径定义其他路径
-    image_dir = f'{base_dir}/image'
-    mask_dir = f'{base_dir}/mask'
+    # image_dir = f'{base_dir}/image'
+    # mask_dir = f'{base_dir}/mask'
     output_dir = f'{base_dir}/masked_images'
 
+    new_image_dir = os.path.join(base_dir, "new_view")
+    new_mask_dir = os.path.join(base_dir, "new_mask")
+
     # # 可以选择处理哪种mask类型
-    # create_masks(image_dir, mask_dir)
-    # apply_mask(image_dir, mask_dir, output_dir)
+    create_masks(new_image_dir, new_mask_dir)
+    apply_mask(new_image_dir, new_mask_dir, output_dir)
     # generate_bbox_masks(
     # label_dir='../data/training_20250226_102047/image_label',
     # output_dir='../data/training_20250226_102047/mask/bbox'
     # )
-    combine_masks()
+    # combine_masks()

@@ -67,7 +67,7 @@ class DatasetSave:
         self.GLOBEL_EXTRINSIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'extrinsic/{0:06}.npz')
         self.EXTRINSIC_TXT_PATH = os.path.join(self.OUTPUT_FOLDER, 'extrinsic/{0:06}.txt')
         self.DEPTH_PATH = os.path.join(self.OUTPUT_FOLDER, 'depth/{0:06}_depth_{1}.png')
-        self.SEMANTIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'semantic/{0:06}_semantic_{1}.png')
+        self.SEMANTIC_PATH = os.path.join(self.OUTPUT_FOLDER, 'new_view/{0:06}_new_view_seg_{1}.png')
         self.NEW_VIEW_PATH = os.path.join(self.OUTPUT_FOLDER, 'new_view/{0:06}_new_view_{1}.png')
         self.NEW_BBOX_PATH = os.path.join(self.OUTPUT_FOLDER, 'new_view/new_bbox/{0:06}_new_bbox_{1}.png')
 
@@ -176,7 +176,7 @@ class DatasetSave:
         # 新视角图片路径生成
         new_view_files = [
             self.NEW_VIEW_PATH.format(self.captured_frame_no, i)
-            for i in range(5)
+            for i in range(10)
         ]
 
          # 新视角标签路径生成（添加以下代码）
@@ -224,6 +224,7 @@ class DatasetSave:
                 )
 
             # 新视角图像保存
+            # for i, view_idx in enumerate([6, 23, 24, 25, 26, 27, 28, 29, 30, 31]): 
             for i, view_idx in enumerate([6, 23, 24, 25, 26]): 
                 save_image_data(new_view_files[i], dt["sensor_data"][view_idx])
                 # # 保存对应标签
@@ -272,6 +273,6 @@ class DatasetSave:
             # for i, depth_idx in enumerate([1, 11, 12]):
             #     save_depth_image_data(depth_files[i], dt["sensor_data"][depth_idx])
             for i, seg_idx in enumerate([32, 33, 34, 35, 36]):
-                save_semantic_image_data(semantic_files[i], dt["sensor_data"][seg_idx])
+                save_image_data(semantic_files[i], dt["sensor_data"][seg_idx])
 
         self.captured_frame_no += 1
