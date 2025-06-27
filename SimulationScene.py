@@ -51,12 +51,49 @@ class SimulationScene:
     def set_weather(self):
         """
             设置场景天气
+            
+            参数:
+            preset - 天气预设名称(字符串)，如果为None则使用自定义天气
+            
+            可用预设:
+            - Default: 默认值(所有参数为-1)
+            
+            白天天气:
+            - ClearNoon: 晴朗正午 - 阳光明媚，无云无雨
+            - CloudyNoon: 多云正午 - 60%云量，适合普通驾驶场景
+            - WetNoon: 湿润正午 - 地面有积水但不下雨
+            - WetCloudyNoon: 湿润多云正午 - 多云且地面湿润
+            - MidRainyNoon: 中雨正午 - 60%降水量和积水
+            - HardRainNoon: 大雨正午 - 100%降水量，能见度低
+            - SoftRainNoon: 小雨正午 - 30%降水量，轻微下雨
+            
+            日落天气:
+            - ClearSunset: 晴朗日落 - 低角度阳光，无云
+            - CloudySunset: 多云日落 - 60%云量，日落光线
+            - WetSunset: 湿润日落 - 地面积水，日落光线
+            - WetCloudySunset: 湿润多云日落 - 多云且地面湿润
+            - MidRainSunset: 中雨日落 - 60%降水量，傍晚
+            - HardRainSunset: 大雨日落 - 100%降水量，能见度低
+            - SoftRainSunset: 小雨日落 - 30%降水量，傍晚
+            
+            夜间天气:
+            - ClearNight: 晴朗夜晚 - 无云无雨，月光
+            - CloudyNight: 多云夜晚 - 60%云量，月光受阻
+            - WetNight: 湿润夜晚 - 地面有积水
+            - WetCloudyNight: 湿润多云夜晚 - 多云且地面湿润
+            - SoftRainNight: 小雨夜晚 - 30%降水量
+            - MidRainyNight: 中雨夜晚 - 60%降水量
+            - HardRainNight: 大雨夜晚 - 100%降水量，暴雨
+            
+            特殊天气:
+            - DustStorm: 沙尘暴 - 100%扬尘量，强风
         """
-        weather = carla.WeatherParameters(
-            cloudiness=30.0,
-            precipitation=0.0,
-            sun_altitude_angle=50.0
-        )
+        weather = carla.WeatherParameters.ClearNoon
+        # weather = carla.WeatherParameters(
+        #     cloudiness=30.0,
+        #     precipitation=0.0,
+        #     sun_altitude_angle=1.0
+        # )
         self.world.set_weather(weather)
 
     def set_synchrony(self):
@@ -341,7 +378,7 @@ class SimulationScene:
         try:
             spectator = self.world.get_spectator()
             transform = self.get_agent_transform()
-            bv_transform = carla.Transform(transform.location + carla.Location(z=40, x=0, y=0),
+            bv_transform = carla.Transform(transform.location + carla.Location(z=25, x=0, y=0),
                                         carla.Rotation(roll=0, yaw=0, pitch=-90))
             spectator.set_transform(bv_transform)
             return spectator
