@@ -6,7 +6,7 @@ import argparse
 from utils.mask import process_all_masks
 from utils.visual import images_to_video
 from utils.pointcloud import batch_merge
-
+import shutil
 
 def main():
     # 解析命令行参数
@@ -25,6 +25,7 @@ def main():
     if not args.no_save:
         # 初始化保存设置
         dataset_save = DatasetSave(config, args.scenario_name)
+        shutil.copy('calib.txt', dataset_save.OUTPUT_FOLDER)
     try:
         # 设置场景地图
         scene.set_map()
@@ -56,7 +57,7 @@ def main():
 
         # 新增初始化等待阶段
         print("初始化完成，开始预运行...")
-        INIT_WAIT_FRAMES = 60  
+        INIT_WAIT_FRAMES = 50  
         for _ in range(INIT_WAIT_FRAMES):
             scene.update_spectator()  # 保持视角更新
             scene.world.tick()
@@ -105,7 +106,7 @@ def main():
                     scene.world.tick()
             else:
                 # --no-save模式下只更新场景
-                # scene.update_spectator()
+                scene.update_spectator()
                 scene.world.tick()
 
             frame += 1
