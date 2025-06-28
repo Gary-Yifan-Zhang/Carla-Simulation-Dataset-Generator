@@ -5,6 +5,7 @@ import queue
 import numpy as np
 from utils.utils import config_transform_to_carla_transform, set_camera_intrinsic, object_filter_by_distance
 from utils.label import spawn_dataset
+from utils.visual import WaypointVisualizer  # 导入waypoint可视化工具
 import sys
 import os
 
@@ -42,230 +43,69 @@ class SimulationScene:
         random.seed(self.random_seed)
         np.random.seed(self.random_seed)
         
-        # 新增：waypoint可视化相关
-        self.debug = self.world.debug if self.world else None
-        self.visualized_waypoints = []  # 存储已可视化的waypoint
-        self.waypoint_lifetime = 60.0  # waypoint显示时间（秒）
+        # 初始化waypoint可视化工具（在set_map后初始化）
+        self.waypoint_visualizer = None
 
     def set_map(self):
         """
             设置场景地图
         """
         self.world = self.client.get_world()
-        self.debug = self.world.debug  # 初始化debug接口
+        # 初始化waypoint可视化工具
+        self.waypoint_visualizer = WaypointVisualizer(self.world)
 
-    def visualize_waypoints_around_vehicle(self, vehicle=None, distance=50.0, interval=2.0):
-        """
-        可视化车辆周围的waypoints
-        
-        参数:
-            vehicle: 车辆对象，如果为None则使用self.agent
-            distance: 可视化范围（米）
-            interval: waypoint间隔（米）
-        """
-        if vehicle is None:
-            vehicle = self.agent
-            
-        if vehicle is None or self.debug is None:
-            return
-            
-        # 获取车辆当前位置的waypoint
-        current_location = vehicle.get_location()
-        current_waypoint = self.world.get_map().get_waypoint(current_location)
-        
-        if current_waypoint is None:
-            return
-            
-        # 生成前方waypoints
-        waypoints = [current_waypoint]
-        wp = current_waypoint
-        
-        # 向前生成waypoints
-        forward_distance = 0
-        while forward_distance < distance:
-            next_wps = wp.next(interval)
-            if next_wps:
-                wp = next_wps[0]
-                waypoints.append(wp)
-                forward_distance += interval
-            else:
-                break
-                
-        # 向后生成waypoints
-        wp = current_waypoint
-        backward_distance = 0
-        while backward_distance < distance / 2:  # 向后显示一半距离
-            prev_wps = wp.previous(interval)
-            if prev_wps:
-                wp = prev_wps[0]
-                waypoints.insert(0, wp)  # 插入到开头
-                backward_distance += interval
-            else:
-                break
-        
-        # 可视化waypoints
-        self.draw_waypoints_with_numbers(waypoints)
+    # =================================
+    # Waypoint可视化接口方法（委托给WaypointVisualizer）
+    # =================================
 
-    def draw_waypoints_with_numbers(self, waypoints, color=None):
-        """
-        绘制waypoints并显示编号
-        
-        参数:
-            waypoints: waypoint列表
-            color: 颜色，如果为None则使用默认颜色
-        """
-        if self.debug is None:
-            return
-            
-        if color is None:
-            color = carla.Color(255, 0, 0)  # 红色
-            
-        for i, waypoint in enumerate(waypoints):
-            location = waypoint.transform.location
-            
-            # 绘制waypoint点
-            self.debug.draw_point(
-                location + carla.Location(z=0.5),  # 稍微抬高一点
-                size=0.1,
-                color=color,
-                life_time=self.waypoint_lifetime
-            )
-            
-            # 绘制编号
-            self.debug.draw_string(
-                location + carla.Location(z=1.5),  # 在点上方显示文字
-                str(i),
-                draw_shadow=True,
-                color=carla.Color(255, 255, 255),  # 白色文字
-                life_time=self.waypoint_lifetime
-            )
-            
-            # 绘制方向箭头
-            if i < len(waypoints) - 1:
-                next_location = waypoints[i + 1].transform.location
-                self.debug.draw_arrow(
-                    location + carla.Location(z=0.3),
-                    next_location + carla.Location(z=0.3),
-                    thickness=0.05,
-                    arrow_size=0.2,
-                    color=carla.Color(0, 255, 0),  # 绿色箭头
-                    life_time=self.waypoint_lifetime
-                )
+    def show_nearby_lanes(self, distance=50.0, interval=2.0):
+        """显示附近车道waypoints"""
+        if self.waypoint_visualizer and self.agent:
+            self.waypoint_visualizer.show_nearby_lanes(self.agent, distance, interval)
 
-    def visualize_lane_change_path(self, start_waypoint, target_lateral_offset, num_steps=20):
-        """
-        可视化变道路径
-        
-        参数:
-            start_waypoint: 起始waypoint
-            target_lateral_offset: 目标横向偏移（正值向右，负值向左）
-            num_steps: 变道步骤数
-        """
-        if self.debug is None:
-            return
-            
-        waypoints = []
-        current_wp = start_waypoint
-        
-        # 生成变道路径
-        for i in range(num_steps):
-            # 计算当前的横向偏移
-            progress = i / (num_steps - 1)
-            current_offset = target_lateral_offset * self._smooth_step(progress)
-            
-            # 计算偏移后的位置
-            right_vector = current_wp.transform.get_right_vector()
-            offset_location = current_wp.transform.location + carla.Location(
-                x=current_offset * right_vector.x,
-                y=current_offset * right_vector.y,
-                z=0.5
-            )
-            
-            # 创建虚拟waypoint用于可视化
-            class VirtualWaypoint:
-                def __init__(self, location):
-                    self.transform = carla.Transform(location)
-                    
-            virtual_wp = VirtualWaypoint(offset_location)
-            waypoints.append(virtual_wp)
-            
-            # 移动到下一个waypoint
-            next_wps = current_wp.next(2.0)
-            if next_wps:
-                current_wp = next_wps[0]
-            else:
-                break
-                
-        # 使用蓝色绘制变道路径
-        self.draw_waypoints_with_numbers(waypoints, carla.Color(0, 0, 255))
+    def show_all_lanes(self, distance=50.0, max_lanes=2):
+        """显示所有车道"""
+        if self.waypoint_visualizer and self.agent:
+            self.waypoint_visualizer.show_all_lanes(self.agent, distance, max_lanes)
 
-    def _smooth_step(self, t):
-        """
-        平滑步进函数，创建S形曲线
-        """
-        import math
-        return 0.5 * (1 + math.sin(math.pi * (t - 0.5)))
+    def show_lanes(self, distance=30.0):
+        """最简单的调用接口"""
+        self.show_nearby_lanes(distance)
 
-    def visualize_vehicle_path_history(self, vehicle=None, max_points=50):
-        """
-        可视化车辆行驶轨迹
-        
-        参数:
-            vehicle: 车辆对象
-            max_points: 最大轨迹点数
-        """
-        if vehicle is None:
-            vehicle = self.agent
-            
-        if vehicle is None or self.debug is None:
-            return
-            
-        # 如果没有历史轨迹列表，创建一个
-        if not hasattr(self, 'vehicle_path_history'):
-            self.vehicle_path_history = []
-            
-        # 添加当前位置到轨迹
-        current_location = vehicle.get_location()
-        self.vehicle_path_history.append(current_location)
-        
-        # 限制轨迹长度
-        if len(self.vehicle_path_history) > max_points:
-            self.vehicle_path_history.pop(0)
-            
-        # 绘制轨迹
-        for i, location in enumerate(self.vehicle_path_history):
-            # 颜色从暗到亮，表示时间先后
-            intensity = int(255 * (i + 1) / len(self.vehicle_path_history))
-            color = carla.Color(intensity, intensity, 0)  # 黄色渐变
-            
-            self.debug.draw_point(
-                location + carla.Location(z=0.2),
-                size=0.05,
-                color=color,
-                life_time=1.0
-            )
+    def debug_lane_info(self):
+        """调试车道信息"""
+        if self.waypoint_visualizer and self.agent:
+            self.waypoint_visualizer.debug_lane_info(self.agent)
 
-    def clear_debug_shapes(self):
-        """
-        清除所有debug绘制的形状
-        """
-        if self.debug:
-            # CARLA没有直接的清除方法，只能等待life_time过期
-            # 或者重新设置较短的life_time
-            pass
+    def test_lane_visualization(self):
+        """测试车道可视化"""
+        if self.waypoint_visualizer and self.agent:
+            self.waypoint_visualizer.test_lane_visualization(self.agent)
 
     def update_waypoint_visualization(self):
-        """
-        更新waypoint可视化（在每帧调用）
-        """
-        if self.agent:
-            # 可视化车辆周围的waypoints
-            self.visualize_waypoints_around_vehicle(self.agent, distance=30.0, interval=3.0)
-            
-            # 可视化车辆轨迹
-            self.visualize_vehicle_path_history(self.agent)
+        """更新waypoint可视化（在每帧调用）"""
+        if self.waypoint_visualizer and self.agent:
+            self.waypoint_visualizer.update_visualization(self.agent)
 
-    # 在原有代码基础上修改record_tick方法
+    def show_waypoints_ahead(self, distance=50.0):
+        """手动显示前方waypoints"""
+        if self.waypoint_visualizer and self.agent:
+            self.waypoint_visualizer.show_waypoints_ahead(self.agent, distance)
+
+    def show_lane_change_preview(self, lateral_offset=-3.5):
+        """预览变道路径"""
+        if self.waypoint_visualizer and self.agent:
+            self.waypoint_visualizer.show_lane_change_preview(self.agent, lateral_offset)
+
+    def clear_debug_shapes(self):
+        """清除所有debug绘制的形状"""
+        if self.waypoint_visualizer:
+            self.waypoint_visualizer.clear_debug_shapes()
+
+    # =================================
+    # 原有的核心系统方法
+    # =================================
+
     def record_tick(self):
         """
             记录帧
@@ -276,7 +116,17 @@ class SimulationScene:
         data = {"environment_objects": None, "actors": None, "agents_data": {}}
         self.frame = self.world.tick()
         
-        # 新增：更新waypoint可视化
+        # 添加调试计数器
+        if hasattr(self, 'debug_counter'):
+            self.debug_counter += 1
+        else:
+            self.debug_counter = 0
+            
+        # 每30帧打印一次调试信息
+        if self.debug_counter % 30 == 0:
+            self.debug_lane_info()
+        
+        # 更新waypoint可视化
         self.update_waypoint_visualization()
         
         # 新增ego状态记录
@@ -332,7 +182,6 @@ class SimulationScene:
             data["agents_data"][agent]["intrinsic"] = set_camera_intrinsic(image_width, image_height)
             
             # 设置传感器的carla位姿
-            # data["agents_data"][agent]["transform"] = self.actors["sensors"][agent][0].get_transform()
             data["agents_data"][agent]["transform"] = [
                 np.mat(sensor.get_transform().get_matrix())
                 for sensor in self.actors["sensors"][agent]
@@ -347,7 +196,6 @@ class SimulationScene:
                 np.mat(np.where(np.abs(sensor.get_transform().get_matrix()) < 0.0001, 0, sensor.get_transform().get_matrix())) * ego_inv_matrix
                 for sensor in self.actors["sensors"][agent]
             ]
-                     
             
             # 设置传感器的种类
             data["agents_data"][agent]["type"] = agent
@@ -377,28 +225,6 @@ class SimulationScene:
 
         return dataset
 
-    # 新增：手动触发可视化的方法
-    def show_waypoints_ahead(self, distance=50.0):
-        """
-        手动显示前方waypoints
-        """
-        if self.agent:
-            self.visualize_waypoints_around_vehicle(self.agent, distance=distance)
-
-    def show_lane_change_preview(self, lateral_offset=-3.5):
-        """
-        预览变道路径
-        
-        参数:
-            lateral_offset: 横向偏移量（负值向左，正值向右）
-        """
-        if self.agent:
-            current_location = self.agent.get_location()
-            current_waypoint = self.world.get_map().get_waypoint(current_location)
-            if current_waypoint:
-                self.visualize_lane_change_path(current_waypoint, lateral_offset)
-
-    # 保持原有的其他方法不变...
     def set_weather(self):
         """
             设置场景天气
@@ -444,7 +270,6 @@ class SimulationScene:
         """
             生成agent（通过ScenarioRunner自动寻找ego车辆）
         """
-        
         # 删除原有生成逻辑，改为自动寻找
         start_time = time.time()
         while time.time() - start_time < 10.0:  # 最多等待10秒

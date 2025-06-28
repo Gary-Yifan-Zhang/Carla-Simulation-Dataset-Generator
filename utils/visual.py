@@ -14,6 +14,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.utils import yaml_to_config
 import open3d as o3d
 import cv2
+import carla
+import math
+import numpy as np
 
 
 config = yaml_to_config("configs.yaml")
@@ -921,6 +924,611 @@ def colorize_lidar_pcd(mask, depth_map, img_array, cam_intrinsic, max_depth=100.
         vis.destroy_window()
 
     return pcd
+
+"""
+CARLA Waypoint可视化工具类
+包含所有与waypoint显示相关的功能
+"""
+
+class WaypointVisualizer:
+    """
+    Waypoint可视化工具类
+    """
+    
+    def __init__(self, world, debug=None, waypoint_lifetime=60.0):
+        """
+        初始化可视化工具
+        
+        参数:
+            world: CARLA世界对象
+            debug: CARLA debug接口，如果为None则自动获取
+            waypoint_lifetime: waypoint显示时间（秒）
+        """
+        self.world = world
+        self.debug = debug if debug is not None else world.debug
+        self.waypoint_lifetime = waypoint_lifetime
+        self.vehicle_path_history = []  # 车辆轨迹历史
+        
+    def draw_waypoints_with_numbers(self, waypoints, color=None, prefix=""):
+        """
+        绘制waypoints并显示编号（支持前缀）
+        
+        参数:
+            waypoints: waypoint列表
+            color: 颜色，如果为None则使用默认颜色
+            prefix: 编号前缀
+        """
+        if self.debug is None:
+            return
+            
+        if color is None:
+            color = carla.Color(255, 0, 0)  # 红色
+            
+        for i, waypoint in enumerate(waypoints):
+            location = waypoint.transform.location
+            
+            # 绘制waypoint点
+            self.debug.draw_point(
+                location + carla.Location(z=0.5),  # 稍微抬高一点
+                size=0.1,
+                color=color,
+                life_time=self.waypoint_lifetime
+            )
+            
+            # 绘制编号（每5个点显示一个，避免太密集）
+            if i % 5 == 0:
+                label = f"{prefix}{i}" if prefix else str(i)
+                self.debug.draw_string(
+                    location + carla.Location(z=1.5),  # 在点上方显示文字
+                    label,
+                    draw_shadow=True,
+                    color=carla.Color(255, 255, 255),  # 白色文字
+                    life_time=self.waypoint_lifetime
+                )
+            
+            # 绘制方向箭头（每3个点一个箭头）
+            if i < len(waypoints) - 1 and i % 3 == 0:
+                next_location = waypoints[i + 1].transform.location
+                self.debug.draw_arrow(
+                    location + carla.Location(z=0.3),
+                    next_location + carla.Location(z=0.3),
+                    thickness=0.05,
+                    arrow_size=0.2,
+                    color=color,
+                    life_time=self.waypoint_lifetime
+                )
+                
+    def visualize_waypoints_around_vehicle(self, vehicle, distance=50.0, interval=2.0):
+        """
+        可视化车辆周围的waypoints
+        
+        参数:
+            vehicle: 车辆对象
+            distance: 可视化范围（米）
+            interval: waypoint间隔（米）
+        """
+        if vehicle is None or self.debug is None:
+            return
+            
+        # 获取车辆当前位置的waypoint
+        current_location = vehicle.get_location()
+        current_waypoint = self.world.get_map().get_waypoint(current_location)
+        
+        if current_waypoint is None:
+            return
+            
+        # 生成前方waypoints
+        waypoints = [current_waypoint]
+        wp = current_waypoint
+        
+        # 向前生成waypoints
+        forward_distance = 0
+        while forward_distance < distance:
+            next_wps = wp.next(interval)
+            if next_wps:
+                wp = next_wps[0]
+                waypoints.append(wp)
+                forward_distance += interval
+            else:
+                break
+                
+        # 向后生成waypoints
+        wp = current_waypoint
+        backward_distance = 0
+        while backward_distance < distance / 2:  # 向后显示一半距离
+            prev_wps = wp.previous(interval)
+            if prev_wps:
+                wp = prev_wps[0]
+                waypoints.insert(0, wp)  # 插入到开头
+                backward_distance += interval
+            else:
+                break
+        
+        # 可视化waypoints
+        self.draw_waypoints_with_numbers(waypoints, carla.Color(255, 0, 0), "C")
+
+    
+    def visualize_lane_change_path(self, start_waypoint, target_lateral_offset, num_steps=10):
+        """
+        可视化变道路径
+        
+        参数:
+            start_waypoint: 起始waypoint
+            target_lateral_offset: 目标横向偏移（正值向右，负值向左）
+            num_steps: 变道步骤数
+        """
+        if self.debug is None:
+            return
+            
+        waypoints = []
+        current_wp = start_waypoint
+        
+        # 先沿着原车道前进10米，绘制原始路径
+        original_waypoints = [current_wp]
+        traveled_distance = 0.0
+        target_distance = 30.0  # 10米
+        
+        while traveled_distance < target_distance:
+            next_wps = current_wp.next(2.0)
+            if next_wps:
+                current_wp = next_wps[0]
+                original_waypoints.append(current_wp)
+                traveled_distance += 2.0
+            else:
+                break
+        
+        # 绘制前10米的原始路径（蓝色）
+        self.draw_waypoints_with_numbers(original_waypoints, carla.Color(0, 100, 255), "Orig")
+        
+        # 从10米外的waypoint开始生成变道路径
+        lane_change_start_wp = current_wp
+        
+        # 生成变道路径
+        for i in range(num_steps):
+            # 计算当前的横向偏移
+            progress = i / (num_steps - 1) if num_steps > 1 else 0
+            current_offset = target_lateral_offset * self._smooth_step(progress)
+            
+            # 计算偏移后的位置
+            right_vector = current_wp.transform.get_right_vector()
+            offset_location = current_wp.transform.location + carla.Location(
+                x=current_offset * right_vector.x,
+                y=current_offset * right_vector.y,
+                z=0.5
+            )
+            
+            # 创建虚拟waypoint用于可视化
+            class VirtualWaypoint:
+                def __init__(self, location):
+                    self.transform = carla.Transform(location)
+                    
+            virtual_wp = VirtualWaypoint(offset_location)
+            waypoints.append(virtual_wp)
+            
+            # 移动到下一个waypoint
+            next_wps = current_wp.next(2.0)
+            if next_wps:
+                current_wp = next_wps[0]
+            else:
+                break
+                
+        # 使用橙色绘制变道路径
+        self.draw_waypoints_with_numbers(waypoints, carla.Color(255, 165, 0), "Change")
+        
+        # 变道完成后，继续在新车道行驶10米
+        if waypoints:
+            # 从变道结束位置开始，找到对应的道路waypoint
+            last_change_location = waypoints[-1].transform.location
+            
+            # 在新车道中找到最近的waypoint
+            new_lane_wp = self.world.get_map().get_waypoint(last_change_location)
+            
+            if new_lane_wp:
+                after_change_waypoints = [new_lane_wp]
+                traveled_distance = 0.0
+                target_distance = 30.0  # 变道后再行驶10米
+                
+                while traveled_distance < target_distance:
+                    next_wps = new_lane_wp.next(2.0)
+                    if next_wps:
+                        new_lane_wp = next_wps[0]
+                        after_change_waypoints.append(new_lane_wp)
+                        traveled_distance += 2.0
+                    else:
+                        break
+                
+                # 绘制变道后的路径（绿色）
+                self.draw_waypoints_with_numbers(after_change_waypoints, carla.Color(0, 255, 100), "After")
+
+    def _smooth_step(self, t):
+        """
+        平滑步进函数，创建S形曲线
+        """
+        return 0.5 * (1 + math.sin(math.pi * (t - 0.5)))
+
+    def visualize_vehicle_path_history(self, vehicle, max_points=50):
+        """
+        可视化车辆行驶轨迹
+        
+        参数:
+            vehicle: 车辆对象
+            max_points: 最大轨迹点数
+        """
+        if vehicle is None or self.debug is None:
+            return
+            
+        # 添加当前位置到轨迹
+        current_location = vehicle.get_location()
+        self.vehicle_path_history.append(current_location)
+        
+        # 限制轨迹长度
+        if len(self.vehicle_path_history) > max_points:
+            self.vehicle_path_history.pop(0)
+            
+        # 绘制轨迹
+        for i, location in enumerate(self.vehicle_path_history):
+            # 颜色从暗到亮，表示时间先后
+            intensity = int(255 * (i + 1) / len(self.vehicle_path_history))
+            color = carla.Color(intensity, intensity, 0)  # 黄色渐变
+            
+            self.debug.draw_point(
+                location + carla.Location(z=0.2),
+                size=0.05,
+                color=color,
+                life_time=1.0
+            )
+            
+    def show_nearby_lanes(self, vehicle, distance=50.0, interval=2.0):
+        """
+        显示附近车道waypoints（修复对向车道显示问题）
+        
+        参数:
+            vehicle: 车辆对象
+            distance: 显示距离
+            interval: waypoint间隔
+        """
+        if vehicle is None or self.debug is None:
+            return
+            
+        # 获取当前waypoint
+        current_location = vehicle.get_location()
+        current_wp = self.world.get_map().get_waypoint(current_location)
+        
+        if current_wp is None:
+            return
+        
+        print(f"当前车道ID: {current_wp.lane_id}")
+        
+        # 显示左侧车道
+        left_wp = current_wp.get_left_lane()
+        if left_wp and left_wp.lane_type == carla.LaneType.Driving:
+            is_opposite = self._check_opposite(current_wp, left_wp)
+            left_waypoints = self._gen_waypoints(left_wp, vehicle, distance, interval, is_opposite)
+            print(f"左侧车道waypoints数量: {len(left_waypoints)}")
+            color = carla.Color(255, 150, 150) if is_opposite else carla.Color(0, 255, 0)
+            prefix = "OL" if is_opposite else "L"
+            self.draw_waypoints_with_numbers(left_waypoints, color, prefix)
+            print(f"左侧车道ID: {left_wp.lane_id} ({'对向' if is_opposite else '同向'})")
+        
+        # 显示右侧车道
+        right_wp = current_wp.get_right_lane()
+        if right_wp and right_wp.lane_type == carla.LaneType.Driving:
+            is_opposite = self._check_opposite(current_wp, right_wp)
+            right_waypoints = self._gen_waypoints(right_wp, vehicle, distance, interval, is_opposite)
+            print(f"右侧车道waypoints数量: {len(right_waypoints)}")
+            color = carla.Color(150, 150, 255) if is_opposite else carla.Color(0, 0, 255)
+            prefix = "OR" if is_opposite else "R"
+            self.draw_waypoints_with_numbers(right_waypoints, color, prefix)
+            print(f"右侧车道ID: {right_wp.lane_id} ({'对向' if is_opposite else '同向'})")
+
+    def _check_opposite(self, current_wp, target_wp):
+        """
+        改进的对向车道检测方法
+        
+        参数:
+            current_wp: 当前waypoint
+            target_wp: 目标waypoint
+            
+        返回:
+            bool: 是否为对向车道
+        """
+        # 方法1：通过朝向角度判断
+        current_yaw = current_wp.transform.rotation.yaw
+        target_yaw = target_wp.transform.rotation.yaw
+        
+        # 计算角度差
+        angle_diff = abs(current_yaw - target_yaw)
+        if angle_diff > 180:
+            angle_diff = 360 - angle_diff
+        
+        # 方法2：通过lane_id符号判断（CARLA中通常正负表示不同方向）
+        lane_id_opposite = (current_wp.lane_id > 0) != (target_wp.lane_id > 0)
+        
+        # 综合判断
+        angle_opposite = 160 <= angle_diff <= 200
+        is_opposite = angle_opposite or lane_id_opposite
+        
+        if is_opposite:
+            print(f"  检测到对向车道: 当前朝向={current_yaw:.1f}°, 目标朝向={target_yaw:.1f}°, 角度差={angle_diff:.1f}°")
+            print(f"  车道ID: 当前={current_wp.lane_id}, 目标={target_wp.lane_id}, ID符号相反={lane_id_opposite}")
+        
+        return is_opposite
+
+    def _gen_waypoints(self, start_wp, vehicle, distance, interval, is_opposite=False):
+        """
+        改进的waypoint生成方法，修复对向车道显示问题
+        
+        参数:
+            start_wp: 起始waypoint
+            vehicle: 车辆对象（用于获取ego位置）
+            distance: 生成距离
+            interval: waypoint间隔
+            is_opposite: 是否为对向车道
+            
+        返回:
+            list: waypoint列表
+        """
+        waypoints = []
+        
+        if is_opposite:
+            # 对向车道：需要找到在ego车辆前方但朝向相反的路径点
+            ego_location = vehicle.get_location()
+            
+            # 找到对向车道中距离ego车辆最近的点作为起始点
+            min_distance = float('inf')
+            best_wp = start_wp
+            
+            # 在对向车道上搜索与ego位置最接近的waypoint
+            search_wp = start_wp
+            search_attempts = 0
+            max_search_attempts = int(distance * 3 / interval)  # 扩大搜索范围
+            
+            # 先向前搜索
+            while search_attempts < max_search_attempts:
+                dist = search_wp.transform.location.distance(ego_location)
+                if dist < min_distance:
+                    min_distance = dist
+                    best_wp = search_wp
+                
+                next_wps = search_wp.next(interval)
+                if next_wps:
+                    search_wp = next_wps[0]
+                    search_attempts += 1
+                else:
+                    break
+            
+            # 再向后搜索
+            search_wp = start_wp
+            search_attempts = 0
+            while search_attempts < max_search_attempts:
+                dist = search_wp.transform.location.distance(ego_location)
+                if dist < min_distance:
+                    min_distance = dist
+                    best_wp = search_wp
+                
+                prev_wps = search_wp.previous(interval)
+                if prev_wps:
+                    search_wp = prev_wps[0]
+                    search_attempts += 1
+                else:
+                    break
+            
+            print(f"  对向车道最近点距离ego: {min_distance:.2f}m")
+            
+            # 从最佳起始点开始生成路径点
+            waypoints = [best_wp]
+            wp = best_wp
+            traveled = 0
+            
+            # 向ego车辆前进方向生成waypoints（对向车道的前进方向）
+            while traveled < distance and len(waypoints) < 50:
+                next_wps = wp.next(interval)
+                if next_wps:
+                    wp = next_wps[0]
+                    waypoints.append(wp)
+                    traveled += interval
+                else:
+                    break
+                    
+        else:
+            # 同向车道：正常的前向生成
+            waypoints = [start_wp]
+            wp = start_wp
+            traveled = 0
+            
+            while traveled < distance and len(waypoints) < 50:
+                next_wps = wp.next(interval)
+                if next_wps:
+                    wp = next_wps[0]
+                    waypoints.append(wp)
+                    traveled += interval
+                else:
+                    break
+        
+        print(f"  生成了 {len(waypoints)} 个waypoints ({'对向' if is_opposite else '同向'})")
+        return waypoints
+
+    def show_all_lanes(self, vehicle, distance=50.0, max_lanes=2):
+        """
+        显示所有车道
+        
+        参数:
+            vehicle: 车辆对象
+            distance: 显示距离
+            max_lanes: 最大车道数
+        """
+        if vehicle is None or self.debug is None:
+            return
+            
+        current_location = vehicle.get_location()
+        current_wp = self.world.get_map().get_waypoint(current_location)
+        
+        if current_wp is None:
+            return
+        
+        colors = [
+            carla.Color(255, 100, 100),  # 淡红
+            carla.Color(100, 255, 100),  # 淡绿  
+            carla.Color(100, 100, 255),  # 淡蓝
+            carla.Color(255, 255, 100),  # 淡黄
+        ]
+        
+        # 当前车道
+        current_waypoints = self._gen_waypoints(current_wp, vehicle, distance, 2.0)
+        self.draw_waypoints_with_numbers(current_waypoints, carla.Color(255, 0, 0), "C")
+        
+        # 左侧车道
+        wp = current_wp
+        for i in range(max_lanes):
+            left_wp = wp.get_left_lane()
+            if left_wp and left_wp.lane_type == carla.LaneType.Driving:
+                is_opposite = self._check_opposite(current_wp, left_wp)
+                waypoints = self._gen_waypoints(left_wp, vehicle, distance, 3.0, is_opposite)
+                
+                color = carla.Color(255, 150, 150) if is_opposite else colors[i % len(colors)]
+                prefix = f"OL{i+1}" if is_opposite else f"L{i+1}"
+                
+                self.draw_waypoints_with_numbers(waypoints, color, prefix)
+                wp = left_wp
+                print(f"左侧车道{i+1}: ID={left_wp.lane_id} ({'对向' if is_opposite else '同向'})")
+            else:
+                break
+        
+        # 右侧车道
+        wp = current_wp
+        for i in range(max_lanes):
+            right_wp = wp.get_right_lane()
+            if right_wp and right_wp.lane_type == carla.LaneType.Driving:
+                is_opposite = self._check_opposite(current_wp, right_wp)
+                waypoints = self._gen_waypoints(right_wp, vehicle, distance, 3.0, is_opposite)
+                
+                color = carla.Color(150, 150, 255) if is_opposite else colors[(i + max_lanes) % len(colors)]
+                prefix = f"OR{i+1}" if is_opposite else f"R{i+1}"
+                
+                self.draw_waypoints_with_numbers(waypoints, color, prefix)
+                wp = right_wp
+                print(f"右侧车道{i+1}: ID={right_wp.lane_id} ({'对向' if is_opposite else '同向'})")
+            else:
+                break
+
+    def debug_lane_info(self, vehicle):
+        """
+        调试车道信息
+        
+        参数:
+            vehicle: 车辆对象
+        """
+        if vehicle is None:
+            return
+            
+        current_location = vehicle.get_location()
+        current_wp = self.world.get_map().get_waypoint(current_location)
+        
+        if current_wp is None:
+            return
+        
+        print("=== 车道调试信息 ===")
+        print(f"当前位置: ({current_location.x:.2f}, {current_location.y:.2f})")
+        print(f"当前车道ID: {current_wp.lane_id}")
+        print(f"当前朝向: {current_wp.transform.rotation.yaw:.2f}°")
+        
+        # 检查左右车道
+        left_wp = current_wp.get_left_lane()
+        if left_wp:
+            print(f"左侧车道ID: {left_wp.lane_id}, 朝向: {left_wp.transform.rotation.yaw:.2f}°")
+            print(f"左侧车道类型: {left_wp.lane_type}")
+            print(f"左侧位置: ({left_wp.transform.location.x:.2f}, {left_wp.transform.location.y:.2f})")
+        
+        right_wp = current_wp.get_right_lane()
+        if right_wp:
+            print(f"右侧车道ID: {right_wp.lane_id}, 朝向: {right_wp.transform.rotation.yaw:.2f}°")
+            print(f"右侧车道类型: {right_wp.lane_type}")
+            print(f"右侧位置: ({right_wp.transform.location.x:.2f}, {right_wp.transform.location.y:.2f})")
+        
+        print("==================")
+
+    def test_lane_visualization(self, vehicle):
+        """
+        测试车道可视化
+        
+        参数:
+            vehicle: 车辆对象
+        """
+        if vehicle is None or self.debug is None:
+            print("Vehicle或debug接口未初始化")
+            return
+            
+        current_location = vehicle.get_location()
+        current_wp = self.world.get_map().get_waypoint(current_location)
+        
+        if current_wp is None:
+            print("无法获取当前waypoint")
+            return
+        
+        print("开始测试车道可视化...")
+        
+        # 强制显示当前车道
+        current_waypoints = self._gen_waypoints(current_wp, vehicle, 30.0, 2.0, False)
+        self.draw_waypoints_with_numbers(current_waypoints, carla.Color(255, 0, 0), "CURR")
+        print(f"当前车道显示了 {len(current_waypoints)} 个点")
+        
+        # 测试左侧车道
+        left_wp = current_wp.get_left_lane()
+        if left_wp and left_wp.lane_type == carla.LaneType.Driving:
+            # 按对向处理
+            left_waypoints_opp = self._gen_waypoints(left_wp, vehicle, 30.0, 2.0, True)
+            self.draw_waypoints_with_numbers(left_waypoints_opp, carla.Color(0, 255, 0), "LOPP")
+            print(f"左侧车道(对向方式)显示了 {len(left_waypoints_opp)} 个点")
+            
+            # 按同向处理
+            left_waypoints_same = self._gen_waypoints(left_wp, vehicle, 30.0, 2.0, False)
+            self.draw_waypoints_with_numbers(left_waypoints_same, carla.Color(0, 255, 255), "LSAME")
+            print(f"左侧车道(同向方式)显示了 {len(left_waypoints_same)} 个点")
+
+    def clear_debug_shapes(self):
+        """
+        清除所有debug绘制的形状（CARLA中通过life_time自动清除）
+        """
+        pass
+        
+    def update_visualization(self, vehicle):
+        """
+        更新可视化（每帧调用）
+        
+        参数:
+            vehicle: 车辆对象
+        """
+        if vehicle:
+            # 可视化车辆周围的waypoints
+            self.visualize_waypoints_around_vehicle(vehicle, distance=30.0, interval=3.0)
+            
+            # 可视化车辆轨迹
+            self.visualize_vehicle_path_history(vehicle)
+            
+    def show_waypoints_ahead(self, vehicle, distance=50.0):
+        """
+        手动显示前方waypoints
+        
+        参数:
+            vehicle: 车辆对象
+            distance: 显示距离
+        """
+        if vehicle:
+            self.visualize_waypoints_around_vehicle(vehicle, distance=distance)
+
+    def show_lane_change_preview(self, vehicle, lateral_offset=-3.5):
+        """
+        预览变道路径
+        
+        参数:
+            vehicle: 车辆对象
+            lateral_offset: 横向偏移量（负值向左，正值向右）
+        """
+        if vehicle:
+            current_location = vehicle.get_location()
+            current_waypoint = self.world.get_map().get_waypoint(current_location)
+            if current_waypoint:
+                self.visualize_lane_change_path(current_waypoint, lateral_offset)
 
 if __name__ == "__main__":
     # seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'

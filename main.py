@@ -43,8 +43,12 @@ def main():
         scene.set_actors_route()
         # 设置观察视角(与RGB相机一致)
         scene.set_spectator()
-        scene.show_waypoints_ahead(distance=30.0)
-        scene.show_lane_change_preview(lateral_offset=-3.5) 
+
+        scene.show_waypoints_ahead(distance=100.0)           # 显示当前车道
+        scene.show_lanes(distance=100.0)                     # 显示相邻车道（推荐）
+        scene.show_lane_change_preview(lateral_offset=-3.6) # 显示变道预览
+
+
         if not args.no_save: 
         # 监听传感器信息
             scene.listen_sensor_data()
