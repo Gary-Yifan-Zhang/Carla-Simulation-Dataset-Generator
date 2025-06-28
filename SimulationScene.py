@@ -308,7 +308,7 @@ class SimulationScene:
                     self.actors["agents"].append(self.agent)
                     self._spawn_sensors(self.agent)  # 挂载传感器
                     # 设置自动驾驶模式
-                    self.agent.set_autopilot(True)
+                    # self.agent.set_autopilot(True)
                     self.world.tick()
                     return
 
