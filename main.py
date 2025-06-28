@@ -44,9 +44,18 @@ def main():
         # 设置观察视角(与RGB相机一致)
         scene.set_spectator()
 
-        scene.show_waypoints_ahead(distance=100.0)           # 显示当前车道
-        scene.show_lanes(distance=100.0)                     # 显示相邻车道（推荐）
-        scene.show_lane_change_preview(lateral_offset=-3.6) # 显示变道预览
+        # 获取轨迹数据（替换原来的show调用）
+        current_lane_trajectory = scene.get_waypoints_ahead_trajectory(distance=100.0)
+        nearby_lanes_trajectories = scene.get_nearby_lanes_trajectories(distance=100.0)  
+        lane_change_trajectories = scene.get_lane_change_trajectory(lateral_offset=-3.6)
+        
+        # 打印轨迹信息
+        print(f"当前车道轨迹点数: {len(current_lane_trajectory)}")
+        print(f"相邻车道数: {len(nearby_lanes_trajectories)}")
+        print(f"变道轨迹: 原始{len(lane_change_trajectories['original'])}点, "
+              f"变道{len(lane_change_trajectories['lane_change'])}点, "
+              f"变道后{len(lane_change_trajectories['after_change'])}点")
+
 
 
         if not args.no_save: 

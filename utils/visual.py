@@ -998,24 +998,28 @@ class WaypointVisualizer:
                     life_time=self.waypoint_lifetime
                 )
                 
+        
     def visualize_waypoints_around_vehicle(self, vehicle, distance=50.0, interval=2.0):
         """
-        可视化车辆周围的waypoints
+        可视化车辆周围的waypoints并返回轨迹
         
         参数:
             vehicle: 车辆对象
             distance: 可视化范围（米）
             interval: waypoint间隔（米）
+            
+        返回:
+            List[carla.Transform]: waypoint轨迹列表
         """
         if vehicle is None or self.debug is None:
-            return
+            return []
             
         # 获取车辆当前位置的waypoint
         current_location = vehicle.get_location()
         current_waypoint = self.world.get_map().get_waypoint(current_location)
         
         if current_waypoint is None:
-            return
+            return []
             
         # 生成前方waypoints
         waypoints = [current_waypoint]
@@ -1044,26 +1048,34 @@ class WaypointVisualizer:
             else:
                 break
         
-        # 可视化waypoints
+        # 可视化waypoints（保持原有功能）
         self.draw_waypoints_with_numbers(waypoints, carla.Color(255, 0, 0), "C")
+        
+        # 返回Transform列表
+        return [wp.transform for wp in waypoints]
 
-    
     def visualize_lane_change_path(self, start_waypoint, target_lateral_offset, num_steps=10):
         """
-        可视化变道路径
+        可视化变道路径并返回轨迹
         
         参数:
             start_waypoint: 起始waypoint
             target_lateral_offset: 目标横向偏移（正值向右，负值向左）
             num_steps: 变道步骤数
+            
+        返回:
+            dict: 包含三段轨迹的字典
+                - 'original': 原始车道轨迹 List[carla.Transform]
+                - 'lane_change': 变道轨迹 List[carla.Transform]  
+                - 'after_change': 变道后轨迹 List[carla.Transform]
         """
         if self.debug is None:
-            return
+            return {'original': [], 'lane_change': [], 'after_change': []}
             
-        waypoints = []
-        current_wp = start_waypoint
+        result_trajectories = {'original': [], 'lane_change': [], 'after_change': []}
         
-        # 先沿着原车道前进10米，绘制原始路径
+        # 生成原始车道轨迹
+        current_wp = start_waypoint
         original_waypoints = [current_wp]
         traveled_distance = 0.0
         target_distance = 30.0  # 10米
@@ -1079,11 +1091,13 @@ class WaypointVisualizer:
         
         # 绘制前10米的原始路径（蓝色）
         self.draw_waypoints_with_numbers(original_waypoints, carla.Color(0, 100, 255), "Orig")
+        result_trajectories['original'] = [wp.transform for wp in original_waypoints]
         
         # 从10米外的waypoint开始生成变道路径
         lane_change_start_wp = current_wp
         
         # 生成变道路径
+        lane_change_transforms = []
         for i in range(num_steps):
             # 计算当前的横向偏移
             progress = i / (num_steps - 1) if num_steps > 1 else 0
@@ -1097,13 +1111,16 @@ class WaypointVisualizer:
                 z=0.5
             )
             
+            # 创建Transform对象
+            lane_change_transform = carla.Transform(offset_location, current_wp.transform.rotation)
+            lane_change_transforms.append(lane_change_transform)
+            
             # 创建虚拟waypoint用于可视化
             class VirtualWaypoint:
                 def __init__(self, location):
                     self.transform = carla.Transform(location)
                     
             virtual_wp = VirtualWaypoint(offset_location)
-            waypoints.append(virtual_wp)
             
             # 移动到下一个waypoint
             next_wps = current_wp.next(2.0)
@@ -1111,14 +1128,22 @@ class WaypointVisualizer:
                 current_wp = next_wps[0]
             else:
                 break
-                
+        
         # 使用橙色绘制变道路径
-        self.draw_waypoints_with_numbers(waypoints, carla.Color(255, 165, 0), "Change")
+        waypoints_for_viz = []
+        for transform in lane_change_transforms:
+            class VirtualWaypoint:
+                def __init__(self, transform):
+                    self.transform = transform
+            waypoints_for_viz.append(VirtualWaypoint(transform))
+        
+        self.draw_waypoints_with_numbers(waypoints_for_viz, carla.Color(255, 165, 0), "Change")
+        result_trajectories['lane_change'] = lane_change_transforms
         
         # 变道完成后，继续在新车道行驶10米
-        if waypoints:
+        if lane_change_transforms:
             # 从变道结束位置开始，找到对应的道路waypoint
-            last_change_location = waypoints[-1].transform.location
+            last_change_location = lane_change_transforms[-1].location
             
             # 在新车道中找到最近的waypoint
             new_lane_wp = self.world.get_map().get_waypoint(last_change_location)
@@ -1139,6 +1164,10 @@ class WaypointVisualizer:
                 
                 # 绘制变道后的路径（绿色）
                 self.draw_waypoints_with_numbers(after_change_waypoints, carla.Color(0, 255, 100), "After")
+                result_trajectories['after_change'] = [wp.transform for wp in after_change_waypoints]
+        
+        return result_trajectories
+    
 
     def _smooth_step(self, t):
         """

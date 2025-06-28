@@ -102,6 +102,31 @@ class SimulationScene:
         if self.waypoint_visualizer:
             self.waypoint_visualizer.clear_debug_shapes()
 
+    def get_waypoints_ahead_trajectory(self, distance=50.0):
+        """获取前方waypoints轨迹"""
+        if self.waypoint_visualizer and self.agent:
+            return self.waypoint_visualizer.visualize_waypoints_around_vehicle(
+                self.agent, distance, 2.0)
+        return []
+
+    def get_nearby_lanes_trajectories(self, distance=50.0):
+        """获取相邻车道轨迹（显示并返回）"""
+        # 保持原有的可视化功能
+        self.show_nearby_lanes(distance)
+        # 可以在这里添加返回相邻车道轨迹的逻辑
+        # 目前先返回空列表，如需要可以扩展
+        return []
+
+    def get_lane_change_trajectory(self, lateral_offset=-3.5):
+        """获取变道轨迹"""
+        if self.waypoint_visualizer and self.agent:
+            current_location = self.agent.get_location()
+            current_waypoint = self.world.get_map().get_waypoint(current_location)
+            if current_waypoint:
+                return self.waypoint_visualizer.visualize_lane_change_path(
+                    current_waypoint, lateral_offset)
+        return {'original': [], 'lane_change': [], 'after_change': []}
+
     # =================================
     # 原有的核心系统方法
     # =================================
