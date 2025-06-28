@@ -18,6 +18,10 @@ import carla
 import math
 import numpy as np
 
+# ===== 显示控制变量 =====
+DISPLAY = False  # 设置为False可以关闭waypoint显示，但轨迹生成逻辑不变
+# ===========================
+
 
 config = yaml_to_config("configs.yaml")
 WINDOW_WIDTH = config["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_x"]
@@ -930,6 +934,7 @@ CARLA Waypoint可视化工具类
 包含所有与waypoint显示相关的功能
 """
 
+
 class WaypointVisualizer:
     """
     Waypoint可视化工具类
@@ -958,7 +963,8 @@ class WaypointVisualizer:
             color: 颜色，如果为None则使用默认颜色
             prefix: 编号前缀
         """
-        if self.debug is None:
+        # 检查DISPLAY变量控制是否显示
+        if not DISPLAY or self.debug is None:
             return
             
         if color is None:
@@ -1011,7 +1017,7 @@ class WaypointVisualizer:
         返回:
             List[carla.Transform]: waypoint轨迹列表
         """
-        if vehicle is None or self.debug is None:
+        if vehicle is None:
             return []
             
         # 获取车辆当前位置的waypoint
@@ -1048,10 +1054,11 @@ class WaypointVisualizer:
             else:
                 break
         
-        # 可视化waypoints（保持原有功能）
-        self.draw_waypoints_with_numbers(waypoints, carla.Color(255, 0, 0), "C")
+        # 只有DISPLAY为True时才可视化waypoints
+        if DISPLAY:
+            self.draw_waypoints_with_numbers(waypoints, carla.Color(255, 0, 0), "C")
         
-        # 返回Transform列表
+        # 始终返回Transform列表，不受DISPLAY影响
         return [wp.transform for wp in waypoints]
 
     def visualize_lane_change_path(self, start_waypoint, target_lateral_offset, num_steps=10):
@@ -1069,9 +1076,6 @@ class WaypointVisualizer:
                 - 'lane_change': 变道轨迹 List[carla.Transform]  
                 - 'after_change': 变道后轨迹 List[carla.Transform]
         """
-        if self.debug is None:
-            return {'original': [], 'lane_change': [], 'after_change': []}
-            
         result_trajectories = {'original': [], 'lane_change': [], 'after_change': []}
         
         # 生成原始车道轨迹
@@ -1089,8 +1093,10 @@ class WaypointVisualizer:
             else:
                 break
         
-        # 绘制前10米的原始路径（蓝色）
-        self.draw_waypoints_with_numbers(original_waypoints, carla.Color(0, 100, 255), "Orig")
+        # 只有DISPLAY为True时才绘制可视化
+        if DISPLAY:
+            self.draw_waypoints_with_numbers(original_waypoints, carla.Color(0, 100, 255), "Orig")
+        
         result_trajectories['original'] = [wp.transform for wp in original_waypoints]
         
         # 从10米外的waypoint开始生成变道路径
@@ -1115,13 +1121,6 @@ class WaypointVisualizer:
             lane_change_transform = carla.Transform(offset_location, current_wp.transform.rotation)
             lane_change_transforms.append(lane_change_transform)
             
-            # 创建虚拟waypoint用于可视化
-            class VirtualWaypoint:
-                def __init__(self, location):
-                    self.transform = carla.Transform(location)
-                    
-            virtual_wp = VirtualWaypoint(offset_location)
-            
             # 移动到下一个waypoint
             next_wps = current_wp.next(2.0)
             if next_wps:
@@ -1129,15 +1128,18 @@ class WaypointVisualizer:
             else:
                 break
         
-        # 使用橙色绘制变道路径
-        waypoints_for_viz = []
-        for transform in lane_change_transforms:
-            class VirtualWaypoint:
-                def __init__(self, transform):
-                    self.transform = transform
-            waypoints_for_viz.append(VirtualWaypoint(transform))
+        # 只有DISPLAY为True时才绘制可视化
+        if DISPLAY:
+            # 使用橙色绘制变道路径
+            waypoints_for_viz = []
+            for transform in lane_change_transforms:
+                class VirtualWaypoint:
+                    def __init__(self, transform):
+                        self.transform = transform
+                waypoints_for_viz.append(VirtualWaypoint(transform))
+            
+            self.draw_waypoints_with_numbers(waypoints_for_viz, carla.Color(255, 165, 0), "Change")
         
-        self.draw_waypoints_with_numbers(waypoints_for_viz, carla.Color(255, 165, 0), "Change")
         result_trajectories['lane_change'] = lane_change_transforms
         
         # 变道完成后，继续在新车道行驶10米
@@ -1162,13 +1164,14 @@ class WaypointVisualizer:
                     else:
                         break
                 
-                # 绘制变道后的路径（绿色）
-                self.draw_waypoints_with_numbers(after_change_waypoints, carla.Color(0, 255, 100), "After")
+                # 只有DISPLAY为True时才绘制可视化
+                if DISPLAY:
+                    self.draw_waypoints_with_numbers(after_change_waypoints, carla.Color(0, 255, 100), "After")
+                
                 result_trajectories['after_change'] = [wp.transform for wp in after_change_waypoints]
         
         return result_trajectories
     
-
     def _smooth_step(self, t):
         """
         平滑步进函数，创建S形曲线
@@ -1183,7 +1186,7 @@ class WaypointVisualizer:
             vehicle: 车辆对象
             max_points: 最大轨迹点数
         """
-        if vehicle is None or self.debug is None:
+        if vehicle is None or not DISPLAY or self.debug is None:
             return
             
         # 添加当前位置到轨迹
@@ -1216,7 +1219,7 @@ class WaypointVisualizer:
             distance: 显示距离
             interval: waypoint间隔
         """
-        if vehicle is None or self.debug is None:
+        if vehicle is None or not DISPLAY or self.debug is None:
             return
             
         # 获取当前waypoint
@@ -1386,7 +1389,7 @@ class WaypointVisualizer:
             distance: 显示距离
             max_lanes: 最大车道数
         """
-        if vehicle is None or self.debug is None:
+        if vehicle is None or not DISPLAY or self.debug is None:
             return
             
         current_location = vehicle.get_location()
@@ -1483,8 +1486,8 @@ class WaypointVisualizer:
         参数:
             vehicle: 车辆对象
         """
-        if vehicle is None or self.debug is None:
-            print("Vehicle或debug接口未初始化")
+        if vehicle is None:
+            print("Vehicle未初始化")
             return
             
         current_location = vehicle.get_location()
@@ -1498,7 +1501,8 @@ class WaypointVisualizer:
         
         # 强制显示当前车道
         current_waypoints = self._gen_waypoints(current_wp, vehicle, 30.0, 2.0, False)
-        self.draw_waypoints_with_numbers(current_waypoints, carla.Color(255, 0, 0), "CURR")
+        if DISPLAY:
+            self.draw_waypoints_with_numbers(current_waypoints, carla.Color(255, 0, 0), "CURR")
         print(f"当前车道显示了 {len(current_waypoints)} 个点")
         
         # 测试左侧车道
@@ -1506,12 +1510,14 @@ class WaypointVisualizer:
         if left_wp and left_wp.lane_type == carla.LaneType.Driving:
             # 按对向处理
             left_waypoints_opp = self._gen_waypoints(left_wp, vehicle, 30.0, 2.0, True)
-            self.draw_waypoints_with_numbers(left_waypoints_opp, carla.Color(0, 255, 0), "LOPP")
+            if DISPLAY:
+                self.draw_waypoints_with_numbers(left_waypoints_opp, carla.Color(0, 255, 0), "LOPP")
             print(f"左侧车道(对向方式)显示了 {len(left_waypoints_opp)} 个点")
             
             # 按同向处理
             left_waypoints_same = self._gen_waypoints(left_wp, vehicle, 30.0, 2.0, False)
-            self.draw_waypoints_with_numbers(left_waypoints_same, carla.Color(0, 255, 255), "LSAME")
+            if DISPLAY:
+                self.draw_waypoints_with_numbers(left_waypoints_same, carla.Color(0, 255, 255), "LSAME")
             print(f"左侧车道(同向方式)显示了 {len(left_waypoints_same)} 个点")
 
     def clear_debug_shapes(self):
@@ -1558,6 +1564,7 @@ class WaypointVisualizer:
             current_waypoint = self.world.get_map().get_waypoint(current_location)
             if current_waypoint:
                 self.visualize_lane_change_path(current_waypoint, lateral_offset)
+
 
 if __name__ == "__main__":
     # seg_path = './data/training_20250305_130741/image/000000_camera_seg_0.png'
