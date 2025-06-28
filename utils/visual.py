@@ -710,6 +710,80 @@ def new_view_to_video(data_root, start_frame, end_frame, frame_rate=30):
     video_writer.release()
     print(f"视频已保存到: {video_path}")
 
+def generate_new_view_videos(data_root, start_frame, end_frame, frame_rate=30):
+    """
+    批量生成多视角视频
+    
+    参数:
+        data_root (str): 数据根目录路径
+        start_frame (int): 起始帧ID
+        end_frame (int): 结束帧ID
+        frame_rate (int): 视频帧率，默认为30
+    """
+    # 并行处理所有视角（0-9）
+    for view_id in range(10):  # 0到9共10个视角
+        generate_single_view_video(data_root, start_frame, end_frame, view_id, frame_rate)
+
+def generate_single_view_video(data_root, start_frame, end_frame, view_id, frame_rate=30):
+    """
+    生成单个视角的视频
+    
+    参数:
+        view_id (int): 视角编号（0-9）
+    """
+    # 创建视频保存目录
+    video_dir = os.path.join(data_root, 'video')
+    os.makedirs(video_dir, exist_ok=True)
+    
+    # 视频输出路径
+    video_path = os.path.join(video_dir, f'new_view_{view_id+1}.mp4')
+    
+    # 获取图片路径列表
+    img_paths = [
+        f"{data_root}/new_view/{frame_id:06}_new_view_{view_id}.png" 
+        for frame_id in range(start_frame, end_frame + 1)
+    ]
+    
+    # 读取第一张图片获取视频尺寸
+    first_img = cv2.imread(img_paths[0])
+    if first_img is None:
+        print(f"无法读取视角{view_id}的首帧图片: {img_paths[0]}")
+        return
+    
+    height, width = first_img.shape[:2]
+    
+    # 初始化视频写入对象
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    video_writer = cv2.VideoWriter(video_path, fourcc, frame_rate, (width, height))
+    
+    # 进度条显示视角信息
+    total_frames = len(img_paths)
+    progress_bar = tqdm(
+        total=total_frames, 
+        desc=f"生成视角{view_id}视频进度",
+        unit="帧"
+    )
+
+    # 写入视频帧
+    for img_path in img_paths:
+        img = cv2.imread(img_path)
+        if img is None:
+            print(f"缺失帧: {os.path.basename(img_path)}")
+            progress_bar.update(1)
+            continue
+            
+        video_writer.write(img)
+        progress_bar.update(1)
+        progress_bar.set_postfix({
+            "当前帧": os.path.basename(img_path),
+            "分辨率": f"{width}x{height}"
+        })
+
+    # 释放资源
+    progress_bar.close()
+    video_writer.release()
+    print(f"视角{view_id}视频已保存到: {video_path}")
+
 def read_calibration(file_path):
     """读取标定文件中的所有相机和雷达数据"""
     calibration_data = {
@@ -870,7 +944,8 @@ if __name__ == "__main__":
     
     # 输入参数
     frame_id = 1
-    data_root = "./data/training_20250424_113506_SignalizedJunctionLeftTurn_5"
+    root = '/home/yzhan536/thesis/src/Master-Theis-Volvo-3D-Reconstruction/data/custom_kitti/raw/2025_02_20'
+    data_root = f"{root}/training_20250508_103023_DynamicObjectCrossing_1"
     camera_id = 1
     lidar_id = 0
     
@@ -885,7 +960,9 @@ if __name__ == "__main__":
 
 
     # images_to_video(data_root, start_frame, end_frame, frame_rate)
-    new_view_to_video(data_root, start_frame, end_frame, frame_rate)
+    # new_view_to_video(data_root, start_frame, end_frame, frame_rate)
+    # generate_new_view_videos(data_root, start_frame=0, end_frame=250, frame_rate=24)
+
 
     calib_data = read_calibration(calib_path)
 
