@@ -66,6 +66,7 @@ The generated data is fully compatible with the KITTI dataset format, making it 
 ```python
 # Step 1: Start CARLA server
 ./CarlaUE4.sh -quality-level=Epic
+DRI_PRIME=1 ./CarlaUE4.sh
 
 # or headless mode
 DISPLAY= ./CarlaUE4.sh -opengl -RenderOffScreen
