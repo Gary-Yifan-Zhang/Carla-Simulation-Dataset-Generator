@@ -170,7 +170,7 @@ def main():
                                 lane_change_state = "changing"
                                 print(f"=== 开始变道 ===")
                                 print(f"切换到变道轨迹，包含 {len(lane_change_waypoints)} 个waypoint")
-                                ego_controller.set_target_speed(35.0)  # 变道时降速
+                                ego_controller.set_target_speed(15.0)  # 变道时降速
                                 
                         elif lane_change_stage == 1 and remaining < 3:
                             # 切换到变道后轨迹
@@ -181,20 +181,20 @@ def main():
                                 lane_change_state = "completed"
                                 print(f"=== 变道完成 ===")
                                 print(f"切换到变道后轨迹，包含 {len(after_change_waypoints)} 个waypoint")
-                                ego_controller.set_target_speed(60.0)  # 恢复正常速度
+                                ego_controller.set_target_speed(20.0)  # 恢复正常速度
                                 
-                        elif lane_change_stage == 2 and remaining < 5:
-                            # 重新获取新的变道轨迹
-                            print("=== 准备下一次变道 ===")
-                            new_lane_change_trajectories = scene.get_lane_change_trajectory(lateral_offset=lateral_offset)
+                        # elif lane_change_stage == 2 and remaining < 5:
+                        #     # 重新获取新的变道轨迹
+                        #     print("=== 准备下一次变道 ===")
+                        #     new_lane_change_trajectories = scene.get_lane_change_trajectory(lateral_offset=lateral_offset)
                             
-                            if new_lane_change_trajectories and new_lane_change_trajectories['original']:
-                                ego_controller.set_waypoints(new_lane_change_trajectories['original'])
-                                lane_change_stage = 0
-                                lane_change_state = "preparing"
-                                lane_change_trajectories = new_lane_change_trajectories
-                                ego_controller.set_target_speed(20.0)
-                                print(f"设置新的原始轨迹，包含 {len(new_lane_change_trajectories['original'])} 个waypoint")
+                        #     if new_lane_change_trajectories and new_lane_change_trajectories['original']:
+                        #         ego_controller.set_waypoints(new_lane_change_trajectories['original'])
+                        #         lane_change_stage = 0
+                        #         lane_change_state = "preparing"
+                        #         lane_change_trajectories = new_lane_change_trajectories
+                        #         ego_controller.set_target_speed(20.0)
+                        #         print(f"设置新的原始轨迹，包含 {len(new_lane_change_trajectories['original'])} 个waypoint")
                     
                     # 运行控制器
                     ego_controller.run_step()

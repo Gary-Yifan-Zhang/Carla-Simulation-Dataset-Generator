@@ -1,20 +1,22 @@
 #!/bin/bash
 
-SCENARIO_NAME="SignalizedJunctionRightTurn_5"
+SCENARIO_NAME="FollowLeadingVehicleWithObstacle_1"
 # MAIN_PY_ARGS="--no-save" 
 MAIN_PY_ARGS="" 
 
 tmux new-session -d -s carla_session "python scenario_runner/scenario_runner.py --scenario ${SCENARIO_NAME} --reloadWorld"
-sleep 3
-tmux split-window -t carla_session "python main.py ${MAIN_PY_ARGS} --scenario-name ${SCENARIO_NAME}"
+sleep 4
+tmux split-window -t carla_session "python main.py ${MAIN_PY_ARGS} --scenario-name ${SCENARIO_NAME}" 
+# tmux split-window -t carla_session "python main.py ${MAIN_PY_ARGS} --scenario-name ${SCENARIO_NAME} --use-trajectory-control" 
 tmux attach -t carla_session
+
+# python main.py --scenario-name FollowLeadingVehicle_1
+# python scenario_runner/scenario_runner.py --scenario FollowLeadingVehicle_1 --reloadWorld 
+# python main.py --no-save
 
 # Currently the following scenarios are supported:
 
-# ManeuverOppositeDirection_1
-# ManeuverOppositeDirection_2
-# ManeuverOppositeDirection_3
-# ManeuverOppositeDirection_4
+
 # SignalizedJunctionLeftTurn_1
 # SignalizedJunctionLeftTurn_2
 # SignalizedJunctionLeftTurn_3
@@ -107,8 +109,6 @@ tmux attach -t carla_session
 # FreeRide_2
 # FreeRide_3
 # FreeRide_4
-# MultiEgo_1
-# MultiEgo_2
 # ControlLoss_1
 # ControlLoss_2
 # ControlLoss_3

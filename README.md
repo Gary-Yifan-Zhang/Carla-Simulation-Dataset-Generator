@@ -65,17 +65,23 @@ The generated data is fully compatible with the KITTI dataset format, making it 
 
 ```python
 # Step 1: Start CARLA server
+cd /home/yzhan536/thesis/src/CARLA_0.9.14
 ./CarlaUE4.sh -quality-level=Epic
 
 # or headless mode
 DISPLAY= ./CarlaUE4.sh -opengl -RenderOffScreen
 
 # Step 2: Run scenario
+cd /home/yzhan536/thesis/src/Master-Theis-Volvo-3D-Reconstruction/data_generator
+conda activate carla
 python scenario_runner/scenario_runner.py --scenario CutInFrom_left_Lane --reloadWorld
 
 # Step 3: Run the generator script
 python main.py 
-```
+
+# Or run step 2 and 3 together
+./run.sh
+``` 
 
 ## 📂 Dataset Structure
 ```bash
