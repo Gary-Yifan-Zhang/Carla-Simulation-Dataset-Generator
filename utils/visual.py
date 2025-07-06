@@ -1082,7 +1082,7 @@ class WaypointVisualizer:
         current_wp = start_waypoint
         original_waypoints = [current_wp]
         traveled_distance = 0.0
-        target_distance = 30.0  # 10米
+        target_distance = 35.0  # 10米
         
         while traveled_distance < target_distance:
             next_wps = current_wp.next(2.0)
@@ -1153,7 +1153,7 @@ class WaypointVisualizer:
             if new_lane_wp:
                 after_change_waypoints = [new_lane_wp]
                 traveled_distance = 0.0
-                target_distance = 100.0  # 变道后再行驶100米
+                target_distance = 13.0  # 变道后再行驶100米
                 
                 while traveled_distance < target_distance:
                     next_wps = new_lane_wp.previous(2.0)

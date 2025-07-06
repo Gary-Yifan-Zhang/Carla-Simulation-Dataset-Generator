@@ -200,6 +200,16 @@ def batch_merge(data_folder, config_path):
         
         print(f"\r融合点云已保存至：{output_path}", end='', flush=True)
 
+        # 新增文件清理逻辑
+        for lidar_name, config in lidar_configs.items():
+            if config['index'] != 0:  # 保留主雷达数据
+                file_to_delete = f"{data_folder}/velodyne/{file_id}_lidar_{config['index']}.bin"
+                if os.path.exists(file_to_delete):
+                    os.remove(file_to_delete)
+                    print(f"\r已删除原始文件：{file_to_delete}", end='', flush=True)
+        
+        print(f"\r融合完成并清理原始文件：{file_id}", end='', flush=True)
+
 if __name__ == "__main__":
     config_path = "configs.yaml"
     data_folder = "data/training_20250409_112900"

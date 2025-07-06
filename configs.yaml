@@ -179,8 +179,8 @@ SENSOR_CONFIG:
         image_size_y: 640
         fov: 90
       TRANSFORM:
-        location: [1.0, 3.2, 1.6]
-        rotation: [0, 15, 0]
+        location: [1.0, 1.6, 1.6]
+        rotation: [0, 0, 0]
 
   NEW_RGB_4:
       BLUEPRINT: sensor.camera.rgb
@@ -199,58 +199,58 @@ SENSOR_CONFIG:
       image_size_y: 640
       fov: 90
     TRANSFORM:
-      location: [1.0, 3.2, 1.6]
-      rotation: [0, -15, 0]
+      location: [1.0, -1.6, 1.6]
+      rotation: [0, 0, 0]
 
-  NEW_DEPTH_1:
-      BLUEPRINT: sensor.camera.depth
+  NEW_RGB_6:
+      BLUEPRINT: sensor.camera.rgb
       ATTRIBUTE:
         image_size_x: 960
         image_size_y: 640
         fov: 90
       TRANSFORM:
-        location: [1.5, 0, 1.6]
+        location: [1.0, 0.5, 1.6]
         rotation: [0, 0, 0]
 
-  NEW_DEPTH_2:
-      BLUEPRINT: sensor.camera.depth
+  NEW_RGB_7:
+      BLUEPRINT: sensor.camera.rgb
       ATTRIBUTE:
         image_size_x: 960
         image_size_y: 640
         fov: 90
       TRANSFORM:
-        location: [1.0, 3.2, 1.6]
+        location: [1.0, -0.5, 1.6]
         rotation: [0, 0, 0]
 
-  NEW_DEPTH_3:
-      BLUEPRINT: sensor.camera.depth
+  NEW_RGB_8:
+      BLUEPRINT: sensor.camera.rgb
       ATTRIBUTE:
         image_size_x: 960
         image_size_y: 640
         fov: 90
       TRANSFORM:
-        location: [1.0, 3.2, 1.6]
+        location: [1.0, 0.5, 1.6]
         rotation: [0, 15, 0]
 
-  NEW_DEPTH_4:
-      BLUEPRINT: sensor.camera.depth
+  NEW_RGB_9:
+      BLUEPRINT: sensor.camera.rgb
       ATTRIBUTE:
         image_size_x: 960
         image_size_y: 640
         fov: 90
       TRANSFORM:
-        location: [1.0, -3.2, 1.6]
-        rotation: [0, 0, 0]
+        location: [1.0, -0.5, 1.6]
+        rotation: [0, -15, 0]
     
-  NEW_DEPTH_5:
-    BLUEPRINT: sensor.camera.depth
+  NEW_RGB_10:
+    BLUEPRINT: sensor.camera.rgb
     ATTRIBUTE:
       image_size_x: 960
       image_size_y: 640
       fov: 90
     TRANSFORM:
-      location: [1.0, 3.2, 1.6]
-      rotation: [0, -15, 0]
+      location: [0.5, 0.0, 1.6]
+      rotation: [0, 0, 0]
 
   NEW_SEM_1:
       BLUEPRINT: sensor.camera.semantic_segmentation
@@ -279,8 +279,8 @@ SENSOR_CONFIG:
         image_size_y: 640
         fov: 90
       TRANSFORM:
-        location: [1.0, 3.2, 1.6]
-        rotation: [0, 15, 0]
+        location: [1.0, 1.6, 1.6]
+        rotation: [0, 0, 0]
 
   NEW_SEM_4:
       BLUEPRINT: sensor.camera.semantic_segmentation
@@ -299,8 +299,58 @@ SENSOR_CONFIG:
       image_size_y: 640
       fov: 90
     TRANSFORM:
-      location: [1.0, 3.2, 1.6]
+      location: [1.0, -1.6, 1.6]
+      rotation: [0, 0, 0]
+
+  NEW_SEM_6:
+    BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE:
+      image_size_x: 960
+      image_size_y: 640
+      fov: 90
+    TRANSFORM:
+      location: [1.0, 0.5, 1.6]
+      rotation: [0, 0, 0]
+
+  NEW_SEM_7:
+    BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE:
+      image_size_x: 960
+      image_size_y: 640
+      fov: 90
+    TRANSFORM:
+      location: [1.0, -0.5, 1.6]
+      rotation: [0, 0, 0]
+
+  NEW_SEM_8:
+    BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE:
+      image_size_x: 960
+      image_size_y: 640
+      fov: 90
+    TRANSFORM:
+      location: [1.0, 0.5, 1.6]
+      rotation: [0, 15, 0]
+
+  NEW_SEM_9:
+    BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE:
+      image_size_x: 960
+      image_size_y: 640
+      fov: 90
+    TRANSFORM:
+      location: [1.0, -0.5, 1.6]
       rotation: [0, -15, 0]
+
+  NEW_SEM_10:
+    BLUEPRINT: sensor.camera.semantic_segmentation
+    ATTRIBUTE:
+      image_size_x: 960
+      image_size_y: 640
+      fov: 90
+    TRANSFORM:
+      location: [0.5, 0, 1.6]
+      rotation: [0, 0, 0]
 
 FILTER_CONFIG:
   PRELIMINARY_FILTER_DISTANCE: 70
@@ -310,6 +360,6 @@ FILTER_CONFIG:
   MIN_VISIBLE_NUM_FOR_POINT_CLOUDS: 10
 
 SAVE_CONFIG:
-  ROOT_PATH: data
+  ROOT_PATH: /home/yzhan536/thesis/src/Master-Theis-Volvo-3D-Reconstruction/data/custom_kitti/raw/2025_02_20
   STEP: 10
-  MAX_RECORD_COUNT: 150
+  MAX_RECORD_COUNT: 120

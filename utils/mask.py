@@ -367,9 +367,9 @@ def process_all_masks(base_dir):
     print("开始生成基础语义分割掩码")
     create_masks(new_image_dir, new_mask_dir)
     
-    print("\n" + "="*40)
-    print("生成叠加mask的可视化图像")
-    apply_mask(new_image_dir, new_mask_dir, masked_images_dir)
+    # print("\n" + "="*40)
+    # print("生成叠加mask的可视化图像")
+    # apply_mask(new_image_dir, new_mask_dir, masked_images_dir)
     
     print("\n" + "="*40)
     print("生成边界框掩码")
