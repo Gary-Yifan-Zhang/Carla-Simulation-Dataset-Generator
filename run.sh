@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCENARIO_NAME="DynamicObjectCrossing_4"
+SCENARIO_NAME="FollowLeadingVehicleWithObstacle_1"
 # MAIN_PY_ARGS="--no-save" 
 MAIN_PY_ARGS="" 
 

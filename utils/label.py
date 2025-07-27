@@ -65,11 +65,31 @@ def spawn_dataset(data):
         image_4 = rgb_image_4.copy()
 
 
+        # 按照之前代码，添加新视角[6, 23, 24, 25, 26]的image label保存
+        rgb_image_5 = raw_image_to_rgb_array(sensors_data[6])
+        rgb_image_6 = raw_image_to_rgb_array(sensors_data[23])
+        rgb_image_7 = raw_image_to_rgb_array(sensors_data[24])
+        rgb_image_8 = raw_image_to_rgb_array(sensors_data[25])
+        rgb_image_9 = raw_image_to_rgb_array(sensors_data[26])
+        image_5 = rgb_image_5.copy()
+        image_6 = rgb_image_6.copy()
+        image_7 = rgb_image_7.copy()
+        image_8 = rgb_image_8.copy()
+        image_9 = rgb_image_9.copy()
+
+
         depth_data = depth_image_to_array(sensors_data[1])
         depth_data_1 = depth_image_to_array(sensors_data[11])
         depth_data_2 = depth_image_to_array(sensors_data[12])
         depth_data_3 = depth_image_to_array(sensors_data[17])
         depth_data_4 = depth_image_to_array(sensors_data[18])
+
+        depth_data_5 = depth_image_to_array(sensors_data[27])
+        depth_data_6 = depth_image_to_array(sensors_data[28])
+        depth_data_7 = depth_image_to_array(sensors_data[29])
+        depth_data_8 = depth_image_to_array(sensors_data[30])
+        depth_data_9 = depth_image_to_array(sensors_data[31])
+
         semantic_lidar = np.frombuffer(sensors_data[3].raw_data, dtype=np.dtype('f4,f4, f4, f4, i4, i4'))
 
         # 对环境中的目标物体生成标签
@@ -135,6 +155,51 @@ def spawn_dataset(data):
             transform[14]
         )
 
+        image_labels_kitti_5 = process_camera_view(
+            agent,
+            environment_objects + actors,
+            image_5,
+            depth_data_5,
+            intrinsic,
+            transform[6]
+        )
+
+        image_labels_kitti_6 = process_camera_view(
+            agent,
+            environment_objects + actors,
+            image_6,
+            depth_data_6,
+            intrinsic,
+            transform[23]
+        )
+
+        image_labels_kitti_7 = process_camera_view(
+            agent,
+            environment_objects + actors,
+            image_7,
+            depth_data_7,
+            intrinsic,
+            transform[24]
+        )
+
+        image_labels_kitti_8 = process_camera_view(
+            agent,
+            environment_objects + actors,
+            image_8,
+            depth_data_8,
+            intrinsic,
+            transform[25]
+        )
+
+        image_labels_kitti_9 = process_camera_view(
+            agent,
+            environment_objects + actors,
+            image_9,
+            depth_data_9,
+            intrinsic,
+            transform[26]
+        )
+
 
         data["agents_data"][agent]["rgb_image"] = rgb_image
         data["agents_data"][agent]["bbox_img"] = image
@@ -142,11 +207,23 @@ def spawn_dataset(data):
         data["agents_data"][agent]["bbox_img_2"] = image_2   # 新增第三个摄像头标注图
         data["agents_data"][agent]["bbox_img_3"] = image_3   
         data["agents_data"][agent]["bbox_img_4"] = image_4
+        data["agents_data"][agent]["bbox_img_5"] = image_5
+        data["agents_data"][agent]["bbox_img_6"] = image_6
+        data["agents_data"][agent]["bbox_img_7"] = image_7
+        data["agents_data"][agent]["bbox_img_8"] = image_8
+        data["agents_data"][agent]["bbox_img_9"] = image_9
+
         data["agents_data"][agent]["image_labels_kitti"] = image_labels_kitti
         data["agents_data"][agent]["image_labels_kitti_1"] = image_labels_kitti_1
         data["agents_data"][agent]["image_labels_kitti_2"] = image_labels_kitti_2
         data["agents_data"][agent]["image_labels_kitti_3"] = image_labels_kitti_3
         data["agents_data"][agent]["image_labels_kitti_4"] = image_labels_kitti_4
+        data["agents_data"][agent]["image_labels_kitti_5"] = image_labels_kitti_5
+        data["agents_data"][agent]["image_labels_kitti_6"] = image_labels_kitti_6
+        data["agents_data"][agent]["image_labels_kitti_7"] = image_labels_kitti_7
+        data["agents_data"][agent]["image_labels_kitti_8"] = image_labels_kitti_8
+        data["agents_data"][agent]["image_labels_kitti_9"] = image_labels_kitti_9
+
         data["agents_data"][agent]["pc_labels_kitti"] = pc_labels_kitti
     return data
 

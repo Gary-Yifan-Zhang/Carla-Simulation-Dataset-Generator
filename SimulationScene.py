@@ -41,65 +41,6 @@ class SimulationScene:
         self.random_seed = 17  # 固定随机种子
         random.seed(self.random_seed)
         np.random.seed(self.random_seed)
-        # 新增场景运行器实例
-        self.scenario_runner = None
-        self._init_scenario_runner()
-
-        
-
-    def _init_scenario_runner(self):
-        """初始化场景运行器参数"""
-        self.args = argparse.Namespace(
-            host='127.0.0.1',
-            port=2000,
-            timeout=10.0,
-            trafficManagerPort=8001,
-            trafficManagerSeed=0,
-            sync=True,
-            scenario=self.config.get("SCENARIO", "FollowLeadingVehicleWithObstacle_2"),
-            openscenario=None,
-            openscenarioparams=None,
-            route=None,
-            agent='autopilot_agent.py',
-            agentConfig='',
-            output=True,
-            file=False,
-            junit=False,
-            json=False,
-            outputDir='',
-            configFile='',
-            additionalScenario=None,
-            debug=False,
-            reloadWorld=True,
-            record=None,
-            randomize=False,
-            repetitions=1,
-            waitForEgo=True,
-            # 以下参数在help中列出但未在代码中使用
-            version=False,
-            list=False,
-            osc=False
-        )
-        self.client = carla.Client(self.args.host, self.args.port)
-
-        # self.scenario_runner = ScenarioRunner(self.args)
-        print("Init")
-
-    def run_scenario(self):
-        """执行场景"""
-        try:
-            success = self.scenario_runner.run()
-            print(f"场景执行 {'成功' if success else '失败'}")
-
-            time.sleep(5)  # 延长等待时间至5秒
-            self.world = self.client.get_world()  # 刷新world对象
-            
-            return success
-        except Exception as e:
-            logging.error(f"场景执行异常: {str(e)}")
-            return False
-        finally:
-            self.scenario_runner.destroy()
 
     def set_map(self):
         """
@@ -107,12 +48,16 @@ class SimulationScene:
         """
         self.world = self.client.get_world()
 
-
     def set_weather(self):
         """
             设置场景天气
         """
-        pass
+        weather = carla.WeatherParameters(
+            cloudiness=10.0,
+            precipitation=0.0,
+            sun_altitude_angle=70.0
+        )
+        self.world.set_weather(weather)
 
     def set_synchrony(self):
         """

@@ -4,6 +4,11 @@ import math
 import numpy as np
 import logging
 import logging
+import json
+import argparse
+from pathlib import Path
+from tqdm import tqdm
+import re  # 添加这行导入
 
 def yaml_to_config(file):
     """
@@ -216,11 +221,152 @@ def load_extrinsic_npz(file_path, sensor_name=None):
     except Exception as e:
         logging.error(f"加载外参文件失败: {str(e)}")
         raise
+
+def parse_filename(filename):
+    """
+    解析文件名获取帧号和摄像头ID
     
+    解析两种命名格式：
+    1. {frame_id}_camera_{camera_id}.txt
+    2. {frame_id}_new_view_{view_id}.txt
+    """
+    match = re.match(r"^(\d+)_(camera|new_view)_(\d+)\.txt$", filename)
+    if not match:
+        raise ValueError(f"文件名格式错误: {filename}")
+    
+    frame_id = int(match.group(1))
+    sensor_type = match.group(2)  # camera 或 new_view
+    sensor_id = int(match.group(3))
+    
+    # 统一生成摄像头ID：camera_0 -> 0, new_view_1 -> 5+1=6
+    unified_cam_id = sensor_id if sensor_type == "camera" else 5 + sensor_id
+    
+    return frame_id, unified_cam_id
+
+
+def parse_kitti_line(line):
+    """解析单行KITTI标签数据"""
+    parts = line.strip().split()
+    if len(parts) != 16:
+        return None
+    
+    # 转换类别名称
+    original_class = parts[0]
+    class_name = original_class.lower()
+    if class_name == "pedestrian":
+        class_name = "person"
+    
+    return {
+        "bbox": [float(parts[5]), float(parts[6]), float(parts[7]), float(parts[8])],
+        "confidence": 1.0,  # KITTI标签默认置信度为1
+        "class_id": class_name_to_id(parts[0]),
+        "class_name": class_name
+    }
+
+def class_name_to_id(class_name):
+    """将类别名称转换为ID"""
+    class_map = {"pedestrian": 0, "car": 1, "cyclist": 2}
+    return class_map.get(class_name.lower(), -1)
+
+def convert_labels(input_dir, output_dir, fps=24, resolution=(480, 320)):
+    """
+    主转换函数
+    :param input_dir: 输入目录路径
+    :param output_dir: 输出目录路径
+    :param fps: 视频帧率（默认24）
+    :param resolution: 视频分辨率（默认480x320）
+    """
+    input_path = Path(input_dir)
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+     # 获取所有符合格式的文件
+    label_files = []
+    for pattern in ["*_camera_*.txt", "*_new_view_*.txt"]:
+        label_files.extend(input_path.glob(pattern))
+    
+    # 按帧号排序
+    label_files.sort(key=lambda x: int(x.name.split('_')[0]))
+
+
+    # 组织摄像头数据
+    cameras = {}
+    
+    # 处理所有标签文件
+    for file in tqdm(label_files, desc="处理进度"):
+        try:
+            frame_num, cam_id = parse_filename(file.name)
+            
+            # 初始化摄像头数据结构
+            if cam_id not in cameras:
+                cameras[cam_id] = {
+                    "video_info": {
+                        "input_path": str(file.resolve()),
+                        "output_video": f"results/camera_{cam_id}/annotated_video.mp4",
+                        "fps": fps,
+                        "total_frames": 0,
+                        "resolution": list(resolution)
+                    },
+                    "detections": []
+                }
+             # 读取检测数据
+            with open(file, 'r') as f:
+                detections = [parse_kitti_line(l) for l in f if l.strip()]
+                detections = [d for d in detections if d is not None]
+            
+            # 构建帧数据
+            frame_data = {
+                "frame_number": frame_num,
+                "timestamp": round(frame_num / fps, 3),
+                "detections": detections
+            }
+            
+            cameras[cam_id]["detections"].append(frame_data)
+            cameras[cam_id]["video_info"]["total_frames"] += 1
+
+        except Exception as e:
+            print(f"处理文件 {file.name} 出错: {str(e)}")
+            continue
+
+     # 保存每个摄像头数据
+    for cam_id, data in cameras.items():
+        # 按帧号排序
+        data["detections"].sort(key=lambda x: x["frame_number"])
+        
+        # 补全缺失帧
+        full_detections = []
+        expected_frame = 0
+        for d in data["detections"]:
+            while expected_frame < d["frame_number"]:
+                full_detections.append({
+                    "frame_number": expected_frame,
+                    "timestamp": round(expected_frame / fps, 3),
+                    "detections": []
+                })
+                expected_frame += 1
+            full_detections.append(d)
+            expected_frame += 1
+        
+        data["detections"] = full_detections
+        data["video_info"]["total_frames"] = len(full_detections)
+
+        # 保存文件
+        output_file = output_path / f"camera_{cam_id}_annotations.json"
+        with open(output_file, 'w') as f:
+            json.dump(data, f, indent=2)
+        
+        print(f"摄像头{cam_id}数据已保存至: {output_file}")
+
+
 if __name__ == "__main__":
-    # 示例1：加载全部数据
-    all_extrinsics, mapping = load_extrinsic_npz("./data/training_20250326_111957/extrinsic/000001.npz")
-    print(f"包含传感器: {list(all_extrinsics.keys())}")
-    print(f"RGB传感器矩阵:\n{all_extrinsics['RGB']}")
-    print(f"LIDAR传感器矩阵:\n{all_extrinsics['LIDAR']}")
-    print(f"SUB RGB1传感器矩阵:\n{all_extrinsics['SUB_RGB_1']}")
+    base_dir = './data/training_20250420_153627_DynamicObjectCrossing_9'
+
+    # 基于base路径定义其他路径
+    label_dir = f'{base_dir}/image_label'
+    new_label_dir = f'{base_dir}/new_view/label'
+    output_dir = f'{base_dir}/bbox_labels'
+    
+    try:
+        convert_labels(new_label_dir, output_dir, fps=24, resolution=(960, 640))
+    except Exception as e:
+        print(f"发生错误：{str(e)}")
